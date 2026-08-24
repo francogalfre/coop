@@ -40,7 +40,7 @@ packages/mcp/       TypeScript — presence + conflict MCP server
 ```
 make dev          # relay + web
 make test         # go test ./... && pnpm test
-make check        # gofmt + go vet + biome + tsc --noEmit
+make check        # gofmt + go vet + oxlint + tsc --noEmit
 ```
 
 ## Rules

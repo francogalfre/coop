@@ -1,0 +1,41 @@
+#!/bin/sh
+# Fast checks on staged changes. The test suite runs pre-push.
+# Any tool that isn't installed yet is skipped with a note, so this hook
+# works from the first commit and gets stricter as the repo grows.
+
+note() { echo "pre-commit: $*"; }
+fail() { echo "pre-commit: $*" >&2; exit 1; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+go_files=$(echo "$staged" | grep '\.go$' || true)
+ts_files=$(echo "$staged" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$' || true)
+
+if [ -n "$go_files" ]; then
+  if command -v gofmt >/dev/null 2>&1; then
+    unformatted=$(echo "$go_files" | xargs gofmt -l)
+    [ -n "$unformatted" ] && fail "run gofmt -w on:\n$unformatted"
+  else
+    note "gofmt not found, skipping Go format check"
+  fi
+
+  if command -v go >/dev/null 2>&1; then
+    for mod in $(find . -name go.mod -not -path './node_modules/*'); do
+      dir=$(dirname "$mod")
+      (cd "$dir" && go vet ./...) || fail "go vet failed in $dir"
+    done
+  else
+    note "go not found, skipping go vet"
+  fi
+fi
+
+if [ -n "$ts_files" ]; then
+  if [ -x node_modules/.bin/oxlint ]; then
+    echo "$ts_files" | xargs node_modules/.bin/oxlint || fail "oxlint failed"
+  else
+    note "oxlint not installed, skipping TS lint"
+  fi
+fi
+
+exit 0
