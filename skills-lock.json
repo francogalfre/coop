@@ -37,12 +37,6 @@
       "skillPath": "skills/golang-error-handling/SKILL.md",
       "computedHash": "3020583350324ed9b2483df0a7e0f9290c47070e609c0a900479fcbe88d46368"
     },
-    "impeccable": {
-      "source": "pbakaus/impeccable",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "655e90deaf8ba3028ad6bbc417d021c27bd3d34377bde750b6181d754914f101"
-    },
     "improve-codebase-architecture": {
       "source": "mattpocock/skills",
       "sourceType": "github",
