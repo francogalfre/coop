@@ -1,1 +1,40 @@
+# dependencies
 node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+out/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# task cache
+.turbo/
+
+# go
+*.test
+coverage.out
+
+# env
+.env
+.env.*
+!.env.example
+
+# probe captures — real hook payloads, may contain secrets
+scripts/captures/
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# os
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

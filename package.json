@@ -1,12 +1,22 @@
 {
-  "name": "coop",
-  "private": true,
-  "packageManager": "pnpm@9.15.0",
-  "scripts": {
-    "lint": "oxlint .",
-    "prepare": "git config core.hooksPath .githooks"
-  },
-  "devDependencies": {
-    "oxlint": "^1.80.0"
-  }
+    "name": "coop",
+    "private": true,
+    "packageManager": "pnpm@9.15.0",
+    "engines": {
+        "node": ">=20.11"
+    },
+    "scripts": {
+        "dev": "turbo run dev",
+        "build": "turbo run build",
+        "test": "turbo run test",
+        "typecheck": "turbo run typecheck",
+        "lint": "oxlint .",
+        "clean": "turbo run clean",
+        "prepare": "git config core.hooksPath .githooks"
+    },
+    "devDependencies": {
+        "oxlint": "^1.80.0",
+        "turbo": "^2.10.11",
+        "typescript": "^7.0.2"
+    }
 }
