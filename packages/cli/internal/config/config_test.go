@@ -1,0 +1,103 @@
+package config
+
+import "testing"
+
+func TestLoadDefaultsRelayURL(t *testing.T) {
+	t.Setenv("COOP_RELAY_URL", "")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.RelayURL != defaultRelayURL {
+		t.Fatalf("got %q, want default %q", cfg.RelayURL, defaultRelayURL)
+	}
+}
+
+func TestLoadReadsRelayURLFromEnv(t *testing.T) {
+	t.Setenv("COOP_RELAY_URL", "http://relay.example:9000")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.RelayURL != "http://relay.example:9000" {
+		t.Fatalf("got %q, want http://relay.example:9000", cfg.RelayURL)
+	}
+}
+
+func TestLoadReadsSessionIDFromEnv(t *testing.T) {
+	t.Setenv("COOP_SESSION_ID", "sess-explicit")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.SessionID != "sess-explicit" {
+		t.Fatalf("got %q, want sess-explicit", cfg.SessionID)
+	}
+}
+
+func TestLoadGeneratesSessionIDWhenUnset(t *testing.T) {
+	t.Setenv("COOP_SESSION_ID", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.SessionID == "" {
+		t.Fatal("got empty session id, want a generated one")
+	}
+}
+
+func TestLoadDefaultsHookAddr(t *testing.T) {
+	t.Setenv("COOP_HOOK_ADDR", "")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.HookAddr != defaultHookAddr {
+		t.Fatalf("got %q, want default %q", cfg.HookAddr, defaultHookAddr)
+	}
+}
+
+func TestLoadReadsHookAddrFromEnv(t *testing.T) {
+	t.Setenv("COOP_HOOK_ADDR", "127.0.0.1:9999")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.HookAddr != "127.0.0.1:9999" {
+		t.Fatalf("got %q, want 127.0.0.1:9999", cfg.HookAddr)
+	}
+}
+
+func TestLoadGeneratesUniqueSessionIDs(t *testing.T) {
+	t.Setenv("COOP_SESSION_ID", "")
+
+	first, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	second, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if first.SessionID == second.SessionID {
+		t.Fatalf("got the same session id twice: %q", first.SessionID)
+	}
+}

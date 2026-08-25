@@ -1,0 +1,192 @@
+package hooks
+
+import (
+	"encoding/json"
+	"fmt"
+	"os/user"
+
+	"github.com/francogalfre/coop/packages/cli/internal/redact"
+)
+
+const textLimit = 8192
+
+// buildEventBody can emit more than one protocol event per hook invocation
+// (e.g. PostToolUse also emits file.touched), so seq is drawn from nextSeq
+// once per event, not once per call.
+func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
+	var bodies [][]byte
+
+	emit := func(fields map[string]any) error {
+		return emitEnvelope(&bodies, nextSeq, sessionID, fields)
+	}
+
+	switch hookEvent {
+	case "SessionStart":
+		if err := emitSessionStart(emit, payload, red); err != nil {
+			return nil, err
+		}
+
+	case "SessionEnd":
+		if err := emitSessionEnd(emit, payload); err != nil {
+			return nil, err
+		}
+
+	case "PreToolUse":
+		if err := emitToolCall(emit, payload, red); err != nil {
+			return nil, err
+		}
+
+	case "PostToolUse":
+		if err := emitToolResult(emit, payload, red); err != nil {
+			return nil, err
+		}
+
+	case "Stop":
+		if err := emitStop(emit, payload, red); err != nil {
+			return nil, err
+		}
+
+	default:
+		redactedPayload, _ := red.Value(payload)
+		if err := emit(map[string]any{"type": "hook." + hookEvent, "raw": redactedPayload}); err != nil {
+			return nil, err
+		}
+	}
+
+	return bodies, nil
+}
+
+func emitSessionStart(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+	cwd, _ := red.Text(stringField(payload, "cwd"))
+
+	return emit(map[string]any{
+		"type":    "session.start",
+		"harness": "claude-code",
+		"cwd":     cwd,
+		"owner":   actorFields(),
+	})
+}
+
+func emitToolCall(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+	toolName, _ := red.Text(stringField(payload, "tool_name"))
+	if toolName == "" {
+		// defensive: the relay schema requires tool_name min length 1; a
+		// blank one here means a hook payload we don't fully understand yet.
+		return nil
+	}
+
+	toolUseID, _ := red.Text(stringField(payload, "tool_use_id"))
+
+	input, err := redactedTextFrom(payload["tool_input"], red)
+	if err != nil {
+		return err
+	}
+
+	return emit(map[string]any{
+		"type":        "tool.call",
+		"tool_name":   toolName,
+		"tool_use_id": toolUseID,
+		"input":       input,
+	})
+}
+
+func emitToolResult(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+	rawToolName := stringField(payload, "tool_name")
+
+	toolName, _ := red.Text(rawToolName)
+	if toolName == "" {
+		return nil
+	}
+
+	toolUseID, _ := red.Text(stringField(payload, "tool_use_id"))
+
+	output, err := redactedTextFrom(payload["tool_response"], red)
+	if err != nil {
+		return err
+	}
+
+	if err := emit(map[string]any{
+		"type":        "tool.result",
+		"tool_name":   toolName,
+		"tool_use_id": toolUseID,
+		"output":      output,
+	}); err != nil {
+		return err
+	}
+
+	if touched, ok := fileTouchedFields(rawToolName, payload, red); ok {
+		touched["tool_use_id"] = toolUseID
+		return emit(touched)
+	}
+
+	return nil
+}
+
+func emitStop(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+	if err := emit(map[string]any{"type": "agent.turn_end"}); err != nil {
+		return err
+	}
+
+	text, err := redactedTextFrom(payload["last_assistant_message"], red)
+	if err != nil {
+		return err
+	}
+
+	return emit(map[string]any{"type": "agent.text", "text": text})
+}
+
+// emitSessionEnd passes through payload["reason"] only when it matches the
+// protocol's enum (completed|cancelled|error) -- an unrecognized value like
+// Claude Code's observed "other" is omitted rather than sent as invalid.
+func emitSessionEnd(emit func(map[string]any) error, payload map[string]any) error {
+	fields := map[string]any{"type": "session.end"}
+
+	switch reason := stringField(payload, "reason"); reason {
+	case "completed", "cancelled", "error":
+		fields["reason"] = reason
+	}
+
+	return emit(fields)
+}
+
+func stringField(fields map[string]any, key string) string {
+	if s, ok := fields[key].(string); ok {
+		return s
+	}
+
+	return ""
+}
+
+func redactedTextFrom(v any, red *redact.Redactor) (map[string]any, error) {
+	if v == nil {
+		return map[string]any{"text": "", "redactions": 0, "truncated": false}, nil
+	}
+
+	redactedVal, count := red.Value(v)
+
+	b, err := json.Marshal(redactedVal)
+	if err != nil {
+		return nil, fmt.Errorf("hooks: marshal redacted field: %w", err)
+	}
+
+	text := string(b)
+	truncated := false
+
+	if len(text) > textLimit {
+		text = text[:textLimit]
+		truncated = true
+	}
+
+	return map[string]any{"text": text, "redactions": count, "truncated": truncated}, nil
+}
+
+func actorFields() map[string]string {
+	id, name := "local", "local"
+
+	if u, err := user.Current(); err == nil && u.Username != "" {
+		id = u.Username
+		name = u.Username
+	}
+
+	return map[string]string{"id": id, "display_name": name}
+}
