@@ -12,11 +12,22 @@ never by parsing terminal output.
 
 Two capture modes, both required:
 
-- **attach** — user keeps their normal TUI session. We install HTTP hooks that
-  POST events to the relay. Steering is delivered by returning
-  `additionalContext` from a hook. Blocking is `exit 2` on `PreToolUse`.
-- **run** — `coop run -- claude` wraps the agent in a pty. Same hook events,
-  plus we own stdin, so steering is immediate.
+- **attach** — user keeps their normal TUI session. We install each detected
+  harness's native hook/plugin mechanism, which POSTs (or forwards) events to
+  a local server `coop attach` runs, which redacts and forwards to the relay.
+  Steering delivery is harness-specific (Claude Code: `additionalContext` on
+  a hook response; opencode: `client.tui.appendPrompt`; pi:
+  `pi.sendUserMessage(text, {deliverAs:"steer"})`). Blocking is `exit 2` on
+  `PreToolUse` for Claude Code; other harnesses have their own veto shape,
+  out of scope for now.
+- **run** — `coop run -- claude` wraps the agent in a pty. Same hook/plugin
+  wiring, plus we own stdin, so steering is immediate for harnesses without a
+  native injection primitive.
+
+`packages/cli/internal/harness/` holds one adapter per harness (Claude Code,
+opencode, pi today), each implementing detect/install/uninstall. Unsupported
+harnesses fall back to pty-only wrapping with degraded event fidelity — see
+`.agents/rules/harnesses.md`.
 
 We never parse ANSI to understand what happened. The pty is a keyboard, not a
 data source.
@@ -27,7 +38,7 @@ data source.
 apps/relay/         Go — HTTP hook ingest, WebSocket fanout, permissions
 apps/web/           Next.js — the session viewer
 packages/protocol/  TypeScript — event schemas (Zod), shared with web
-packages/cli/       TypeScript — coop attach / coop run
+packages/cli/       Go — coop attach / coop run, harness adapters
 packages/mcp/       TypeScript — presence + conflict MCP server
 .agents/            context, conventions, and rules/ — read these first
 ```
@@ -38,9 +49,10 @@ packages/mcp/       TypeScript — presence + conflict MCP server
      than no command. -->
 
 ```
-make dev          # relay + web
-make test         # go test ./... && pnpm test
-make check        # gofmt + go vet + oxlint + tsc --noEmit
+pnpm dev          # relay + web (scripts/dev.sh)
+pnpm test         # go test ./... (both modules) && pnpm test
+pnpm lint         # oxlint
+pnpm typecheck    # tsc --noEmit
 ```
 
 ## Rules

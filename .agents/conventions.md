@@ -24,3 +24,8 @@ Example: `feature(protocol): add tool.blocked event`, `fix(mcp): tool calling lo
 
 - If a function needs a comment to explain what it does, rename it.
 - Comments explain why, never what.
+
+## Comments
+
+- Never write comments in the code, only write them if necessary and one line
+  to make something easy to understand or separate logic.
