@@ -24,21 +24,23 @@ func doIngest(t *testing.T, registry *presence.Registry, store *stream.Store, bo
 }
 
 func TestHandleIngestValidEvents(t *testing.T) {
+	now := time.Now().UTC()
+
 	tests := []struct {
 		name string
 		body string
 	}{
 		{
 			name: "session.start",
-			body: `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`,
+			body: `{"v":1,"session_id":"sess-a","seq":0,"ts":"` + now.Format(time.RFC3339) + `","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`,
 		},
 		{
 			name: "file.touched",
-			body: `{"v":1,"session_id":"sess-a","seq":1,"ts":"2026-08-24T10:00:05Z","type":"file.touched","path":"src/foo.ts","mode":"write"}`,
+			body: `{"v":1,"session_id":"sess-a","seq":1,"ts":"` + now.Add(5*time.Second).Format(time.RFC3339) + `","type":"file.touched","path":"src/foo.ts","mode":"write"}`,
 		},
 		{
 			name: "session.end",
-			body: `{"v":1,"session_id":"sess-a","seq":2,"ts":"2026-08-24T10:05:00Z","type":"session.end"}`,
+			body: `{"v":1,"session_id":"sess-a","seq":2,"ts":"` + now.Add(5*time.Minute).Format(time.RFC3339) + `","type":"session.end"}`,
 		},
 	}
 
