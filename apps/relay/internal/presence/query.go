@@ -14,6 +14,7 @@ type Signal struct {
 type SessionSummary struct {
 	SessionID string    `json:"session_id"`
 	Owner     string    `json:"owner"`
+	Harness   string    `json:"harness"`
 	StartedAt time.Time `json:"started_at"`
 	Active    bool      `json:"active"`
 }
@@ -69,6 +70,7 @@ func (r *Registry) ActiveSessions(repo string) []SessionSummary {
 		summaries = append(summaries, SessionSummary{
 			SessionID: sessionID,
 			Owner:     session.Owner,
+			Harness:   session.Harness,
 			StartedAt: session.StartedAt,
 			Active:    true,
 		})

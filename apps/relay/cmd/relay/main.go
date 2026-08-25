@@ -8,6 +8,7 @@ import (
 
 	"github.com/francogalfre/coop/apps/relay/internal/config"
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
+	"github.com/francogalfre/coop/apps/relay/internal/stream"
 	"github.com/francogalfre/coop/apps/relay/internal/transport/httpapi"
 )
 
@@ -19,6 +20,8 @@ const (
 func main() {
 	cfg := config.Load()
 	registry := presence.New()
+	store := stream.New()
+	mailbox := stream.NewMailbox()
 
 	go func() {
 		ticker := time.NewTicker(sweepInterval)
@@ -31,7 +34,7 @@ func main() {
 
 	log.Printf("relay listening on %s", cfg.Addr)
 
-	if err := http.ListenAndServe(cfg.Addr, httpapi.NewRouter(registry)); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := http.ListenAndServe(cfg.Addr, httpapi.NewRouter(registry, store, mailbox)); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("relay: listen on %s: %v", cfg.Addr, err)
 	}
 }

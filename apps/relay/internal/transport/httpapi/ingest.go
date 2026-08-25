@@ -3,10 +3,12 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
+	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
 type ingestEvent struct {
@@ -16,7 +18,8 @@ type ingestEvent struct {
 	TS        string `json:"ts"`
 	Type      string `json:"type"`
 
-	Cwd string `json:"cwd"`
+	Cwd     string `json:"cwd"`
+	Harness string `json:"harness"`
 
 	Owner struct {
 		ID          string `json:"id"`
@@ -39,11 +42,17 @@ func parseTimestamp(ts string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("ts: invalid RFC3339 timestamp %q", ts)
 }
 
-func handleIngest(registry *presence.Registry) http.HandlerFunc {
+func handleIngest(registry *presence.Registry, store *stream.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "malformed JSON body")
+			return
+		}
+
 		var event ingestEvent
 
-		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		if err := json.Unmarshal(body, &event); err != nil {
 			writeError(w, http.StatusBadRequest, "malformed JSON body")
 			return
 		}
@@ -82,7 +91,7 @@ func handleIngest(registry *presence.Registry) http.HandlerFunc {
 				return
 			}
 
-			registry.SessionStarted(event.SessionID, event.Cwd, event.Owner.DisplayName, at)
+			registry.SessionStarted(event.SessionID, event.Cwd, event.Owner.DisplayName, event.Harness, at)
 		case "session.end":
 			registry.SessionEnded(event.SessionID, at)
 		case "file.touched":
@@ -101,6 +110,8 @@ func handleIngest(registry *presence.Registry) http.HandlerFunc {
 				return
 			}
 		}
+
+		store.Append(event.SessionID, json.RawMessage(body))
 
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
 	}

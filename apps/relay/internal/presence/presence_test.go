@@ -9,13 +9,13 @@ func TestSessionLifecycle(t *testing.T) {
 	r := New()
 	start := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", start)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", start)
 
 	active := r.ActiveSessions("/repo")
 	if len(active) != 1 {
 		t.Fatalf("expected 1 active session, got %d", len(active))
 	}
-	if active[0].SessionID != "sess-a" || active[0].Owner != "Alice" {
+	if active[0].SessionID != "sess-a" || active[0].Owner != "Alice" || active[0].Harness != "claude-code" {
 		t.Fatalf("unexpected session summary: %+v", active[0])
 	}
 
@@ -40,7 +40,7 @@ func TestFileTouchedKnownSession(t *testing.T) {
 	r := New()
 	now := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", now)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", now)
 
 	if err := r.FileTouched("sess-a", "src/foo.ts", "write", now); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -56,7 +56,7 @@ func TestQueryRespectsWindow(t *testing.T) {
 	r := New()
 	start := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", start)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", start)
 	if err := r.FileTouched("sess-a", "src/foo.ts", "write", start); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestQueryReturnsEntryForEveryRequestedPath(t *testing.T) {
 	r := New()
 	now := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", now)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", now)
 	if err := r.FileTouched("sess-a", "src/foo.ts", "write", now); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -110,8 +110,8 @@ func TestActiveSessionsExcludesEnded(t *testing.T) {
 	r := New()
 	now := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", now)
-	r.SessionStarted("sess-b", "/repo", "Bob", now)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", now)
+	r.SessionStarted("sess-b", "/repo", "Bob", "opencode", now)
 	r.SessionEnded("sess-b", now)
 
 	active := r.ActiveSessions("/repo")
@@ -127,7 +127,7 @@ func TestSweepRemovesStaleEntries(t *testing.T) {
 	r := New()
 	start := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", start)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", start)
 	if err := r.FileTouched("sess-a", "src/foo.ts", "write", start); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -146,11 +146,41 @@ func TestSweepRemovesStaleEntries(t *testing.T) {
 	}
 }
 
+func TestActiveSessionsIncludesHarness(t *testing.T) {
+	r := New()
+	now := time.Now()
+
+	r.SessionStarted("sess-a", "/repo", "Alice", "opencode", now)
+
+	active := r.ActiveSessions("/repo")
+	if len(active) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(active))
+	}
+	if active[0].Harness != "opencode" {
+		t.Fatalf("expected harness %q, got %q", "opencode", active[0].Harness)
+	}
+}
+
+func TestSessionStartedDefaultsHarnessWhenEmpty(t *testing.T) {
+	r := New()
+	now := time.Now()
+
+	r.SessionStarted("sess-a", "/repo", "Alice", "", now)
+
+	active := r.ActiveSessions("/repo")
+	if len(active) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(active))
+	}
+	if active[0].Harness != "unknown" {
+		t.Fatalf("expected harness %q, got %q", "unknown", active[0].Harness)
+	}
+}
+
 func TestSweepKeepsActiveEntries(t *testing.T) {
 	r := New()
 	start := time.Now()
 
-	r.SessionStarted("sess-a", "/repo", "Alice", start)
+	r.SessionStarted("sess-a", "/repo", "Alice", "claude-code", start)
 	if err := r.FileTouched("sess-a", "src/foo.ts", "write", start); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -14,7 +14,7 @@ func TestHandlePresenceShapeAndWindowFiltering(t *testing.T) {
 	registry := presence.New()
 	now := time.Now()
 
-	registry.SessionStarted("sess-a", "/repo", "Alice", now)
+	registry.SessionStarted("sess-a", "/repo", "Alice", "claude-code", now)
 	if err := registry.FileTouched("sess-a", "src/foo.ts", "write", now); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -14,8 +14,8 @@ func TestHandleSessionsShape(t *testing.T) {
 	registry := presence.New()
 	now := time.Now()
 
-	registry.SessionStarted("sess-a", "/repo", "Alice", now)
-	registry.SessionStarted("sess-b", "/repo", "Bob", now)
+	registry.SessionStarted("sess-a", "/repo", "Alice", "claude-code", now)
+	registry.SessionStarted("sess-b", "/repo", "Bob", "opencode", now)
 	registry.SessionEnded("sess-b", now)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/sessions?repo=/repo", nil)
@@ -38,7 +38,7 @@ func TestHandleSessionsShape(t *testing.T) {
 	if len(payload.Sessions) != 1 {
 		t.Fatalf("expected 1 active session, got %d", len(payload.Sessions))
 	}
-	if payload.Sessions[0].SessionID != "sess-a" || payload.Sessions[0].Owner != "Alice" {
+	if payload.Sessions[0].SessionID != "sess-a" || payload.Sessions[0].Owner != "Alice" || payload.Sessions[0].Harness != "claude-code" {
 		t.Fatalf("unexpected session: %+v", payload.Sessions[0])
 	}
 	if !payload.Sessions[0].Active {

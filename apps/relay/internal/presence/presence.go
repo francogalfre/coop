@@ -15,6 +15,7 @@ type Registry struct {
 type sessionState struct {
 	Repo      string
 	Owner     string
+	Harness   string
 	StartedAt time.Time
 	Ended     bool
 	EndedAt   time.Time
@@ -32,13 +33,18 @@ func New() *Registry {
 	}
 }
 
-func (r *Registry) SessionStarted(sessionID, repo, owner string, at time.Time) {
+func (r *Registry) SessionStarted(sessionID, repo, owner, harness string, at time.Time) {
+	if harness == "" {
+		harness = "unknown"
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.sessions[sessionID] = &sessionState{
 		Repo:      repo,
 		Owner:     owner,
+		Harness:   harness,
 		StartedAt: at,
 	}
 }

@@ -9,15 +9,16 @@ import (
 	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
+	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-func doIngest(t *testing.T, registry *presence.Registry, body string) *httptest.ResponseRecorder {
+func doIngest(t *testing.T, registry *presence.Registry, store *stream.Store, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 
-	handleIngest(registry)(rec, req)
+	handleIngest(registry, store)(rec, req)
 
 	return rec
 }
@@ -42,10 +43,11 @@ func TestHandleIngestValidEvents(t *testing.T) {
 	}
 
 	registry := presence.New()
+	store := stream.New()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := doIngest(t, registry, tt.body)
+			rec := doIngest(t, registry, store, tt.body)
 			if rec.Code != http.StatusAccepted {
 				t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 			}
@@ -61,14 +63,60 @@ func TestHandleIngestValidEvents(t *testing.T) {
 	if len(active) != 0 {
 		t.Fatalf("expected session ended, got %d active", len(active))
 	}
+
+	events := store.Since("sess-a", 0)
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events appended to stream, got %d", len(events))
+	}
+}
+
+func TestHandleIngestSessionStartStoresHarness(t *testing.T) {
+	registry := presence.New()
+	store := stream.New()
+
+	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"},"harness":"opencode"}`
+
+	rec := doIngest(t, registry, store, body)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	active := registry.ActiveSessions("/repo")
+	if len(active) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(active))
+	}
+	if active[0].Harness != "opencode" {
+		t.Fatalf("expected harness %q, got %q", "opencode", active[0].Harness)
+	}
+}
+
+func TestHandleIngestSessionStartDefaultsHarnessWhenMissing(t *testing.T) {
+	registry := presence.New()
+	store := stream.New()
+
+	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`
+
+	rec := doIngest(t, registry, store, body)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	active := registry.ActiveSessions("/repo")
+	if len(active) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(active))
+	}
+	if active[0].Harness != "unknown" {
+		t.Fatalf("expected harness %q, got %q", "unknown", active[0].Harness)
+	}
 }
 
 func TestHandleIngestFractionalSecondsTimestamp(t *testing.T) {
 	registry := presence.New()
+	store := stream.New()
 
 	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T15:31:07.812Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`
 
-	rec := doIngest(t, registry, body)
+	rec := doIngest(t, registry, store, body)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 	}
@@ -76,8 +124,9 @@ func TestHandleIngestFractionalSecondsTimestamp(t *testing.T) {
 
 func TestHandleIngestMalformedJSON(t *testing.T) {
 	registry := presence.New()
+	store := stream.New()
 
-	rec := doIngest(t, registry, `{not json`)
+	rec := doIngest(t, registry, store, `{not json`)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("got status %d, want 400", rec.Code)
 	}
@@ -95,10 +144,11 @@ func TestHandleIngestMissingRequiredEnvelopeField(t *testing.T) {
 	}
 
 	registry := presence.New()
+	store := stream.New()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := doIngest(t, registry, tt.body)
+			rec := doIngest(t, registry, store, tt.body)
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("got status %d, want 400: %s", rec.Code, rec.Body.String())
 			}
@@ -108,10 +158,11 @@ func TestHandleIngestMissingRequiredEnvelopeField(t *testing.T) {
 
 func TestHandleIngestFileTouchedUnknownSession(t *testing.T) {
 	registry := presence.New()
+	store := stream.New()
 
 	body := `{"v":1,"session_id":"sess-ghost","seq":0,"ts":"2026-08-24T10:00:00Z","type":"file.touched","path":"src/foo.ts","mode":"write"}`
 
-	rec := doIngest(t, registry, body)
+	rec := doIngest(t, registry, store, body)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("got status %d, want 400: %s", rec.Code, rec.Body.String())
 	}
@@ -123,14 +174,19 @@ func TestHandleIngestFileTouchedUnknownSession(t *testing.T) {
 	if payload["error"] == "" {
 		t.Fatal("expected error message in body")
 	}
+
+	if events := store.Since("sess-ghost", 0); len(events) != 0 {
+		t.Fatalf("expected rejected event not appended to stream, got %d", len(events))
+	}
 }
 
-func TestHandleIngestUnknownEventTypeNoOp(t *testing.T) {
+func TestHandleIngestUnknownEventTypeAppendedToStream(t *testing.T) {
 	registry := presence.New()
+	store := stream.New()
 
 	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"tool.blocked"}`
 
-	rec := doIngest(t, registry, body)
+	rec := doIngest(t, registry, store, body)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 	}
@@ -138,5 +194,10 @@ func TestHandleIngestUnknownEventTypeNoOp(t *testing.T) {
 	active := registry.ActiveSessions("/repo")
 	if len(active) != 0 {
 		t.Fatalf("expected registry unchanged, got %d active sessions", len(active))
+	}
+
+	events := store.Since("sess-a", 0)
+	if len(events) != 1 {
+		t.Fatalf("expected unrecognized-but-valid event appended to stream, got %d", len(events))
 	}
 }
