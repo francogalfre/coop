@@ -6,7 +6,7 @@ import { LIMITS } from "../shared/limits.js";
 export const sessionStart = z.object({
   ...envelopeFields,
   type: z.literal("session.start"),
-  harness: z.enum(["claude-code", "codex", "opencode", "other"]),
+  harness: z.enum(["claude-code", "codex", "opencode", "pi", "amp", "other"]),
   cwd: z.string().min(1).max(LIMITS.path),
   owner: actor,
   harness_version: z.string().max(64).optional(),

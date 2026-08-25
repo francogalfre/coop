@@ -97,6 +97,33 @@ describe("parseEvent", () => {
     expect(() => parseEvent(input)).not.toThrow();
     expect(parseEvent(input).ok).toBe(false);
   });
+
+  it("parses a valid human.prompt event", () => {
+    const result = parseEvent({
+      v: 1,
+      session_id: "sess-1",
+      seq: 0,
+      ts: new Date().toISOString(),
+      type: "human.prompt",
+      text: { text: "fix the login bug", redactions: 0, truncated: false },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a human.prompt event missing text", () => {
+    const result = parseEvent({
+      v: 1,
+      session_id: "sess-1",
+      seq: 0,
+      ts: new Date().toISOString(),
+      type: "human.prompt",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("invalid_event");
+      expect(result.error.type).toBe("human.prompt");
+    }
+  });
 });
 
 describe("eventsJsonSchema", () => {
@@ -105,7 +132,7 @@ describe("eventsJsonSchema", () => {
     const union = schema.oneOf ?? schema.anyOf;
     expect(union).toBeDefined();
     expect(union).toHaveLength(KNOWN_EVENT_TYPES.length);
-    expect(KNOWN_EVENT_TYPES).toHaveLength(15);
+    expect(KNOWN_EVENT_TYPES).toHaveLength(16);
   });
 
   it("stringifies without throwing", () => {

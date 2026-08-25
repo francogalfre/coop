@@ -19,3 +19,10 @@ export type HumanSteer = z.infer<typeof humanSteer>;
 
 export const humanTakeover = z.object({ ...envelopeFields, type: z.literal("human.takeover"), actor });
 export type HumanTakeover = z.infer<typeof humanTakeover>;
+
+export const humanPrompt = z.object({
+  ...envelopeFields,
+  type: z.literal("human.prompt"),
+  text: redactedText,
+});
+export type HumanPrompt = z.infer<typeof humanPrompt>;

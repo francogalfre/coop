@@ -4,7 +4,7 @@ import { agentTurnStart, agentText, agentTurnEnd } from "./agent.js";
 import { toolCall, toolResult, toolBlocked } from "./tool.js";
 import { fileTouched } from "./file.js";
 import { permissionRequested, permissionResolved } from "./permission.js";
-import { humanJoin, humanLeave, humanSteer, humanTakeover } from "./human.js";
+import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt } from "./human.js";
 import { unknownEvent } from "./unknown.js";
 
 const base = { v: 1 as const, session_id: "s_1", seq: 0, ts: "2026-08-24T15:31:07.812Z" };
@@ -368,6 +368,36 @@ describe("humanTakeover", () => {
   it("rejects a fixture missing actor", () => {
     const fixture = { ...base, type: "human.takeover" };
     expect(humanTakeover.safeParse(fixture).success).toBe(false);
+  });
+});
+
+describe("humanPrompt", () => {
+  it("parses a minimal valid fixture", () => {
+    const fixture = {
+      ...base,
+      type: "human.prompt",
+      text: { text: "fix the login bug", redactions: 0, truncated: false },
+    };
+    expect(humanPrompt.safeParse(fixture).success).toBe(true);
+  });
+
+  it("rejects a fixture missing text", () => {
+    const fixture = { ...base, type: "human.prompt" };
+    expect(humanPrompt.safeParse(fixture).success).toBe(false);
+  });
+
+  it("strips an unrecognized extra field", () => {
+    const fixture = {
+      ...base,
+      type: "human.prompt",
+      text: { text: "fix the login bug", redactions: 0, truncated: false },
+      surprise_field: 123,
+    };
+    const result = humanPrompt.safeParse(fixture);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("surprise_field");
+    }
   });
 });
 
