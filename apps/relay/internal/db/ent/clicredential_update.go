@@ -42,6 +42,20 @@ func (_u *CliCredentialUpdate) SetNillableUserID(v *string) *CliCredentialUpdate
 	return _u
 }
 
+// SetDisplayName sets the "display_name" field.
+func (_u *CliCredentialUpdate) SetDisplayName(v string) *CliCredentialUpdate {
+	_u.mutation.SetDisplayName(v)
+	return _u
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_u *CliCredentialUpdate) SetNillableDisplayName(v *string) *CliCredentialUpdate {
+	if v != nil {
+		_u.SetDisplayName(*v)
+	}
+	return _u
+}
+
 // SetTokenHash sets the "token_hash" field.
 func (_u *CliCredentialUpdate) SetTokenHash(v []byte) *CliCredentialUpdate {
 	_u.mutation.SetTokenHash(v)
@@ -150,6 +164,9 @@ func (_u *CliCredentialUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if value, ok := _u.mutation.UserID(); ok {
 		_spec.SetField(clicredential.FieldUserID, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.DisplayName(); ok {
+		_spec.SetField(clicredential.FieldDisplayName, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.TokenHash(); ok {
 		_spec.SetField(clicredential.FieldTokenHash, field.TypeBytes, value)
 	}
@@ -195,6 +212,20 @@ func (_u *CliCredentialUpdateOne) SetUserID(v string) *CliCredentialUpdateOne {
 func (_u *CliCredentialUpdateOne) SetNillableUserID(v *string) *CliCredentialUpdateOne {
 	if v != nil {
 		_u.SetUserID(*v)
+	}
+	return _u
+}
+
+// SetDisplayName sets the "display_name" field.
+func (_u *CliCredentialUpdateOne) SetDisplayName(v string) *CliCredentialUpdateOne {
+	_u.mutation.SetDisplayName(v)
+	return _u
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_u *CliCredentialUpdateOne) SetNillableDisplayName(v *string) *CliCredentialUpdateOne {
+	if v != nil {
+		_u.SetDisplayName(*v)
 	}
 	return _u
 }
@@ -336,6 +367,9 @@ func (_u *CliCredentialUpdateOne) sqlSave(ctx context.Context) (_node *CliCreden
 	}
 	if value, ok := _u.mutation.UserID(); ok {
 		_spec.SetField(clicredential.FieldUserID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DisplayName(); ok {
+		_spec.SetField(clicredential.FieldDisplayName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.TokenHash(); ok {
 		_spec.SetField(clicredential.FieldTokenHash, field.TypeBytes, value)

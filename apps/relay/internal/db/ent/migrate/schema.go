@@ -39,6 +39,7 @@ var (
 	CliCredentialsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "user_id", Type: field.TypeString},
+		{Name: "display_name", Type: field.TypeString, Default: ""},
 		{Name: "token_hash", Type: field.TypeBytes, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},

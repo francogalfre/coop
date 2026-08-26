@@ -10,12 +10,40 @@ import (
 
 	"github.com/coder/websocket"
 
+	"github.com/francogalfre/coop/apps/relay/internal/auth"
+	"github.com/francogalfre/coop/apps/relay/internal/db"
+	"github.com/francogalfre/coop/apps/relay/internal/db/dbtest"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
+const testActorHeader = "X-Test-Actor-Name"
+
+func withTestActor(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := r.Header.Get(testActorHeader)
+		if name == "" {
+			http.NotFound(w, r)
+			return
+		}
+
+		next(w, r.WithContext(auth.WithActor(r.Context(), auth.Actor{UserID: name, DisplayName: name})))
+	}
+}
+
+func dialAs(ctx context.Context, wsURL, name string) (*websocket.Conn, *http.Response, error) {
+	header := http.Header{}
+	header.Set(testActorHeader, name)
+
+	return websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: header})
+}
+
 func newTestServer(store *stream.Store) *httptest.Server {
+	return newTestServerWithPool(nil, store)
+}
+
+func newTestServerWithPool(pool *db.Pool, store *stream.Store) *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/sessions/{id}/stream", NewSessionStreamHandler(store, stream.NewPresenceHub(), []string{"*"}))
+	mux.HandleFunc("GET /v1/sessions/{id}/stream", withTestActor(NewSessionStreamHandler(pool, store, stream.NewPresenceHub(), []string{"*"})))
 
 	return httptest.NewServer(mux)
 }
@@ -48,7 +76,7 @@ func TestSessionStreamBackfillThenLiveTail(t *testing.T) {
 
 	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/sess-a/stream"
 
-	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	conn, _, err := dialAs(ctx, wsURL, "Tester")
 	if err != nil {
 		t.Fatalf("dial failed: %v", err)
 	}
@@ -80,7 +108,7 @@ func TestSessionStreamPresenceTypingBroadcastToOtherOnly(t *testing.T) {
 
 	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/sess-a/stream"
 
-	sender, _, err := websocket.Dial(ctx, wsURL+"?name=Alice", nil)
+	sender, _, err := dialAs(ctx, wsURL, "Alice")
 	if err != nil {
 		t.Fatalf("dial sender failed: %v", err)
 	}
@@ -88,7 +116,7 @@ func TestSessionStreamPresenceTypingBroadcastToOtherOnly(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	other, _, err := websocket.Dial(ctx, wsURL+"?name=Bob", nil)
+	other, _, err := dialAs(ctx, wsURL, "Bob")
 	if err != nil {
 		t.Fatalf("dial other failed: %v", err)
 	}
@@ -133,7 +161,7 @@ func TestSessionStreamHumanJoinAndLeaveBroadcast(t *testing.T) {
 
 	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/sess-a/stream"
 
-	watcher, _, err := websocket.Dial(ctx, wsURL+"?name=Alice", nil)
+	watcher, _, err := dialAs(ctx, wsURL, "Alice")
 	if err != nil {
 		t.Fatalf("dial watcher failed: %v", err)
 	}
@@ -141,7 +169,7 @@ func TestSessionStreamHumanJoinAndLeaveBroadcast(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	joiner, _, err := websocket.Dial(ctx, wsURL+"?name=Bob", nil)
+	joiner, _, err := dialAs(ctx, wsURL, "Bob")
 	if err != nil {
 		t.Fatalf("dial joiner failed: %v", err)
 	}
@@ -165,4 +193,57 @@ func TestSessionStreamHumanJoinAndLeaveBroadcast(t *testing.T) {
 	if actor["name"] != "Bob" {
 		t.Fatalf("unexpected actor: %+v", actor)
 	}
+}
+
+func TestSessionStreamBackfillsFromPostgresAfterSimulatedRestart(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+
+	proj, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner")
+	if err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+	if _, err := pool.CreateAgentSession(t.Context(), "sess-restart", proj, "user-owner", "/repo", "/repo", "claude-code", time.Now()); err != nil {
+		t.Fatalf("CreateAgentSession: %v", err)
+	}
+
+	if _, err := pool.AppendEvent(t.Context(), "sess-restart", []byte(`{"type":"session.start","harness":"claude-code"}`)); err != nil {
+		t.Fatalf("AppendEvent: %v", err)
+	}
+	if _, err := pool.AppendEvent(t.Context(), "sess-restart", []byte(`{"type":"file.touched","path":"src/foo.ts"}`)); err != nil {
+		t.Fatalf("AppendEvent: %v", err)
+	}
+
+	// A fresh, empty store simulates a relay restart: only Postgres remains.
+	freshStore := stream.New()
+	server := newTestServerWithPool(pool, freshStore)
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/sess-restart/stream"
+
+	conn, _, err := dialAs(ctx, wsURL, "Tester")
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	defer conn.CloseNow()
+
+	first := readEvent(t, ctx, conn)
+	if first["type"] != "session.start" {
+		t.Fatalf("expected session.start to survive the simulated restart, got %+v", first)
+	}
+	if first["seq"] != float64(1) {
+		t.Fatalf("got seq %v, want 1", first["seq"])
+	}
+
+	second := readEvent(t, ctx, conn)
+	if second["type"] != "file.touched" {
+		t.Fatalf("expected file.touched next, got %+v", second)
+	}
+	if second["seq"] != float64(2) {
+		t.Fatalf("got seq %v, want 2", second["seq"])
+	}
+
+	conn.Close(websocket.StatusNormalClosure, "")
 }

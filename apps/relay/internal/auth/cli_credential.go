@@ -25,7 +25,7 @@ func RequireCliCredential(pool *db.Pool) func(http.HandlerFunc) http.HandlerFunc
 				return
 			}
 
-			userID, err := pool.AuthenticateCliCredential(r.Context(), rawToken)
+			userID, displayName, err := pool.AuthenticateCliCredential(r.Context(), rawToken)
 			if err != nil {
 				if db.IsNotFound(err) {
 					http.NotFound(w, r)
@@ -36,7 +36,7 @@ func RequireCliCredential(pool *db.Pool) func(http.HandlerFunc) http.HandlerFunc
 				return
 			}
 
-			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID})))
+			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID, DisplayName: displayName})))
 		}
 	}
 }
@@ -56,13 +56,13 @@ func OptionalCliCredential(pool *db.Pool) func(http.HandlerFunc) http.HandlerFun
 				return
 			}
 
-			userID, err := pool.AuthenticateCliCredential(r.Context(), rawToken)
+			userID, displayName, err := pool.AuthenticateCliCredential(r.Context(), rawToken)
 			if err != nil {
 				next(w, r)
 				return
 			}
 
-			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID})))
+			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID, DisplayName: displayName})))
 		}
 	}
 }

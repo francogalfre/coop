@@ -59,12 +59,15 @@ func TestHandleCLIExchangeReturnsTokenOnSuccess(t *testing.T) {
 		t.Fatalf("token is not hex: %v", err)
 	}
 
-	userID, err := pool.AuthenticateCliCredential(context.Background(), rawToken)
+	userID, displayName, err := pool.AuthenticateCliCredential(context.Background(), rawToken)
 	if err != nil {
 		t.Fatalf("AuthenticateCliCredential: %v", err)
 	}
 	if userID != "user-123" {
 		t.Fatalf("got userID %q, want user-123", userID)
+	}
+	if displayName != "The Octocat" {
+		t.Fatalf("got displayName %q, want The Octocat", displayName)
 	}
 }
 

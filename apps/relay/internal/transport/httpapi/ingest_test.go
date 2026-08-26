@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/francogalfre/coop/apps/relay/internal/db"
+	"github.com/francogalfre/coop/apps/relay/internal/db/dbtest"
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
@@ -23,7 +25,25 @@ func doIngest(t *testing.T, registry *presence.Registry, store *stream.Store, bo
 	return rec
 }
 
+func doIngestWithProject(t *testing.T, pool *db.Pool, registry *presence.Registry, store *stream.Store, actorUserID, body string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(body))
+	req.Header.Set(coopProjectHeader, "coop")
+	req = withActor(req, actorUserID)
+	rec := httptest.NewRecorder()
+
+	handleIngest(pool, registry, store)(rec, req)
+
+	return rec
+}
+
 func TestHandleIngestValidEvents(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+	if _, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
 	now := time.Now().UTC()
 
 	tests := []struct {
@@ -49,7 +69,7 @@ func TestHandleIngestValidEvents(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := doIngest(t, registry, store, tt.body)
+			rec := doIngestWithProject(t, pool, registry, store, "user-owner", tt.body)
 			if rec.Code != http.StatusAccepted {
 				t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 			}
@@ -73,12 +93,17 @@ func TestHandleIngestValidEvents(t *testing.T) {
 }
 
 func TestHandleIngestSessionStartStoresHarness(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+	if _, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
 	registry := presence.New()
 	store := stream.New()
 
 	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"},"harness":"opencode"}`
 
-	rec := doIngest(t, registry, store, body)
+	rec := doIngestWithProject(t, pool, registry, store, "user-owner", body)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 	}
@@ -93,12 +118,17 @@ func TestHandleIngestSessionStartStoresHarness(t *testing.T) {
 }
 
 func TestHandleIngestSessionStartDefaultsHarnessWhenMissing(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+	if _, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
 	registry := presence.New()
 	store := stream.New()
 
 	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`
 
-	rec := doIngest(t, registry, store, body)
+	rec := doIngestWithProject(t, pool, registry, store, "user-owner", body)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
 	}
@@ -116,11 +146,28 @@ func TestHandleIngestFractionalSecondsTimestamp(t *testing.T) {
 	registry := presence.New()
 	store := stream.New()
 
-	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T15:31:07.812Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`
+	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T15:31:07.812Z","type":"session.end"}`
 
 	rec := doIngest(t, registry, store, body)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHandleIngestSessionStartRequiresProjectHeader(t *testing.T) {
+	registry := presence.New()
+	store := stream.New()
+
+	body := `{"v":1,"session_id":"sess-a","seq":0,"ts":"2026-08-24T10:00:00Z","type":"session.start","cwd":"/repo","owner":{"id":"alice","display_name":"Alice"}}`
+
+	rec := doIngest(t, registry, store, body)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("got status %d, want 400: %s", rec.Code, rec.Body.String())
+	}
+
+	active := registry.ActiveSessions("/repo")
+	if len(active) != 0 {
+		t.Fatalf("expected no session registered without a project header, got %d", len(active))
 	}
 }
 

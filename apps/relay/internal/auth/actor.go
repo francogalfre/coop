@@ -3,7 +3,8 @@ package auth
 import "context"
 
 type Actor struct {
-	UserID string
+	UserID      string
+	DisplayName string
 }
 
 type contextKey struct{}

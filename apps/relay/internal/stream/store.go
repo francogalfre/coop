@@ -26,11 +26,60 @@ func New() *Store {
 	}
 }
 
-func (s *Store) Append(sessionID string, event json.RawMessage) (Event, error) {
+// Shared with history reads so a replayed event matches the wire shape the live WS broadcast used.
+func StampSeq(event json.RawMessage, seq int) (json.RawMessage, error) {
 	var fields map[string]any
 	if err := json.Unmarshal(event, &fields); err != nil {
-		return Event{}, fmt.Errorf("append: unmarshal event: %w", err)
+		return nil, fmt.Errorf("stamp seq: unmarshal event: %w", err)
 	}
+
+	fields["seq"] = seq
+
+	data, err := json.Marshal(fields)
+	if err != nil {
+		return nil, fmt.Errorf("stamp seq: marshal event: %w", err)
+	}
+
+	return data, nil
+}
+
+func (s *Store) Append(sessionID string, event json.RawMessage) (Event, error) {
+	s.mu.Lock()
+
+	buf, ok := s.sessions[sessionID]
+	if !ok {
+		buf = &sessionBuffer{}
+		s.sessions[sessionID] = buf
+	}
+	buf.nextSeq++
+	seq := buf.nextSeq
+
+	data, err := StampSeq(event, seq)
+	if err != nil {
+		s.mu.Unlock()
+		return Event{}, fmt.Errorf("append: %w", err)
+	}
+
+	recorded := Event{Seq: seq, Data: data}
+
+	buf.events = append(buf.events, recorded)
+	if len(buf.events) > bufferSize {
+		buf.events = buf.events[len(buf.events)-bufferSize:]
+	}
+	s.mu.Unlock()
+
+	s.publish(sessionID, recorded)
+
+	return recorded, nil
+}
+
+func (s *Store) AppendWithSeq(sessionID string, seq int, event json.RawMessage) (Event, error) {
+	data, err := StampSeq(event, seq)
+	if err != nil {
+		return Event{}, fmt.Errorf("append with seq: %w", err)
+	}
+
+	recorded := Event{Seq: seq, Data: data}
 
 	s.mu.Lock()
 	buf, ok := s.sessions[sessionID]
@@ -38,17 +87,9 @@ func (s *Store) Append(sessionID string, event json.RawMessage) (Event, error) {
 		buf = &sessionBuffer{}
 		s.sessions[sessionID] = buf
 	}
-
-	buf.nextSeq++
-	fields["seq"] = buf.nextSeq
-
-	data, err := json.Marshal(fields)
-	if err != nil {
-		s.mu.Unlock()
-		return Event{}, fmt.Errorf("append: marshal event: %w", err)
+	if seq > buf.nextSeq {
+		buf.nextSeq = seq
 	}
-
-	recorded := Event{Seq: buf.nextSeq, Data: data}
 
 	buf.events = append(buf.events, recorded)
 	if len(buf.events) > bufferSize {

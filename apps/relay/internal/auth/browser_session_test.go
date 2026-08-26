@@ -36,7 +36,7 @@ func newBrowserVerifyServer(t *testing.T, wantSecret string, cookieToUserID map[
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"userId": userID})
+		_ = json.NewEncoder(w).Encode(map[string]string{"userId": userID, "name": "Display " + userID})
 	}))
 }
 
@@ -69,6 +69,9 @@ func TestRequireBrowserSessionAcceptsValidCookie(t *testing.T) {
 
 	if gotActor.UserID != "user-42" {
 		t.Fatalf("got actor.UserID %q, want %q", gotActor.UserID, "user-42")
+	}
+	if gotActor.DisplayName != "Display user-42" {
+		t.Fatalf("got actor.DisplayName %q, want %q", gotActor.DisplayName, "Display user-42")
 	}
 }
 
@@ -116,7 +119,7 @@ func TestRequireBrowserSessionRejectsUnresolvedCookie(t *testing.T) {
 func TestRequireAnyIdentityAcceptsCliCredential(t *testing.T) {
 	pool := dbtest.OpenScratch(t)
 
-	rawToken, err := pool.CreateCliCredential(t.Context(), "user-cli")
+	rawToken, err := pool.CreateCliCredential(t.Context(), "user-cli", "CLI User")
 	if err != nil {
 		t.Fatalf("CreateCliCredential: %v", err)
 	}

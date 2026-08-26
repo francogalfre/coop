@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/auth"
@@ -48,29 +47,8 @@ func parseTimestamp(ts string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("ts: invalid RFC3339 timestamp %q", ts)
 }
 
-type persistedSessions struct {
-	mu sync.Mutex
-	m  map[string]bool
-}
-
-func newPersistedSessions() *persistedSessions {
-	return &persistedSessions{m: map[string]bool{}}
-}
-
-func (p *persistedSessions) mark(sessionID string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.m[sessionID] = true
-}
-
-func (p *persistedSessions) isPersisted(sessionID string) bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.m[sessionID]
-}
-
 func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Store) http.HandlerFunc {
-	persisted := newPersistedSessions()
+	cache := newSessionPersistCache()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
@@ -122,19 +100,23 @@ func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Stor
 				return
 			}
 
+			projectSlug := r.Header.Get(coopProjectHeader)
+			if projectSlug == "" {
+				writeError(w, http.StatusBadRequest, coopProjectHeader+": required, every session must belong to a project")
+				return
+			}
+
 			registry.SessionStarted(event.SessionID, event.Cwd, event.Owner.DisplayName, event.Harness, at)
 
-			if projectSlug := r.Header.Get(coopProjectHeader); projectSlug != "" {
-				if !persistSessionStart(w, r, pool, event, projectSlug, at) {
-					return
-				}
-
-				persisted.mark(event.SessionID)
+			if !persistSessionStart(w, r, pool, event, projectSlug, at) {
+				return
 			}
+
+			cache.markPersisted(event.SessionID)
 		case "session.end":
 			registry.SessionEnded(event.SessionID, at)
 
-			if persisted.isPersisted(event.SessionID) {
+			if cache.check(r.Context(), pool, event.SessionID) {
 				if err := pool.EndAgentSession(r.Context(), event.SessionID, at); err != nil {
 					writeError(w, http.StatusInternalServerError, "failed to end agent session")
 					return
@@ -157,14 +139,18 @@ func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Stor
 			}
 		}
 
-		if persisted.isPersisted(event.SessionID) && event.Type != "session.start" {
-			if _, err := pool.AppendEvent(r.Context(), event.SessionID, body); err != nil {
+		if cache.check(r.Context(), pool, event.SessionID) {
+			dbEvent, err := pool.AppendEvent(r.Context(), event.SessionID, body)
+			if err != nil {
 				writeError(w, http.StatusInternalServerError, "failed to record event")
 				return
 			}
-		}
 
-		if _, err := store.Append(event.SessionID, json.RawMessage(body)); err != nil {
+			if _, err := store.AppendWithSeq(event.SessionID, dbEvent.Seq, json.RawMessage(body)); err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to record event")
+				return
+			}
+		} else if _, err := store.Append(event.SessionID, json.RawMessage(body)); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to record event")
 			return
 		}

@@ -964,6 +964,7 @@ type CliCredentialMutation struct {
 	typ           string
 	id            *int
 	user_id       *string
+	display_name  *string
 	token_hash    *[]byte
 	created_at    *time.Time
 	last_used_at  *time.Time
@@ -1106,6 +1107,42 @@ func (m *CliCredentialMutation) OldUserID(ctx context.Context) (v string, err er
 // ResetUserID resets all changes to the "user_id" field.
 func (m *CliCredentialMutation) ResetUserID() {
 	m.user_id = nil
+}
+
+// SetDisplayName sets the "display_name" field.
+func (m *CliCredentialMutation) SetDisplayName(s string) {
+	m.display_name = &s
+}
+
+// DisplayName returns the value of the "display_name" field in the mutation.
+func (m *CliCredentialMutation) DisplayName() (r string, exists bool) {
+	v := m.display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayName returns the old "display_name" field's value of the CliCredential entity.
+// If the CliCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CliCredentialMutation) OldDisplayName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
+	}
+	return oldValue.DisplayName, nil
+}
+
+// ResetDisplayName resets all changes to the "display_name" field.
+func (m *CliCredentialMutation) ResetDisplayName() {
+	m.display_name = nil
 }
 
 // SetTokenHash sets the "token_hash" field.
@@ -1312,9 +1349,12 @@ func (m *CliCredentialMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CliCredentialMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.user_id != nil {
 		fields = append(fields, clicredential.FieldUserID)
+	}
+	if m.display_name != nil {
+		fields = append(fields, clicredential.FieldDisplayName)
 	}
 	if m.token_hash != nil {
 		fields = append(fields, clicredential.FieldTokenHash)
@@ -1338,6 +1378,8 @@ func (m *CliCredentialMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case clicredential.FieldUserID:
 		return m.UserID()
+	case clicredential.FieldDisplayName:
+		return m.DisplayName()
 	case clicredential.FieldTokenHash:
 		return m.TokenHash()
 	case clicredential.FieldCreatedAt:
@@ -1357,6 +1399,8 @@ func (m *CliCredentialMutation) OldField(ctx context.Context, name string) (ent.
 	switch name {
 	case clicredential.FieldUserID:
 		return m.OldUserID(ctx)
+	case clicredential.FieldDisplayName:
+		return m.OldDisplayName(ctx)
 	case clicredential.FieldTokenHash:
 		return m.OldTokenHash(ctx)
 	case clicredential.FieldCreatedAt:
@@ -1380,6 +1424,13 @@ func (m *CliCredentialMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUserID(v)
+		return nil
+	case clicredential.FieldDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayName(v)
 		return nil
 	case clicredential.FieldTokenHash:
 		v, ok := value.([]byte)
@@ -1475,6 +1526,9 @@ func (m *CliCredentialMutation) ResetField(name string) error {
 	switch name {
 	case clicredential.FieldUserID:
 		m.ResetUserID()
+		return nil
+	case clicredential.FieldDisplayName:
+		m.ResetDisplayName()
 		return nil
 	case clicredential.FieldTokenHash:
 		m.ResetTokenHash()

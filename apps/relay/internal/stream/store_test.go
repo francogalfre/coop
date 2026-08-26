@@ -138,6 +138,56 @@ func TestBufferEvictsOldestBeyondBound(t *testing.T) {
 	}
 }
 
+func TestAppendWithSeqUsesGivenSeq(t *testing.T) {
+	s := New()
+
+	recorded, err := s.AppendWithSeq("sess-a", 42, json.RawMessage(`{"n":1}`))
+	if err != nil {
+		t.Fatalf("append with seq failed: %v", err)
+	}
+
+	if recorded.Seq != 42 {
+		t.Fatalf("got seq %d, want 42", recorded.Seq)
+	}
+	if decodedSeq(t, recorded) != 42 {
+		t.Fatalf("got encoded seq %d, want 42", decodedSeq(t, recorded))
+	}
+}
+
+func TestAppendWithSeqKeepsStoreConsistentForSubsequentAppend(t *testing.T) {
+	s := New()
+
+	s.AppendWithSeq("sess-a", 5, json.RawMessage(`{"n":1}`))
+
+	next := mustAppend(t, s, "sess-a", json.RawMessage(`{"n":2}`))
+	if next.Seq != 6 {
+		t.Fatalf("got seq %d, want 6 (nextSeq must track the DB-assigned seq)", next.Seq)
+	}
+}
+
+func TestAppendWithSeqMalformedEventReturnsError(t *testing.T) {
+	s := New()
+
+	if _, err := s.AppendWithSeq("sess-a", 1, json.RawMessage(`not json`)); err == nil {
+		t.Fatal("expected error for malformed event")
+	}
+}
+
+func TestAppendWithSeqIsVisibleToSince(t *testing.T) {
+	s := New()
+
+	s.AppendWithSeq("sess-a", 1, json.RawMessage(`{"n":1}`))
+	s.AppendWithSeq("sess-a", 2, json.RawMessage(`{"n":2}`))
+
+	events := s.Since("sess-a", 0)
+	if len(events) != 2 {
+		t.Fatalf("got %d events, want 2", len(events))
+	}
+	if events[0].Seq != 1 || events[1].Seq != 2 {
+		t.Fatalf("unexpected events: %+v", events)
+	}
+}
+
 func TestConcurrentAppendAndSince(t *testing.T) {
 	s := New()
 

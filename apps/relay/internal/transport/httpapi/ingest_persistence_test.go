@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -70,8 +71,16 @@ func TestHandleIngestPersistsSessionWithProjectAndMembership(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EventsSince: %v", err)
 	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 persisted event, got %d", len(events))
+	if len(events) != 2 {
+		t.Fatalf("expected 2 persisted events (session.start and file.touched), got %d", len(events))
+	}
+
+	var startFields map[string]any
+	if err := json.Unmarshal(events[0].Data, &startFields); err != nil {
+		t.Fatalf("failed to decode first persisted event: %v", err)
+	}
+	if startFields["type"] != "session.start" {
+		t.Fatalf("expected session.start to be persisted first, got %v", startFields["type"])
 	}
 
 	endBody := `{"v":1,"session_id":"sess-persisted","seq":2,"ts":"` + now.Add(2*time.Second).Format(time.RFC3339) + `","type":"session.end"}`
@@ -126,7 +135,7 @@ func TestHandleIngestSessionStartRejectsNonMember(t *testing.T) {
 	}
 }
 
-func TestHandleIngestAnonymousFlowTouchesNoPostgres(t *testing.T) {
+func TestHandleIngestSessionStartWithoutProjectHeaderRejected(t *testing.T) {
 	registry := presence.New()
 	store := stream.New()
 
@@ -139,12 +148,12 @@ func TestHandleIngestAnonymousFlowTouchesNoPostgres(t *testing.T) {
 
 	handleIngest(nil, registry, store)(rec, req)
 
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("got status %d, want 400: %s", rec.Code, rec.Body.String())
 	}
 
 	events := store.Since("sess-anon", 0)
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event appended to in-memory stream, got %d", len(events))
+	if len(events) != 0 {
+		t.Fatalf("expected no event appended to in-memory stream, got %d", len(events))
 	}
 }

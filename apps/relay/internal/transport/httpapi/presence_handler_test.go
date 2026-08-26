@@ -7,10 +7,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/francogalfre/coop/apps/relay/internal/db/dbtest"
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
 )
 
 func TestHandlePresenceShapeAndWindowFiltering(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+
+	proj, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner")
+	if err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
 	registry := presence.New()
 	now := time.Now()
 
@@ -22,10 +30,15 @@ func TestHandlePresenceShapeAndWindowFiltering(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	if _, err := pool.CreateAgentSession(t.Context(), "sess-a", proj, "user-owner", "/repo", "/repo", "claude-code", now); err != nil {
+		t.Fatalf("CreateAgentSession: %v", err)
+	}
+
 	req := httptest.NewRequest(http.MethodGet, "/v1/presence?repo=/repo&paths=src/foo.ts,src/bar.ts,src/old.ts&window_seconds=900", nil)
+	req = withActor(req, "user-owner")
 	rec := httptest.NewRecorder()
 
-	handlePresence(registry)(rec, req)
+	handlePresence(pool, registry)(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("got status %d, want 200: %s", rec.Code, rec.Body.String())
@@ -59,13 +72,57 @@ func TestHandlePresenceShapeAndWindowFiltering(t *testing.T) {
 	}
 }
 
+func TestHandlePresenceFiltersOutNonMemberSessions(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+
+	otherProj, err := pool.CreateProject(t.Context(), "Other", "other", "user-other")
+	if err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+	if _, err := pool.CreateProject(t.Context(), "Coop", "coop", "user-owner"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
+	registry := presence.New()
+	now := time.Now()
+
+	registry.SessionStarted("sess-b", "/repo", "Bob", "opencode", now)
+	if err := registry.FileTouched("sess-b", "src/foo.ts", "write", now); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := pool.CreateAgentSession(t.Context(), "sess-b", otherProj, "user-other", "/repo", "/repo", "opencode", now); err != nil {
+		t.Fatalf("CreateAgentSession: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/presence?repo=/repo&paths=src/foo.ts", nil)
+	req = withActor(req, "user-owner")
+	rec := httptest.NewRecorder()
+
+	handlePresence(pool, registry)(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+
+	var payload presenceResponse
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("failed to decode body: %v", err)
+	}
+
+	if len(payload.Paths) != 1 || len(payload.Paths[0].Signals) != 0 {
+		t.Fatalf("expected non-member session's signal filtered out, got %+v", payload.Paths)
+	}
+}
+
 func TestHandlePresenceMissingRepo(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
 	registry := presence.New()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/presence?paths=src/foo.ts", nil)
+	req = withActor(req, "user-owner")
 	rec := httptest.NewRecorder()
 
-	handlePresence(registry)(rec, req)
+	handlePresence(pool, registry)(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("got status %d, want 400", rec.Code)
@@ -73,14 +130,30 @@ func TestHandlePresenceMissingRepo(t *testing.T) {
 }
 
 func TestHandlePresenceMissingPaths(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
 	registry := presence.New()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/presence?repo=/repo", nil)
+	req = withActor(req, "user-owner")
 	rec := httptest.NewRecorder()
 
-	handlePresence(registry)(rec, req)
+	handlePresence(pool, registry)(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("got status %d, want 400", rec.Code)
+	}
+}
+
+func TestHandlePresenceRequiresIdentity(t *testing.T) {
+	pool := dbtest.OpenScratch(t)
+	registry := presence.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/presence?repo=/repo&paths=src/foo.ts", nil)
+	rec := httptest.NewRecorder()
+
+	handlePresence(pool, registry)(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("got status %d, want 404", rec.Code)
 	}
 }

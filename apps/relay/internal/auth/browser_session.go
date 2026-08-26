@@ -24,6 +24,7 @@ type sessionVerifyRequestBody struct {
 
 type sessionVerifyResponseBody struct {
 	UserID string `json:"userId"`
+	Name   string `json:"name"`
 }
 
 func RequireBrowserSession(cfg config.Config) func(http.HandlerFunc) http.HandlerFunc {
@@ -35,26 +36,26 @@ func RequireBrowserSession(cfg config.Config) func(http.HandlerFunc) http.Handle
 				return
 			}
 
-			userID, err := verifyBrowserSession(r, cfg, cookie.Value)
-			if err != nil || userID == "" {
+			actor, err := verifyBrowserSession(r, cfg, cookie.Value)
+			if err != nil || actor.UserID == "" {
 				http.NotFound(w, r)
 				return
 			}
 
-			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID})))
+			next(w, r.WithContext(WithActor(r.Context(), actor)))
 		}
 	}
 }
 
-func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string) (string, error) {
+func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string) (Actor, error) {
 	payload, err := json.Marshal(sessionVerifyRequestBody{Cookie: cookieValue})
 	if err != nil {
-		return "", fmt.Errorf("encode request: %w", err)
+		return Actor{}, fmt.Errorf("encode request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, cfg.WebInternalURL+"/api/internal/session/verify", bytes.NewReader(payload))
 	if err != nil {
-		return "", fmt.Errorf("build request: %w", err)
+		return Actor{}, fmt.Errorf("build request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -62,20 +63,20 @@ func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string
 
 	resp, err := webVerifyClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("request web app: %w", err)
+		return Actor{}, fmt.Errorf("request web app: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web app returned status %d", resp.StatusCode)
+		return Actor{}, fmt.Errorf("web app returned status %d", resp.StatusCode)
 	}
 
 	var result sessionVerifyResponseBody
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("decode response: %w", err)
+		return Actor{}, fmt.Errorf("decode response: %w", err)
 	}
 
-	return result.UserID, nil
+	return Actor{UserID: result.UserID, DisplayName: result.Name}, nil
 }
 
 func RequireAnyIdentity(pool *db.Pool, cfg config.Config) func(http.HandlerFunc) http.HandlerFunc {

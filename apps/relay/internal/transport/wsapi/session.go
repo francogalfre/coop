@@ -1,17 +1,28 @@
 package wsapi
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/coder/websocket"
 
+	"github.com/francogalfre/coop/apps/relay/internal/auth"
+	"github.com/francogalfre/coop/apps/relay/internal/db"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-func NewSessionStreamHandler(store *stream.Store, hub *stream.PresenceHub, webOrigins []string) http.HandlerFunc {
+const backfillLimit = 200
+
+func NewSessionStreamHandler(pool *db.Pool, store *stream.Store, hub *stream.PresenceHub, webOrigins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
-		name := r.URL.Query().Get("name")
+
+		actor, ok := auth.FromContext(r.Context())
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		name := actor.DisplayName
 
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: webOrigins})
 		if err != nil {
@@ -37,7 +48,7 @@ func NewSessionStreamHandler(store *stream.Store, hub *stream.PresenceHub, webOr
 		go readClientFrames(ctx, conn, incoming)
 
 		lastSeq := 0
-		for _, event := range store.Since(sessionID, 0) {
+		for _, event := range backfillEvents(ctx, pool, store, sessionID) {
 			if err := conn.Write(ctx, websocket.MessageText, event.Data); err != nil {
 				return
 			}
@@ -75,4 +86,23 @@ func NewSessionStreamHandler(store *stream.Store, hub *stream.PresenceHub, webOr
 			}
 		}
 	}
+}
+
+// Postgres is tried first since the in-memory ring buffer is gone on restart; an empty/failed read falls back to it.
+func backfillEvents(ctx context.Context, pool *db.Pool, store *stream.Store, sessionID string) []stream.Event {
+	if pool != nil {
+		if rows, err := pool.RecentEvents(ctx, sessionID, backfillLimit); err == nil && len(rows) > 0 {
+			events := make([]stream.Event, 0, len(rows))
+			for _, row := range rows {
+				data, err := stream.StampSeq(row.Data, row.Seq)
+				if err != nil {
+					continue
+				}
+				events = append(events, stream.Event{Seq: row.Seq, Data: data})
+			}
+			return events
+		}
+	}
+
+	return store.Since(sessionID, 0)
 }

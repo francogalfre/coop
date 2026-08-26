@@ -58,7 +58,7 @@ func handleCLIExchange(cfg config.Config, pool *db.Pool) http.HandlerFunc {
 			return
 		}
 
-		rawToken, err := pool.CreateCliCredential(r.Context(), resolved.UserID)
+		rawToken, err := pool.CreateCliCredential(r.Context(), resolved.UserID, resolved.DisplayName)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to create cli credential")
 			return

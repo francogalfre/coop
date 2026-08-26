@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/francogalfre/coop/apps/relay/internal/auth"
+	"github.com/francogalfre/coop/apps/relay/internal/db"
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
 )
 
@@ -22,7 +24,7 @@ type presenceResponse struct {
 	Paths         []presencePathResult `json:"paths"`
 }
 
-func handlePresence(registry *presence.Registry) http.HandlerFunc {
+func handlePresence(pool *db.Pool, registry *presence.Registry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		repo := r.URL.Query().Get("repo")
 		if repo == "" {
@@ -33,6 +35,18 @@ func handlePresence(registry *presence.Registry) http.HandlerFunc {
 		rawPaths := r.URL.Query().Get("paths")
 		if rawPaths == "" {
 			writeError(w, http.StatusBadRequest, "paths: required")
+			return
+		}
+
+		actor, ok := auth.FromContext(r.Context())
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+
+		allowed, err := memberSessionIDs(r.Context(), pool, actor.UserID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list projects")
 			return
 		}
 
@@ -54,9 +68,16 @@ func handlePresence(registry *presence.Registry) http.HandlerFunc {
 
 		results := make([]presencePathResult, 0, len(paths))
 		for _, path := range paths {
+			signals := make([]presence.Signal, 0, len(signalsByPath[path]))
+			for _, sig := range signalsByPath[path] {
+				if allowed[sig.SessionID] {
+					signals = append(signals, sig)
+				}
+			}
+
 			results = append(results, presencePathResult{
 				Path:    path,
-				Signals: signalsByPath[path],
+				Signals: signals,
 			})
 		}
 

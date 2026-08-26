@@ -14,7 +14,7 @@ import (
 func TestRequireCliCredentialAcceptsValidToken(t *testing.T) {
 	pool := dbtest.OpenScratch(t)
 
-	rawToken, err := pool.CreateCliCredential(context.Background(), "user-123")
+	rawToken, err := pool.CreateCliCredential(context.Background(), "user-123", "Alice")
 	if err != nil {
 		t.Fatalf("CreateCliCredential: %v", err)
 	}
@@ -42,6 +42,9 @@ func TestRequireCliCredentialAcceptsValidToken(t *testing.T) {
 
 	if gotActor.UserID != "user-123" {
 		t.Fatalf("got actor.UserID %q, want %q", gotActor.UserID, "user-123")
+	}
+	if gotActor.DisplayName != "Alice" {
+		t.Fatalf("got actor.DisplayName %q, want %q", gotActor.DisplayName, "Alice")
 	}
 }
 

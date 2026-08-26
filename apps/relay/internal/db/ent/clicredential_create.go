@@ -26,6 +26,20 @@ func (_c *CliCredentialCreate) SetUserID(v string) *CliCredentialCreate {
 	return _c
 }
 
+// SetDisplayName sets the "display_name" field.
+func (_c *CliCredentialCreate) SetDisplayName(v string) *CliCredentialCreate {
+	_c.mutation.SetDisplayName(v)
+	return _c
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_c *CliCredentialCreate) SetNillableDisplayName(v *string) *CliCredentialCreate {
+	if v != nil {
+		_c.SetDisplayName(*v)
+	}
+	return _c
+}
+
 // SetTokenHash sets the "token_hash" field.
 func (_c *CliCredentialCreate) SetTokenHash(v []byte) *CliCredentialCreate {
 	_c.mutation.SetTokenHash(v)
@@ -109,6 +123,10 @@ func (_c *CliCredentialCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *CliCredentialCreate) defaults() {
+	if _, ok := _c.mutation.DisplayName(); !ok {
+		v := clicredential.DefaultDisplayName
+		_c.mutation.SetDisplayName(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := clicredential.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -124,6 +142,9 @@ func (_c *CliCredentialCreate) check() error {
 		if err := clicredential.UserIDValidator(v); err != nil {
 			return &ValidationError{Name: "user_id", err: fmt.Errorf(`ent: validator failed for field "CliCredential.user_id": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.DisplayName(); !ok {
+		return &ValidationError{Name: "display_name", err: errors.New(`ent: missing required field "CliCredential.display_name"`)}
 	}
 	if _, ok := _c.mutation.TokenHash(); !ok {
 		return &ValidationError{Name: "token_hash", err: errors.New(`ent: missing required field "CliCredential.token_hash"`)}
@@ -165,6 +186,10 @@ func (_c *CliCredentialCreate) createSpec() (*CliCredential, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.UserID(); ok {
 		_spec.SetField(clicredential.FieldUserID, field.TypeString, value)
 		_node.UserID = value
+	}
+	if value, ok := _c.mutation.DisplayName(); ok {
+		_spec.SetField(clicredential.FieldDisplayName, field.TypeString, value)
+		_node.DisplayName = value
 	}
 	if value, ok := _c.mutation.TokenHash(); ok {
 		_spec.SetField(clicredential.FieldTokenHash, field.TypeBytes, value)

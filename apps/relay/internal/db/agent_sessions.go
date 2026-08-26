@@ -46,7 +46,10 @@ func (p *Pool) EndAgentSession(ctx context.Context, id string, endedAt time.Time
 }
 
 func (p *Pool) GetAgentSession(ctx context.Context, id string) (*ent.AgentSession, error) {
-	sess, err := p.client.AgentSession.Get(ctx, id)
+	sess, err := p.client.AgentSession.Query().
+		Where(agentsession.ID(id)).
+		WithProject().
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("db: get agent session: %w", err)
 	}

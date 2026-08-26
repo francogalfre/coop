@@ -15,6 +15,8 @@ const (
 	FieldID = "id"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
+	// FieldDisplayName holds the string denoting the display_name field in the database.
+	FieldDisplayName = "display_name"
 	// FieldTokenHash holds the string denoting the token_hash field in the database.
 	FieldTokenHash = "token_hash"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -31,6 +33,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldUserID,
+	FieldDisplayName,
 	FieldTokenHash,
 	FieldCreatedAt,
 	FieldLastUsedAt,
@@ -50,6 +53,8 @@ func ValidColumn(column string) bool {
 var (
 	// UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
 	UserIDValidator func(string) error
+	// DefaultDisplayName holds the default value on creation for the "display_name" field.
+	DefaultDisplayName string
 	// TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
 	TokenHashValidator func([]byte) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -67,6 +72,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByUserID orders the results by the user_id field.
 func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByDisplayName orders the results by the display_name field.
+func ByDisplayName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDisplayName, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

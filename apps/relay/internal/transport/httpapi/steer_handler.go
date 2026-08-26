@@ -3,18 +3,31 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
-	"github.com/francogalfre/coop/apps/relay/internal/presence"
+	"github.com/francogalfre/coop/apps/relay/internal/auth"
+	"github.com/francogalfre/coop/apps/relay/internal/db"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
 const steerTextMax = 4096
 
-type steerMessageBody struct {
-	From string `json:"from"`
+type steerPostRequest struct {
 	Text string `json:"text"`
+}
+
+type steerGetResponse struct {
+	HasMessage bool             `json:"has_message"`
+	From       string           `json:"from,omitempty"`
+	Text       string           `json:"text,omitempty"`
+	Takeover   takeoverGetState `json:"takeover"`
+}
+
+type takeoverGetState struct {
+	Active bool   `json:"active"`
+	By     string `json:"by,omitempty"`
 }
 
 type steerPostResponse struct {
@@ -22,21 +35,22 @@ type steerPostResponse struct {
 	Queued int    `json:"queued"`
 }
 
-func handleSteerPost(mailbox *stream.Mailbox, store *stream.Store) http.HandlerFunc {
+func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 
-		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-
-		var body steerMessageBody
-
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeError(w, http.StatusBadRequest, "malformed JSON body")
+		actor, ok := auth.FromContext(r.Context())
+		if !ok {
+			http.NotFound(w, r)
 			return
 		}
 
-		if body.From == "" || len(body.From) > presence.DisplayNameMax {
-			writeError(w, http.StatusBadRequest, "from: required, max length "+fmt.Sprint(presence.DisplayNameMax))
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+
+		var body steerPostRequest
+
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "malformed JSON body")
 			return
 		}
 
@@ -45,11 +59,23 @@ func handleSteerPost(mailbox *stream.Mailbox, store *stream.Store) http.HandlerF
 			return
 		}
 
-		mailbox.Put(sessionID, stream.SteerMessage{From: body.From, Text: body.Text})
-
-		if envelope, err := steerEnvelope(sessionID, body); err == nil {
-			_, _ = store.Append(sessionID, envelope)
+		envelope, err := steerEnvelope(sessionID, actor, body.Text)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to build steer message")
+			return
 		}
+
+		dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to record steer message")
+			return
+		}
+
+		if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
+			log.Printf("coop: failed to append steer message to in-memory store for session %s: %v", sessionID, err)
+		}
+
+		mailbox.Put(sessionID, stream.SteerMessage{From: actor.DisplayName, Text: body.Text})
 
 		writeJSON(w, http.StatusAccepted, steerPostResponse{
 			Status: "accepted",
@@ -58,30 +84,35 @@ func handleSteerPost(mailbox *stream.Mailbox, store *stream.Store) http.HandlerF
 	}
 }
 
-func steerEnvelope(sessionID string, body steerMessageBody) (json.RawMessage, error) {
+func steerEnvelope(sessionID string, actor auth.Actor, text string) (json.RawMessage, error) {
 	fields := map[string]any{
 		"v":          1,
 		"session_id": sessionID,
-		"seq":        0,
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "human.steer",
-		"actor":      map[string]string{"id": body.From, "display_name": body.From},
-		"text":       map[string]any{"text": body.Text, "redactions": 0, "truncated": false},
+		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"text":       map[string]any{"text": text, "redactions": 0, "truncated": false},
 	}
 
 	return json.Marshal(fields)
 }
 
-func handleSteerGet(mailbox *stream.Mailbox) http.HandlerFunc {
+func handleSteerGet(mailbox *stream.Mailbox, registry *stream.TakeoverRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 
-		msg, ok := mailbox.Take(sessionID)
-		if !ok {
-			w.WriteHeader(http.StatusNoContent)
-			return
+		msg, hasMessage := mailbox.Take(sessionID)
+		takeover := registry.Get(sessionID)
+
+		resp := steerGetResponse{
+			HasMessage: hasMessage,
+			Takeover:   takeoverGetState{Active: takeover.Active, By: takeover.By},
+		}
+		if hasMessage {
+			resp.From = msg.From
+			resp.Text = msg.Text
 		}
 
-		writeJSON(w, http.StatusOK, steerMessageBody{From: msg.From, Text: msg.Text})
+		writeJSON(w, http.StatusOK, resp)
 	}
 }

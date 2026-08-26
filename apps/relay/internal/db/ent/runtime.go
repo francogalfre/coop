@@ -56,12 +56,16 @@ func init() {
 	clicredentialDescUserID := clicredentialFields[0].Descriptor()
 	// clicredential.UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
 	clicredential.UserIDValidator = clicredentialDescUserID.Validators[0].(func(string) error)
+	// clicredentialDescDisplayName is the schema descriptor for display_name field.
+	clicredentialDescDisplayName := clicredentialFields[1].Descriptor()
+	// clicredential.DefaultDisplayName holds the default value on creation for the display_name field.
+	clicredential.DefaultDisplayName = clicredentialDescDisplayName.Default.(string)
 	// clicredentialDescTokenHash is the schema descriptor for token_hash field.
-	clicredentialDescTokenHash := clicredentialFields[1].Descriptor()
+	clicredentialDescTokenHash := clicredentialFields[2].Descriptor()
 	// clicredential.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
 	clicredential.TokenHashValidator = clicredentialDescTokenHash.Validators[0].(func([]byte) error)
 	// clicredentialDescCreatedAt is the schema descriptor for created_at field.
-	clicredentialDescCreatedAt := clicredentialFields[2].Descriptor()
+	clicredentialDescCreatedAt := clicredentialFields[3].Descriptor()
 	// clicredential.DefaultCreatedAt holds the default value on creation for the created_at field.
 	clicredential.DefaultCreatedAt = clicredentialDescCreatedAt.Default.(func() time.Time)
 	eventFields := schema.Event{}.Fields()
