@@ -42,6 +42,16 @@ server) run against `claude -p` in a scratch dir. Facts below marked
   "url":...,"timeout":...}` entry gets POSTed the same JSON body a command
   hook receives on stdin, and a 200 response with a JSON body is parsed as
   hook output the same way command-hook stdout is.
+- (live, 2026-08-26) `PreToolUse` deny via an HTTP hook is real, not just
+  doc-sourced: an HTTP hook returning `{"hookSpecificOutput":
+  {"hookEventName":"PreToolUse","permissionDecision":"deny",
+  "permissionDecisionReason":"..."}}` blocked a `Bash` tool call end-to-end
+  under `claude -p --permission-mode bypassPermissions` — the shell command
+  never ran (confirmed by absence of its side effect), `permission_denials`
+  in the `--output-format json` result listed the exact `tool_use_id`, and
+  the agent's own final message correctly relayed the deny reason. This is
+  coop's takeover mechanism: to pause an agent, have the hook server answer
+  every `PreToolUse` with this shape while a takeover is active.
 
 - Command hooks receive one line of JSON on stdin and answer via exit code
   and stdout JSON.

@@ -11,7 +11,7 @@
   },
   "overrides": [
     {
-      "files": ["apps/web/components/assistant-ui/**", "apps/web/components/ui/**"],
+      "files": ["apps/web/components/ui/**"],
       "rules": {
         "promise/always-return": "off",
         "unicorn/no-array-sort": "off"

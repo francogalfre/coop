@@ -11,31 +11,39 @@ event detail.
 
 ## Quick Start
 
+Requires a Postgres connection string (`DATABASE_URL`) and a GitHub OAuth app
+(`COOP_GITHUB_CLIENT_ID`/`COOP_GITHUB_CLIENT_SECRET`, plus `COOP_INTERNAL_SECRET`
+and `BETTER_AUTH_SECRET`). Copy `apps/web/.env.example` to `apps/web/.env.local`
+and fill in the values.
+
 **Terminal 1: Start relay + web viewer**
 
 ```bash
-cd /home/francogalfre/Documentos/dev/coop
+# from the repo root
 bun run dev
 ```
 
 **Terminal 2: Build the CLI and use it**
 
 ```bash
-cd /home/francogalfre/Documentos/dev/coop/packages/cli
+cd packages/cli
 go build -o coop ./cmd/coop
 
 # Now use it in your project
 cd /your/test/project
-/home/francogalfre/Documentos/dev/coop/packages/cli/coop attach
+coop attach
 # coop detects claude / opencode / pi automatically and installs hooks for each.
 # In another terminal, start your agent as usual: claude, opencode, or pi
 
 # Or let coop launch it directly and wrap the terminal:
-/home/francogalfre/Documentos/dev/coop/packages/cli/coop run -- claude
+coop run -- claude
 
 # If attach exits uncleanly (crash, kill -9), remove any leftover hook entries:
-/home/francogalfre/Documentos/dev/coop/packages/cli/coop detach
+coop detach
 ```
+
+(Adjust `coop`'s path in the commands above, e.g. `../coop/packages/cli/coop`,
+if you're not running it from `packages/cli`.)
 
 **Open the browser**
 

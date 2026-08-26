@@ -10,10 +10,6 @@ echo "🚀 coop development server"
 echo "  relay: http://localhost:8787"
 echo "  web:   http://localhost:3000"
 echo ""
-echo "Set NEXT_PUBLIC_COOP_REPO to your project path before opening the web:"
-echo "  export NEXT_PUBLIC_COOP_REPO=/absolute/path/to/your/project"
-echo "  then refresh http://localhost:3000"
-echo ""
 echo "Stopping any existing processes..."
 pkill -f "go run.*relay|next dev" 2>/dev/null || true
 sleep 1
