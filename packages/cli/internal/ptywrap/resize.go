@@ -8,12 +8,18 @@ import (
 	"github.com/creack/pty"
 )
 
-func watchResize(ptmx *os.File) func() {
+func watchResize(ptmx *os.File, onResize func(cols, rows int)) func() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGWINCH)
 
 	resize := func() {
 		_ = pty.InheritSize(os.Stdin, ptmx)
+		if onResize == nil {
+			return
+		}
+		if rows, cols, err := pty.Getsize(ptmx); err == nil {
+			onResize(cols, rows)
+		}
 	}
 	resize()
 

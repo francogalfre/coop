@@ -1,11 +1,12 @@
 package hooks
 
 import (
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
 
-func translateOpencode(nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
+func translateOpencode(cfg config.Config, nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	var bodies [][]byte
 
 	switch event {
@@ -20,7 +21,7 @@ func translateOpencode(nextSeq func() int, sessionID, event string, payload map[
 			"type":    "session.start",
 			"harness": "opencode",
 			"cwd":     dir,
-			"owner":   actorFields(),
+			"owner":   actorFields(cfg),
 		}
 
 		if repo := repoid.Detect(rawDir); repo != "" {

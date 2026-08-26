@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 )
 
@@ -31,7 +32,7 @@ func decodeBody(t *testing.T, body []byte) map[string]any {
 func buildOne(t *testing.T, seq int, sessionID, hookEvent string, payload map[string]any, red *redact.Redactor) map[string]any {
 	t.Helper()
 
-	bodies, err := buildEventBody(seqFrom(seq), sessionID, hookEvent, payload, red)
+	bodies, err := buildEventBody(config.Config{}, seqFrom(seq), sessionID, hookEvent, payload, red)
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}
@@ -119,7 +120,7 @@ func TestBuildEventBodyPreToolUseRedactsInput(t *testing.T) {
 func TestBuildEventBodyPreToolUseEmptyToolNameSkipsEvent(t *testing.T) {
 	payload := map[string]any{"hook_event_name": "PreToolUse", "tool_input": map[string]any{}}
 
-	bodies, err := buildEventBody(seqFrom(0), "sess-a", "PreToolUse", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(0), "sess-a", "PreToolUse", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}
@@ -137,7 +138,7 @@ func TestBuildEventBodyPostToolUseBashEmitsOnlyToolResult(t *testing.T) {
 		"tool_response":   map[string]any{"stdout": "done", "stderr": ""},
 	}
 
-	bodies, err := buildEventBody(seqFrom(2), "sess-a", "PostToolUse", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(2), "sess-a", "PostToolUse", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}

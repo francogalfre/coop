@@ -13,6 +13,8 @@ type Config struct {
 	HookAddr      string
 	SessionToken  string
 	CLICredential string
+	Username      string
+	DisplayName   string
 	Project       string
 }
 
@@ -63,6 +65,8 @@ func Load() (Config, error) {
 		HookAddr:      hookAddr,
 		SessionToken:  sessionToken,
 		CLICredential: cred.Token,
+		Username:      cred.Username,
+		DisplayName:   cred.DisplayName,
 	}, nil
 }
 

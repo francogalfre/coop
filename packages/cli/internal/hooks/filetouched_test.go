@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 )
 
@@ -15,7 +16,7 @@ func TestBuildEventBodyPostToolUseReadEmitsFileTouchedRead(t *testing.T) {
 		"tool_response":   map[string]any{"content": "package main"},
 	}
 
-	bodies, err := buildEventBody(seqFrom(0), "sess-a", "PostToolUse", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(0), "sess-a", "PostToolUse", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}
@@ -48,7 +49,7 @@ func TestBuildEventBodyPostToolUseEditEmitsFileTouchedWrite(t *testing.T) {
 		"tool_response":   map[string]any{"filePath": "/repo/main.go"},
 	}
 
-	bodies, err := buildEventBody(seqFrom(0), "sess-a", "PostToolUse", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(0), "sess-a", "PostToolUse", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}
@@ -72,7 +73,7 @@ func TestBuildEventBodySeqIncrementsPerEventNotPerCall(t *testing.T) {
 		"tool_response":   map[string]any{},
 	}
 
-	bodies, err := buildEventBody(seqFrom(10), "sess-a", "PostToolUse", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(10), "sess-a", "PostToolUse", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}

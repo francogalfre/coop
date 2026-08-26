@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 )
 
-// translateEvent picks the per-harness payload translator. claude-code (and
-// anything unrecognized reaching this endpoint) goes through buildEventBody,
-// the only translator with fully verified field shapes end to end.
-func translateEvent(harnessName string, nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
+// claude-code (and anything unrecognized) goes through buildEventBody, the only translator with fully verified field shapes end to end.
+func translateEvent(harnessName string, cfg config.Config, nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	switch harnessName {
 	case "opencode":
-		return translateOpencode(nextSeq, sessionID, event, payload, red)
+		return translateOpencode(cfg, nextSeq, sessionID, event, payload, red)
 	case "pi":
-		return translatePi(nextSeq, sessionID, event, payload, red)
+		return translatePi(cfg, nextSeq, sessionID, event, payload, red)
 	default:
-		return buildEventBody(nextSeq, sessionID, event, payload, red)
+		return buildEventBody(cfg, nextSeq, sessionID, event, payload, red)
 	}
 }
 

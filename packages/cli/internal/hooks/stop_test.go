@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 )
 
@@ -13,7 +14,7 @@ func TestBuildEventBodyStopEmitsTurnEndAndAgentText(t *testing.T) {
 		"last_assistant_message": "done, key sk-abcdefghijklmnopqrstuv",
 	}
 
-	bodies, err := buildEventBody(seqFrom(4), "sess-a", "Stop", payload, redact.New())
+	bodies, err := buildEventBody(config.Config{}, seqFrom(4), "sess-a", "Stop", payload, redact.New())
 	if err != nil {
 		t.Fatalf("buildEventBody() error = %v", err)
 	}

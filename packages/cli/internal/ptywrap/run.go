@@ -13,7 +13,7 @@ import (
 	"github.com/francogalfre/coop/packages/cli/internal/config"
 )
 
-func Run(ctx context.Context, cfg config.Config, name string, args []string) error {
+func Run(ctx context.Context, cfg config.Config, harnessName, name string, args []string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 
 	ptmx, err := pty.Start(cmd)
@@ -21,6 +21,9 @@ func Run(ctx context.Context, cfg config.Config, name string, args []string) err
 		return fmt.Errorf("ptywrap: start %s: %w", name, err)
 	}
 	defer ptmx.Close()
+
+	postSessionStart(cfg, harnessName)
+	defer postSessionEnd(cfg)
 
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
@@ -30,7 +33,10 @@ func Run(ctx context.Context, cfg config.Config, name string, args []string) err
 		defer term.Restore(int(os.Stdin.Fd()), oldState)
 	}
 
-	stopResize := watchResize(ptmx)
+	streamer, stopStream := streamPty(ctx, cfg, ptmx)
+	defer stopStream()
+
+	stopResize := watchResize(ptmx, streamer.PushResize)
 	defer stopResize()
 
 	stopSteer := watchSteer(ctx, cfg, ptmx)
@@ -38,7 +44,7 @@ func Run(ctx context.Context, cfg config.Config, name string, args []string) err
 
 	outputDone := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(os.Stdout, ptmx)
+		_, _ = io.Copy(io.MultiWriter(os.Stdout, streamer), ptmx)
 		close(outputDone)
 	}()
 

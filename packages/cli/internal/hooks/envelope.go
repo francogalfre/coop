@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os/user"
 
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
 
 const textLimit = 8192
 
-func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
+func buildEventBody(cfg config.Config, nextSeq func() int, sessionID, hookEvent string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	var bodies [][]byte
 
 	emit := func(fields map[string]any) error {
@@ -20,7 +21,7 @@ func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map
 
 	switch hookEvent {
 	case "SessionStart":
-		if err := emitSessionStart(emit, payload, red); err != nil {
+		if err := emitSessionStart(cfg, emit, payload, red); err != nil {
 			return nil, err
 		}
 
@@ -59,7 +60,7 @@ func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map
 	return bodies, nil
 }
 
-func emitSessionStart(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+func emitSessionStart(cfg config.Config, emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
 	rawCwd := stringField(payload, "cwd")
 	cwd, _ := red.Text(rawCwd)
 
@@ -67,7 +68,7 @@ func emitSessionStart(emit func(map[string]any) error, payload map[string]any, r
 		"type":    "session.start",
 		"harness": "claude-code",
 		"cwd":     cwd,
-		"owner":   actorFields(),
+		"owner":   actorFields(cfg),
 	}
 
 	if rawCwd != "" {
@@ -196,7 +197,18 @@ func redactedTextFrom(v any, red *redact.Redactor) (map[string]any, error) {
 	return map[string]any{"text": text, "redactions": count, "truncated": truncated}, nil
 }
 
-func actorFields() map[string]string {
+func actorFields(cfg config.Config) map[string]string {
+	if cfg.Username != "" || cfg.DisplayName != "" {
+		id, name := cfg.Username, cfg.DisplayName
+		if id == "" {
+			id = name
+		}
+		if name == "" {
+			name = id
+		}
+		return map[string]string{"id": id, "display_name": name}
+	}
+
 	id, name := "local", "local"
 
 	if u, err := user.Current(); err == nil && u.Username != "" {

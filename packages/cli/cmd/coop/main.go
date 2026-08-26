@@ -11,6 +11,7 @@ import (
 
 	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
 	"github.com/francogalfre/coop/packages/cli/internal/hooks"
 	"github.com/francogalfre/coop/packages/cli/internal/ptywrap"
 )
@@ -146,6 +147,11 @@ func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 
+	harnessName := generic.Name
+	if len(adapters) == 1 {
+		harnessName = adapters[0].Name()
+	}
+
 	installed, err := hooks.Install(cfg, false)
 	if err != nil {
 		return err
@@ -158,7 +164,7 @@ func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
 	}
 	defer removeInstallations(installations)
 
-	return ptywrap.Run(ctx, cfg, name, cmdArgs)
+	return ptywrap.Run(ctx, cfg, harnessName, name, cmdArgs)
 }
 
 func runDetach(args []string) error {

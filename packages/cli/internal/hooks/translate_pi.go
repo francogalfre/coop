@@ -1,16 +1,17 @@
 package hooks
 
 import (
+	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
 
-func translatePi(nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
+func translatePi(cfg config.Config, nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	var bodies [][]byte
 
 	switch event {
 	case "session_start":
-		if err := emitPiSessionStart(&bodies, nextSeq, sessionID, payload, red); err != nil {
+		if err := emitPiSessionStart(cfg, &bodies, nextSeq, sessionID, payload, red); err != nil {
 			return nil, err
 		}
 
@@ -38,7 +39,7 @@ func translatePi(nextSeq func() int, sessionID, event string, payload map[string
 	return bodies, nil
 }
 
-func emitPiSessionStart(bodies *[][]byte, nextSeq func() int, sessionID string, payload map[string]any, red *redact.Redactor) error {
+func emitPiSessionStart(cfg config.Config, bodies *[][]byte, nextSeq func() int, sessionID string, payload map[string]any, red *redact.Redactor) error {
 	rawCwd := stringField(payload, "cwd")
 	cwd, _ := red.Text(rawCwd)
 	if cwd == "" {
@@ -49,7 +50,7 @@ func emitPiSessionStart(bodies *[][]byte, nextSeq func() int, sessionID string, 
 		"type":    "session.start",
 		"harness": "pi",
 		"cwd":     cwd,
-		"owner":   actorFields(),
+		"owner":   actorFields(cfg),
 	}
 
 	if repo := repoid.Detect(rawCwd); repo != "" {

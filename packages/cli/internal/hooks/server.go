@@ -77,7 +77,7 @@ func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := translateEvent(harnessName, s.nextSeq, s.cfg.SessionID, event, payload, s.redactor)
+	events, err := translateEvent(harnessName, s.cfg, s.nextSeq, s.cfg.SessionID, event, payload, s.redactor)
 	if err != nil {
 		log.Printf("coop: build event for %s/%s: %v", harnessName, event, err)
 		writeJSON(w, map[string]any{})
