@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/francogalfre/coop/apps/relay/internal/auth"
@@ -72,6 +73,38 @@ func TestRequireBrowserSessionAcceptsValidCookie(t *testing.T) {
 	}
 	if gotActor.DisplayName != "Display user-42" {
 		t.Fatalf("got actor.DisplayName %q, want %q", gotActor.DisplayName, "Display user-42")
+	}
+}
+
+func TestRequireBrowserSessionCachesSuccessfulVerification(t *testing.T) {
+	var calls atomic.Int32
+	cookie := "cached-cookie-" + t.Name()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"userId": "user-cached", "name": "Cached User"})
+	}))
+	defer srv.Close()
+
+	cfg := config.Config{WebInternalURL: srv.URL, InternalSecret: "s3cret"}
+	handler := auth.RequireBrowserSession(cfg)(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	for range 3 {
+		req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+		req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: cookie})
+		rec := httptest.NewRecorder()
+		handler(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want 200", rec.Code)
+		}
+	}
+
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("web app was called %d times, want 1 (later calls should hit the cache)", got)
 	}
 }
 

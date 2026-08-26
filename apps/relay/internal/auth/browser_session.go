@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/config"
@@ -14,9 +15,51 @@ import (
 const (
 	browserSessionCookieName = "better-auth.session_token"
 	webVerifyTimeout         = 10 * time.Second
+	browserSessionCacheTTL   = 20 * time.Second
+	browserSessionCacheCap   = 4096
 )
 
 var webVerifyClient = &http.Client{Timeout: webVerifyTimeout}
+
+var browserSessionCache = newVerifyCache()
+
+type verifyCacheEntry struct {
+	actor     Actor
+	expiresAt time.Time
+}
+
+type verifyCache struct {
+	mu sync.RWMutex
+	m  map[string]verifyCacheEntry
+}
+
+func newVerifyCache() *verifyCache {
+	return &verifyCache{m: map[string]verifyCacheEntry{}}
+}
+
+func (c *verifyCache) get(cookieValue string) (Actor, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	entry, ok := c.m[cookieValue]
+	if !ok || time.Now().After(entry.expiresAt) {
+		return Actor{}, false
+	}
+
+	return entry.actor, true
+}
+
+// A cookie is one browser's whole visit, so a short cache turns a page's burst of relay calls (WS handshake, steer, presence) into one Postgres round trip instead of one per call.
+func (c *verifyCache) set(cookieValue string, actor Actor) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if len(c.m) >= browserSessionCacheCap {
+		c.m = map[string]verifyCacheEntry{}
+	}
+
+	c.m[cookieValue] = verifyCacheEntry{actor: actor, expiresAt: time.Now().Add(browserSessionCacheTTL)}
+}
 
 type sessionVerifyRequestBody struct {
 	Cookie string `json:"cookie"`
@@ -48,6 +91,12 @@ func RequireBrowserSession(cfg config.Config) func(http.HandlerFunc) http.Handle
 }
 
 func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string) (Actor, error) {
+	cacheKey := cfg.WebInternalURL + "|" + cookieValue
+
+	if actor, ok := browserSessionCache.get(cacheKey); ok {
+		return actor, nil
+	}
+
 	payload, err := json.Marshal(sessionVerifyRequestBody{Cookie: cookieValue})
 	if err != nil {
 		return Actor{}, fmt.Errorf("encode request: %w", err)
@@ -76,7 +125,10 @@ func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string
 		return Actor{}, fmt.Errorf("decode response: %w", err)
 	}
 
-	return Actor{UserID: result.UserID, DisplayName: result.Name}, nil
+	actor := Actor{UserID: result.UserID, DisplayName: result.Name}
+	browserSessionCache.set(cacheKey, actor)
+
+	return actor, nil
 }
 
 func RequireAnyIdentity(pool *db.Pool, cfg config.Config) func(http.HandlerFunc) http.HandlerFunc {
