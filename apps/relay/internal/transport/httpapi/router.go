@@ -12,7 +12,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/transport/wsapi"
 )
 
-func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, store *stream.Store, mailbox *stream.Mailbox, hub *stream.PresenceHub, takeover *stream.TakeoverRegistry) http.Handler {
+func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, store *stream.Store, mailbox *stream.Mailbox, hub *stream.PresenceHub, takeover *stream.TakeoverRegistry, ptyHub *stream.PtyHub) http.Handler {
 	mux := http.NewServeMux()
 
 	ingestLimiter := ratelimit.New(ingestRatePerSecond, ingestBurst)
@@ -28,6 +28,7 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("GET /v1/presence", requireIdentity(handlePresence(pool, registry)))
 	mux.HandleFunc("GET /v1/sessions", requireIdentity(handleSessions(pool, registry)))
 	mux.HandleFunc("GET /v1/sessions/{id}/stream", requireSessionMember(wsapi.NewSessionStreamHandler(pool, store, hub, cfg.WebOrigins)))
+	mux.HandleFunc("GET /v1/sessions/{id}/pty", requireSessionMember(wsapi.NewPtySessionHandler(ptyHub, takeover, pool, cfg.WebOrigins)))
 	mux.HandleFunc("GET /v1/sessions/{id}/viewers", requireSessionMember(handleViewers(hub)))
 	mux.HandleFunc("POST /v1/sessions/{id}/steer", withIPRateLimit(steerLimiter, requireSessionMember(handleSteerPost(pool, mailbox, store))))
 	mux.HandleFunc("GET /v1/sessions/{id}/steer", requireSessionOwner(handleSteerGet(mailbox, takeover)))
