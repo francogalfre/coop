@@ -24,7 +24,6 @@ func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Coop-Session-Token", cfg.SessionToken)
 	setCLICredential(req, cfg)
 	setProject(req, cfg)
 
@@ -41,42 +40,59 @@ func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	return nil
 }
 
-type steerMessageBody struct {
-	From string `json:"from"`
-	Text string `json:"text"`
+type TakeoverInfo struct {
+	Active bool
+	By     string
 }
 
-func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (from, text string, ok bool, err error) {
+type SteerResult struct {
+	From       string
+	Text       string
+	HasMessage bool
+	Takeover   TakeoverInfo
+}
+
+type steerGetBody struct {
+	HasMessage bool   `json:"has_message"`
+	From       string `json:"from"`
+	Text       string `json:"text"`
+	Takeover   struct {
+		Active bool   `json:"active"`
+		By     string `json:"by"`
+	} `json:"takeover"`
+}
+
+func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (SteerResult, error) {
 	steerURL := cfg.RelayURL + "/v1/sessions/" + url.PathEscape(sessionID) + "/steer"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, steerURL, nil)
 	if err != nil {
-		return "", "", false, fmt.Errorf("relayclient: build request: %w", err)
+		return SteerResult{}, fmt.Errorf("relayclient: build request: %w", err)
 	}
 
-	req.Header.Set("X-Coop-Session-Token", cfg.SessionToken)
 	setCLICredential(req, cfg)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", "", false, fmt.Errorf("relayclient: get steer: %w", err)
+		return SteerResult{}, fmt.Errorf("relayclient: get steer: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNoContent {
-		return "", "", false, nil
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		return "", "", false, fmt.Errorf("relayclient: get steer: unexpected status %d: %s", resp.StatusCode, readBody(resp.Body))
+		return SteerResult{}, fmt.Errorf("relayclient: get steer: unexpected status %d: %s", resp.StatusCode, readBody(resp.Body))
 	}
 
-	var msg steerMessageBody
-	if err := json.NewDecoder(resp.Body).Decode(&msg); err != nil {
-		return "", "", false, fmt.Errorf("relayclient: decode steer response: %w", err)
+	var body steerGetBody
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return SteerResult{}, fmt.Errorf("relayclient: decode steer response: %w", err)
 	}
 
-	return msg.From, msg.Text, true, nil
+	return SteerResult{
+		From:       body.From,
+		Text:       body.Text,
+		HasMessage: body.HasMessage,
+		Takeover:   TakeoverInfo{Active: body.Takeover.Active, By: body.Takeover.By},
+	}, nil
 }
 
 type LoginResult struct {

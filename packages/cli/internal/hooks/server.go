@@ -28,16 +28,15 @@ var claudeCodeSteerableEvents = map[string]bool{
 }
 
 type Server struct {
-	cfg      config.Config
-	redactor *redact.Redactor
-	seq      atomic.Int64
-	steer    bool
-	postCh   chan []byte
+	cfg              config.Config
+	redactor         *redact.Redactor
+	seq              atomic.Int64
+	steer            bool
+	postCh           chan []byte
+	takeoverNotified atomic.Bool
 }
 
-// NewServer's steer flag distinguishes `coop attach` (this server owns
-// steering delivery) from `coop run` (the pty poller owns it instead) --
-// GetSteer is take-once, so only one consumer may call it per session.
+// steer distinguishes attach (this server owns delivery) from run (the pty poller does) since GetSteer is take-once.
 func NewServer(cfg config.Config, steer bool) *Server {
 	s := &Server{
 		cfg:      cfg,
@@ -109,8 +108,7 @@ func (s *Server) runPostLoop() {
 	}
 }
 
-// enqueuePost never blocks the hook response on the relay: this is live
-// telemetry, not a ledger, so a full queue drops the oldest event.
+// This is live telemetry, not a ledger, so a full queue drops the oldest event rather than blocking the hook response.
 func (s *Server) enqueuePost(body []byte) {
 	select {
 	case s.postCh <- body:
@@ -131,10 +129,7 @@ func (s *Server) enqueuePost(body []byte) {
 	}
 }
 
-// respondWithSteer shapes the reply differently per harness: Claude Code
-// only accepts additionalContext on a safe subset of events (see
-// harnesses.md), while opencode/pi shims opportunistically check every
-// response for a "steer" field regardless of which event triggered it.
+// Claude Code only accepts additionalContext on a safe subset of events (harnesses.md); opencode/pi accept a "steer" field on any event.
 func (s *Server) respondWithSteer(w http.ResponseWriter, r *http.Request, harnessName, event string) {
 	if harnessName == claudeCodeName && !claudeCodeSteerableEvents[event] {
 		writeJSON(w, map[string]any{})
@@ -144,31 +139,68 @@ func (s *Server) respondWithSteer(w http.ResponseWriter, r *http.Request, harnes
 	ctx, cancel := context.WithTimeout(r.Context(), steerTimeout)
 	defer cancel()
 
-	from, text, ok, err := relayclient.GetSteer(ctx, s.cfg, s.cfg.SessionID)
+	steer, err := relayclient.GetSteer(ctx, s.cfg, s.cfg.SessionID)
 	if err != nil {
 		log.Printf("coop: get steer: %v", err)
 		writeJSON(w, map[string]any{})
 		return
 	}
 
-	if !ok {
-		writeJSON(w, map[string]any{})
-		return
-	}
-
-	attributed := fmt.Sprintf("[%s via coop] %s", from, text)
-
-	if harnessName == claudeCodeName {
+	// Live-verified (harnesses.md, 2026-08-26): only Claude Code's PreToolUse deny shape actually blocks the call.
+	if steer.Takeover.Active && harnessName == claudeCodeName && event == "PreToolUse" {
 		writeJSON(w, map[string]any{
 			"hookSpecificOutput": map[string]any{
-				"hookEventName":     event,
-				"additionalContext": attributed,
+				"hookEventName":            event,
+				"permissionDecision":       "deny",
+				"permissionDecisionReason": steer.Takeover.By + " has taken over this session via coop",
 			},
 		})
 		return
 	}
 
-	writeJSON(w, map[string]any{"steer": attributed})
+	text := s.steerText(steer)
+	if text == "" {
+		writeJSON(w, map[string]any{})
+		return
+	}
+
+	if harnessName == claudeCodeName {
+		writeJSON(w, map[string]any{
+			"hookSpecificOutput": map[string]any{
+				"hookEventName":     event,
+				"additionalContext": text,
+			},
+		})
+		return
+	}
+
+	writeJSON(w, map[string]any{"steer": text})
+}
+
+// steerText edge-triggers the takeover notice (once per claim, not once per poll) and merges it with any pending mailbox message.
+func (s *Server) steerText(steer relayclient.SteerResult) string {
+	notice := ""
+	if steer.Takeover.Active {
+		if !s.takeoverNotified.Swap(true) {
+			notice = steer.Takeover.By + " has taken over this session via coop"
+		}
+	} else {
+		s.takeoverNotified.Store(false)
+	}
+
+	message := ""
+	if steer.HasMessage {
+		message = fmt.Sprintf("[%s via coop] %s", steer.From, steer.Text)
+	}
+
+	switch {
+	case notice != "" && message != "":
+		return message + "\n" + notice
+	case notice != "":
+		return notice
+	default:
+		return message
+	}
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

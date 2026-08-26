@@ -44,6 +44,11 @@ func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map
 			return nil, err
 		}
 
+	case "UserPromptSubmit":
+		if err := emitHumanPrompt(emit, payload, red); err != nil {
+			return nil, err
+		}
+
 	default:
 		redactedPayload, _ := red.Value(payload)
 		if err := emit(map[string]any{"type": "hook." + hookEvent, "raw": redactedPayload}); err != nil {
@@ -138,6 +143,15 @@ func emitStop(emit func(map[string]any) error, payload map[string]any, red *reda
 	}
 
 	return emit(map[string]any{"type": "agent.text", "text": text})
+}
+
+func emitHumanPrompt(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+	text, err := redactedTextFrom(payload["prompt"], red)
+	if err != nil {
+		return err
+	}
+
+	return emit(map[string]any{"type": "human.prompt", "text": text})
 }
 
 func emitSessionEnd(emit func(map[string]any) error, payload map[string]any) error {

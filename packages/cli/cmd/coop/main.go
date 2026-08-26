@@ -50,14 +50,14 @@ func run(args []string) error {
 }
 
 func usageError() error {
-	return fmt.Errorf("usage: coop attach [--harness=<name>] [--project=<slug>] | coop run [--harness=<name>] [--project=<slug>] -- <cmd> [args...] | coop detach [dir] | coop login")
+	return fmt.Errorf("usage: coop attach [--harness=<name>] --project=<slug> | coop run [--harness=<name>] --project=<slug> -- <cmd> [args...] | coop detach [dir] | coop login")
 }
 
 func parseAttachRunFlags(fsName string, args []string) (harnessFlag, project string, remaining []string, err error) {
 	fs := flag.NewFlagSet(fsName, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	harnessName := fs.String("harness", "", "install hooks for only this harness (claude-code, opencode, pi)")
-	projectSlug := fs.String("project", "", "associate this session with a coop project (requires `coop login`)")
+	projectSlug := fs.String("project", "", "associate this session with a coop project (required, implies `coop login`)")
 
 	if err := fs.Parse(args); err != nil {
 		return "", "", nil, err
@@ -66,8 +66,12 @@ func parseAttachRunFlags(fsName string, args []string) (harnessFlag, project str
 	return *harnessName, *projectSlug, fs.Args(), nil
 }
 
-func requireLoginForProject(cmd string, cfg config.Config, project string) error {
-	if project != "" && cfg.CLICredential == "" {
+func requireProjectAndLogin(cmd string, cfg config.Config, project string) error {
+	if project == "" {
+		return fmt.Errorf("coop %s: --project is required, every session must belong to a project", cmd)
+	}
+
+	if cfg.CLICredential == "" {
 		return fmt.Errorf("coop %s: --project requires a login: run `coop login` first", cmd)
 	}
 
@@ -80,7 +84,7 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 
-	if err := requireLoginForProject("attach", cfg, project); err != nil {
+	if err := requireProjectAndLogin("attach", cfg, project); err != nil {
 		return err
 	}
 	cfg.Project = project
@@ -125,7 +129,7 @@ func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 
-	if err := requireLoginForProject("run", cfg, project); err != nil {
+	if err := requireProjectAndLogin("run", cfg, project); err != nil {
 		return err
 	}
 	cfg.Project = project

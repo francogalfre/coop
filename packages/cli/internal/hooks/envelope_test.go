@@ -159,14 +159,14 @@ func TestBuildEventBodyPostToolUseBashEmitsOnlyToolResult(t *testing.T) {
 
 func TestBuildEventBodyUnmappedEventFallsBackToUnknown(t *testing.T) {
 	payload := map[string]any{
-		"hook_event_name": "UserPromptSubmit",
-		"prompt":          "use key sk-abcdefghijklmnopqrstuv please",
+		"hook_event_name": "Notification",
+		"message":         "use key sk-abcdefghijklmnopqrstuv please",
 	}
 
-	out := buildOne(t, 5, "sess-a", "UserPromptSubmit", payload, redact.New())
+	out := buildOne(t, 5, "sess-a", "Notification", payload, redact.New())
 
-	if out["type"] != "hook.UserPromptSubmit" {
-		t.Errorf("got type %v, want hook.UserPromptSubmit", out["type"])
+	if out["type"] != "hook.Notification" {
+		t.Errorf("got type %v, want hook.Notification", out["type"])
 	}
 
 	raw, ok := out["raw"].(map[string]any)
@@ -174,9 +174,32 @@ func TestBuildEventBodyUnmappedEventFallsBackToUnknown(t *testing.T) {
 		t.Fatalf("got raw %v, want an object", out["raw"])
 	}
 
-	prompt, _ := raw["prompt"].(string)
+	message, _ := raw["message"].(string)
+	if strings.Contains(message, "sk-abcdefghijklmnopqrstuv") {
+		t.Errorf("raw.message still contains the secret: %s", message)
+	}
+}
+
+func TestBuildEventBodyUserPromptSubmitEmitsHumanPromptRedacted(t *testing.T) {
+	payload := map[string]any{
+		"hook_event_name": "UserPromptSubmit",
+		"prompt":          "use key sk-abcdefghijklmnopqrstuv please",
+	}
+
+	out := buildOne(t, 5, "sess-a", "UserPromptSubmit", payload, redact.New())
+
+	if out["type"] != "human.prompt" {
+		t.Errorf("got type %v, want human.prompt", out["type"])
+	}
+
+	text, ok := out["text"].(map[string]any)
+	if !ok {
+		t.Fatalf("got text %v, want an object", out["text"])
+	}
+
+	prompt, _ := text["text"].(string)
 	if strings.Contains(prompt, "sk-abcdefghijklmnopqrstuv") {
-		t.Errorf("raw.prompt still contains the secret: %s", prompt)
+		t.Errorf("text.text still contains the secret: %s", prompt)
 	}
 }
 

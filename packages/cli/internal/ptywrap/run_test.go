@@ -16,16 +16,24 @@ import (
 )
 
 type fakeSteerRelay struct {
-	mu      sync.Mutex
-	from    string
-	text    string
-	pending bool
+	mu             sync.Mutex
+	from           string
+	text           string
+	pending        bool
+	takeoverActive bool
+	takeoverBy     string
 }
 
 func (f *fakeSteerRelay) set(from, text string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.from, f.text, f.pending = from, text, true
+}
+
+func (f *fakeSteerRelay) setTakeover(active bool, by string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.takeoverActive, f.takeoverBy = active, by
 }
 
 func (f *fakeSteerRelay) server() *httptest.Server {
@@ -35,14 +43,16 @@ func (f *fakeSteerRelay) server() *httptest.Server {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 
-		if !f.pending {
-			w.WriteHeader(http.StatusNoContent)
-			return
+		resp := map[string]any{
+			"has_message": f.pending,
+			"from":        f.from,
+			"text":        f.text,
+			"takeover":    map[string]any{"active": f.takeoverActive, "by": f.takeoverBy},
 		}
-
 		f.pending = false
+
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"from": f.from, "text": f.text})
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	return httptest.NewServer(mux)
@@ -108,6 +118,27 @@ func TestRunInjectsSteerIntoChildStdin(t *testing.T) {
 	})
 
 	want := "[Alice via coop] try the other branch"
+	if !strings.Contains(output, want) {
+		t.Fatalf("output = %q, want it to contain %q", output, want)
+	}
+}
+
+func TestRunInjectsTakeoverNoticeIntoChildStdin(t *testing.T) {
+	relay := &fakeSteerRelay{}
+	relayServer := relay.server()
+	defer relayServer.Close()
+	relay.setTakeover(true, "Alice")
+
+	cfg := config.Config{RelayURL: relayServer.URL, SessionID: "sess-a"}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	output := captureStdout(t, func() {
+		_ = Run(ctx, cfg, "cat", nil)
+	})
+
+	want := "Alice has taken over this session"
 	if !strings.Contains(output, want) {
 		t.Fatalf("output = %q, want it to contain %q", output, want)
 	}

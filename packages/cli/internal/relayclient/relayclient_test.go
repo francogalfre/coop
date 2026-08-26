@@ -73,37 +73,59 @@ func TestGetSteerReturnsMessageOn200(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"from": "Alice", "text": "try the other branch"})
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"has_message": true,
+			"from":        "Alice",
+			"text":        "try the other branch",
+			"takeover":    map[string]any{"active": false},
+		})
 	}))
 	defer server.Close()
 
-	from, text, ok, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
+	result, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
 	if err != nil {
 		t.Fatalf("GetSteer() error = %v", err)
 	}
-	if !ok {
-		t.Fatal("GetSteer() ok = false, want true")
+	if !result.HasMessage {
+		t.Fatal("GetSteer() HasMessage = false, want true")
 	}
-	if from != "Alice" || text != "try the other branch" {
-		t.Fatalf("got from=%q text=%q, want from=Alice text=%q", from, text, "try the other branch")
+	if result.From != "Alice" || result.Text != "try the other branch" {
+		t.Fatalf("got from=%q text=%q, want from=Alice text=%q", result.From, result.Text, "try the other branch")
 	}
 }
 
-func TestGetSteerReturnsNotOkOn204(t *testing.T) {
+func TestGetSteerReturnsNoMessageWhenMailboxEmpty(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"has_message": false, "takeover": map[string]any{"active": false}})
 	}))
 	defer server.Close()
 
-	from, text, ok, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
+	result, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
 	if err != nil {
 		t.Fatalf("GetSteer() error = %v", err)
 	}
-	if ok {
-		t.Fatal("GetSteer() ok = true, want false on 204")
+	if result.HasMessage {
+		t.Fatal("GetSteer() HasMessage = true, want false on an empty mailbox")
 	}
-	if from != "" || text != "" {
-		t.Fatalf("got from=%q text=%q, want empty strings", from, text)
+}
+
+func TestGetSteerReturnsTakeoverState(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"has_message": false,
+			"takeover":    map[string]any{"active": true, "by": "Alice"},
+		})
+	}))
+	defer server.Close()
+
+	result, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
+	if err != nil {
+		t.Fatalf("GetSteer() error = %v", err)
+	}
+	if !result.Takeover.Active || result.Takeover.By != "Alice" {
+		t.Fatalf("got takeover %+v, want active held by Alice", result.Takeover)
 	}
 }
 
@@ -113,7 +135,7 @@ func TestGetSteerReturnsErrorOnUnexpectedStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, _, _, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
+	_, err := GetSteer(context.Background(), testConfig(server.URL), "sess-a")
 	if err == nil {
 		t.Fatal("GetSteer() error = nil, want an error on 500")
 	}

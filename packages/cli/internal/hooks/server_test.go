@@ -13,11 +13,13 @@ import (
 )
 
 type fakeRelay struct {
-	mu        sync.Mutex
-	ingested  []map[string]any
-	steerFrom string
-	steerText string
-	steerPend bool
+	mu             sync.Mutex
+	ingested       []map[string]any
+	steerFrom      string
+	steerText      string
+	steerPend      bool
+	takeoverActive bool
+	takeoverBy     string
 }
 
 func newFakeRelay() *fakeRelay {
@@ -28,6 +30,12 @@ func (f *fakeRelay) setSteer(from, text string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.steerFrom, f.steerText, f.steerPend = from, text, true
+}
+
+func (f *fakeRelay) setTakeover(active bool, by string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.takeoverActive, f.takeoverBy = active, by
 }
 
 func (f *fakeRelay) count() int {
@@ -69,14 +77,16 @@ func (f *fakeRelay) server() *httptest.Server {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 
-		if !f.steerPend {
-			w.WriteHeader(http.StatusNoContent)
-			return
+		resp := map[string]any{
+			"has_message": f.steerPend,
+			"from":        f.steerFrom,
+			"text":        f.steerText,
+			"takeover":    map[string]any{"active": f.takeoverActive, "by": f.takeoverBy},
 		}
-
 		f.steerPend = false
+
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"from": f.steerFrom, "text": f.steerText})
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	return httptest.NewServer(mux)

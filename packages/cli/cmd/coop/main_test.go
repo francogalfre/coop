@@ -70,23 +70,23 @@ func TestParseAttachRunFlagsWithRunArgs(t *testing.T) {
 	}
 }
 
-func TestRequireLoginForProjectFailsWithoutCredential(t *testing.T) {
-	err := requireLoginForProject("attach", config.Config{}, "my-project")
+func TestRequireProjectAndLoginFailsWithoutCredential(t *testing.T) {
+	err := requireProjectAndLogin("attach", config.Config{}, "my-project")
 	if err == nil {
 		t.Fatal("expected error when --project is set without a CLI credential")
 	}
 }
 
-func TestRequireLoginForProjectPassesWithCredential(t *testing.T) {
-	err := requireLoginForProject("attach", config.Config{CLICredential: "abc123"}, "my-project")
+func TestRequireProjectAndLoginPassesWithCredential(t *testing.T) {
+	err := requireProjectAndLogin("attach", config.Config{CLICredential: "abc123"}, "my-project")
 	if err != nil {
-		t.Fatalf("requireLoginForProject: %v", err)
+		t.Fatalf("requireProjectAndLogin: %v", err)
 	}
 }
 
-func TestRequireLoginForProjectPassesWithoutProject(t *testing.T) {
-	err := requireLoginForProject("attach", config.Config{}, "")
-	if err != nil {
-		t.Fatalf("requireLoginForProject: %v", err)
+func TestRequireProjectAndLoginFailsWithoutProject(t *testing.T) {
+	err := requireProjectAndLogin("attach", config.Config{CLICredential: "abc123"}, "")
+	if err == nil {
+		t.Fatal("expected error when --project is missing")
 	}
 }
