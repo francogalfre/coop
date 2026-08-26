@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { parseEvent } from "@coop/protocol";
@@ -12,6 +12,8 @@ import type { MessageItem } from "./types";
 import { SessionHeader } from "./components/session-header";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
+import { ViewTabs, type SessionViewTab } from "./components/view-tabs";
+import { PtyTerminal } from "./components/pty-terminal";
 
 const TYPING_WINDOW_MS = 3000;
 
@@ -31,6 +33,7 @@ function SessionView() {
   const [localMessages, setLocalMessages] = useState<MessageItem[]>([]);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [viewTab, setViewTab] = useState<SessionViewTab>("timeline");
 
   const { events, presence, connectionState, retryCount, sendPresence, mergeEvents } =
     useSessionStream(sessionId);
@@ -82,13 +85,23 @@ function SessionView() {
   }, [presence, displayName]);
 
   const live = !meta.endedAt;
-  const heldByMe = Boolean(meta.takeover?.active && meta.takeover.by === displayName);
+  const confirmedHeldByMe = Boolean(meta.takeover?.active && meta.takeover.by === displayName);
+  const [pendingTakeover, setPendingTakeover] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (pendingTakeover !== null && confirmedHeldByMe === pendingTakeover) setPendingTakeover(null);
+  }, [confirmedHeldByMe, pendingTakeover]);
+
+  const heldByMe = pendingTakeover ?? confirmedHeldByMe;
   const takeoverHeldBy = meta.takeover?.active && !heldByMe ? meta.takeover.by : undefined;
 
   const handleToggleTakeover = useCallback(async () => {
+    const next = !heldByMe;
+    setPendingTakeover(next);
     try {
-      await relayApi.setTakeover(sessionId, !heldByMe);
+      await relayApi.setTakeover(sessionId, next);
     } catch {
+      setPendingTakeover(null);
       toast.error("Failed to update takeover.");
     }
   }, [sessionId, heldByMe]);
@@ -136,13 +149,19 @@ function SessionView() {
         </div>
       )}
 
-      <Timeline
-        items={merged}
-        harness={meta.harness}
-        onLoadEarlier={loadEarlier}
-        hasEarlier={hasEarlier}
-        loadingEarlier={loadingEarlier}
-      />
+      <ViewTabs active={viewTab} onChange={setViewTab} />
+
+      {viewTab === "timeline" ? (
+        <Timeline
+          items={merged}
+          harness={meta.harness}
+          onLoadEarlier={loadEarlier}
+          hasEarlier={hasEarlier}
+          loadingEarlier={loadingEarlier}
+        />
+      ) : (
+        <PtyTerminal sessionId={sessionId} heldByMe={heldByMe} />
+      )}
 
       <Composer
         displayName={displayName}
