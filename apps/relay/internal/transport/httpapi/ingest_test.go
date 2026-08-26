@@ -18,7 +18,7 @@ func doIngest(t *testing.T, registry *presence.Registry, store *stream.Store, bo
 	req := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 
-	handleIngest(registry, store)(rec, req)
+	handleIngest(nil, registry, store)(rec, req)
 
 	return rec
 }

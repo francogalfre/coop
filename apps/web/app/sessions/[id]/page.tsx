@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
 import { EventFeed } from "@/components/EventFeed";
@@ -20,11 +21,15 @@ function readStoredName(): string {
   }
 }
 
-function MissingToken({ sessionId }: { sessionId: string }) {
+function backLink(from: string | null): string {
+  return from ? `/p/${from}` : "/";
+}
+
+function MissingToken({ sessionId, from }: { sessionId: string; from: string | null }) {
   return (
     <main style={{ maxWidth: 800, margin: "0 auto", padding: "1rem" }}>
       <p>
-        <Link href="/">← sessions</Link>
+        <Link href={backLink(from) as Route}>← {from ? from : "sessions"}</Link>
       </p>
       <h1>Session {sessionId}</h1>
       <p style={{ color: "#dc2626" }}>
@@ -39,18 +44,19 @@ function SessionPageContent() {
   const searchParams = useSearchParams();
   const sessionId = params.id;
   const token = searchParams.get("token") ?? "";
+  const from = searchParams.get("from");
   const [name] = useState(() => readStoredName() || searchParams.get("name") || undefined);
 
   const { events, presence, connectionState, retryCount, sendPresence } = useSessionStream(sessionId, token, name);
 
   if (!token) {
-    return <MissingToken sessionId={sessionId} />;
+    return <MissingToken sessionId={sessionId} from={from} />;
   }
 
   return (
     <main style={{ maxWidth: 800, margin: "0 auto", padding: "1rem" }}>
       <p>
-        <Link href="/">← sessions</Link>
+        <Link href={backLink(from) as Route}>← {from ? from : "sessions"}</Link>
       </p>
       <h1>Session {sessionId}</h1>
       <p style={{ fontSize: "0.85rem", color: "#4b5563" }}>connection: {connectionState}</p>

@@ -13,6 +13,7 @@ type Config struct {
 	HookAddr      string
 	SessionToken  string
 	CLICredential string
+	Project       string
 }
 
 const (

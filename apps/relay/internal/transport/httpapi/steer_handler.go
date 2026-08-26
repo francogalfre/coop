@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
@@ -16,7 +17,12 @@ type steerMessageBody struct {
 	Text string `json:"text"`
 }
 
-func handleSteerPost(mailbox *stream.Mailbox) http.HandlerFunc {
+type steerPostResponse struct {
+	Status string `json:"status"`
+	Queued int    `json:"queued"`
+}
+
+func handleSteerPost(mailbox *stream.Mailbox, store *stream.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 
@@ -41,8 +47,29 @@ func handleSteerPost(mailbox *stream.Mailbox) http.HandlerFunc {
 
 		mailbox.Put(sessionID, stream.SteerMessage{From: body.From, Text: body.Text})
 
-		writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
+		if envelope, err := steerEnvelope(sessionID, body); err == nil {
+			_, _ = store.Append(sessionID, envelope)
+		}
+
+		writeJSON(w, http.StatusAccepted, steerPostResponse{
+			Status: "accepted",
+			Queued: mailbox.Depth(sessionID),
+		})
 	}
+}
+
+func steerEnvelope(sessionID string, body steerMessageBody) (json.RawMessage, error) {
+	fields := map[string]any{
+		"v":          1,
+		"session_id": sessionID,
+		"seq":        0,
+		"ts":         time.Now().UTC().Format(time.RFC3339),
+		"type":       "human.steer",
+		"actor":      map[string]string{"id": body.From, "display_name": body.From},
+		"text":       map[string]any{"text": body.Text, "redactions": 0, "truncated": false},
+	}
+
+	return json.Marshal(fields)
 }
 
 func handleSteerGet(mailbox *stream.Mailbox) http.HandlerFunc {

@@ -15,7 +15,7 @@ import (
 
 func newTestServer(store *stream.Store) *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/sessions/{id}/stream", NewSessionStreamHandler(store, []string{"*"}))
+	mux.HandleFunc("GET /v1/sessions/{id}/stream", NewSessionStreamHandler(store, stream.NewPresenceHub(), []string{"*"}))
 
 	return httptest.NewServer(mux)
 }

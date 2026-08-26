@@ -14,7 +14,7 @@ import (
 
 func newOriginGatedServer(store *stream.Store, allowedOrigins []string) *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/sessions/{id}/stream", NewSessionStreamHandler(store, allowedOrigins))
+	mux.HandleFunc("GET /v1/sessions/{id}/stream", NewSessionStreamHandler(store, stream.NewPresenceHub(), allowedOrigins))
 
 	return httptest.NewServer(mux)
 }

@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/francogalfre/coop/apps/relay/internal/auth"
+	"github.com/francogalfre/coop/apps/relay/internal/db"
 	"github.com/francogalfre/coop/apps/relay/internal/presence"
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
+
+const coopProjectHeader = "X-Coop-Project"
 
 type ingestEvent struct {
 	V         int    `json:"v"`
@@ -19,6 +24,7 @@ type ingestEvent struct {
 	Type      string `json:"type"`
 
 	Cwd     string `json:"cwd"`
+	Repo    string `json:"repo"`
 	Harness string `json:"harness"`
 
 	Owner struct {
@@ -42,7 +48,30 @@ func parseTimestamp(ts string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("ts: invalid RFC3339 timestamp %q", ts)
 }
 
-func handleIngest(registry *presence.Registry, store *stream.Store) http.HandlerFunc {
+type persistedSessions struct {
+	mu sync.Mutex
+	m  map[string]bool
+}
+
+func newPersistedSessions() *persistedSessions {
+	return &persistedSessions{m: map[string]bool{}}
+}
+
+func (p *persistedSessions) mark(sessionID string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.m[sessionID] = true
+}
+
+func (p *persistedSessions) isPersisted(sessionID string) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.m[sessionID]
+}
+
+func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Store) http.HandlerFunc {
+	persisted := newPersistedSessions()
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 
@@ -94,8 +123,23 @@ func handleIngest(registry *presence.Registry, store *stream.Store) http.Handler
 			}
 
 			registry.SessionStarted(event.SessionID, event.Cwd, event.Owner.DisplayName, event.Harness, at)
+
+			if projectSlug := r.Header.Get(coopProjectHeader); projectSlug != "" {
+				if !persistSessionStart(w, r, pool, event, projectSlug, at) {
+					return
+				}
+
+				persisted.mark(event.SessionID)
+			}
 		case "session.end":
 			registry.SessionEnded(event.SessionID, at)
+
+			if persisted.isPersisted(event.SessionID) {
+				if err := pool.EndAgentSession(r.Context(), event.SessionID, at); err != nil {
+					writeError(w, http.StatusInternalServerError, "failed to end agent session")
+					return
+				}
+			}
 		case "file.touched":
 			if event.Path == "" || len(event.Path) > presence.PathMax {
 				writeError(w, http.StatusBadRequest, "path: required, max length "+fmt.Sprint(presence.PathMax))
@@ -113,6 +157,13 @@ func handleIngest(registry *presence.Registry, store *stream.Store) http.Handler
 			}
 		}
 
+		if persisted.isPersisted(event.SessionID) && event.Type != "session.start" {
+			if _, err := pool.AppendEvent(r.Context(), event.SessionID, body); err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to record event")
+				return
+			}
+		}
+
 		if _, err := store.Append(event.SessionID, json.RawMessage(body)); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to record event")
 			return
@@ -120,4 +171,46 @@ func handleIngest(registry *presence.Registry, store *stream.Store) http.Handler
 
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
 	}
+}
+
+func persistSessionStart(w http.ResponseWriter, r *http.Request, pool *db.Pool, event ingestEvent, projectSlug string, at time.Time) bool {
+	actor, ok := auth.FromContext(r.Context())
+	if !ok {
+		http.NotFound(w, r)
+		return false
+	}
+
+	proj, err := pool.GetProjectBySlug(r.Context(), projectSlug)
+	if err != nil {
+		if db.IsNotFound(err) {
+			http.NotFound(w, r)
+			return false
+		}
+
+		writeError(w, http.StatusInternalServerError, "failed to look up project")
+		return false
+	}
+
+	_, isMember, err := pool.MemberRole(r.Context(), proj.ID, actor.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to check membership")
+		return false
+	}
+
+	if !isMember {
+		http.NotFound(w, r)
+		return false
+	}
+
+	repo := event.Repo
+	if repo == "" {
+		repo = event.Cwd
+	}
+
+	if _, err := pool.CreateAgentSession(r.Context(), event.SessionID, proj, actor.UserID, repo, event.Cwd, event.Harness, at); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create agent session")
+		return false
+	}
+
+	return true
 }

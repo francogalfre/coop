@@ -26,6 +26,7 @@ func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Coop-Session-Token", cfg.SessionToken)
 	setCLICredential(req, cfg)
+	setProject(req, cfg)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -130,6 +131,12 @@ func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (Lo
 func setCLICredential(req *http.Request, cfg config.Config) {
 	if cfg.CLICredential != "" {
 		req.Header.Set("Authorization", "Bearer "+cfg.CLICredential)
+	}
+}
+
+func setProject(req *http.Request, cfg config.Config) {
+	if cfg.Project != "" {
+		req.Header.Set("X-Coop-Project", cfg.Project)
 	}
 }
 

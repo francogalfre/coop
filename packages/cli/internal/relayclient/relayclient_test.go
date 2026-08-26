@@ -161,6 +161,47 @@ func TestPostEventOmitsAuthorizationWhenCLICredentialUnset(t *testing.T) {
 	}
 }
 
+func TestPostEventSendsProjectHeaderWhenSet(t *testing.T) {
+	var gotProject string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotProject = r.Header.Get("X-Coop-Project")
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
+	}))
+	defer server.Close()
+
+	cfg := testConfig(server.URL)
+	cfg.Project = "my-project"
+
+	if err := PostEvent(context.Background(), cfg, []byte(`{}`)); err != nil {
+		t.Fatalf("PostEvent() error = %v", err)
+	}
+
+	if gotProject != "my-project" {
+		t.Fatalf("got X-Coop-Project %q, want %q", gotProject, "my-project")
+	}
+}
+
+func TestPostEventOmitsProjectHeaderWhenUnset(t *testing.T) {
+	var sawHeader bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawHeader = r.Header.Get("X-Coop-Project") != ""
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
+	}))
+	defer server.Close()
+
+	if err := PostEvent(context.Background(), testConfig(server.URL), []byte(`{}`)); err != nil {
+		t.Fatalf("PostEvent() error = %v", err)
+	}
+
+	if sawHeader {
+		t.Fatal("got X-Coop-Project header, want none")
+	}
+}
+
 func TestLoginReturnsCredentialsOn200(t *testing.T) {
 	var gotPath, gotMethod string
 	var gotBody []byte

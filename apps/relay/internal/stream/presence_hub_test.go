@@ -93,3 +93,65 @@ func TestPresenceHubConcurrentSubscribeAndBroadcast(t *testing.T) {
 		<-done
 	}
 }
+
+func TestPresenceHubViewersTracksAddAndRemove(t *testing.T) {
+	h := NewPresenceHub()
+
+	if got := h.Viewers("sess-a"); len(got) != 0 {
+		t.Fatalf("got %v, want no viewers before any join", got)
+	}
+
+	h.AddViewer("sess-a", "Alice")
+	h.AddViewer("sess-a", "Bob")
+
+	got := h.Viewers("sess-a")
+	if len(got) != 2 {
+		t.Fatalf("got %v, want 2 viewers", got)
+	}
+
+	h.RemoveViewer("sess-a", "Alice")
+
+	got = h.Viewers("sess-a")
+	if len(got) != 1 || got[0] != "Bob" {
+		t.Fatalf("got %v, want only Bob left", got)
+	}
+
+	h.RemoveViewer("sess-a", "Bob")
+
+	if got := h.Viewers("sess-a"); len(got) != 0 {
+		t.Fatalf("got %v, want no viewers after everyone left", got)
+	}
+}
+
+func TestPresenceHubViewersHandlesSameNameTwice(t *testing.T) {
+	h := NewPresenceHub()
+
+	h.AddViewer("sess-a", "Alice")
+	h.AddViewer("sess-a", "Alice")
+
+	if got := h.Viewers("sess-a"); len(got) != 1 {
+		t.Fatalf("got %v, want one entry for two tabs with the same name", got)
+	}
+
+	h.RemoveViewer("sess-a", "Alice")
+
+	if got := h.Viewers("sess-a"); len(got) != 1 {
+		t.Fatalf("got %v, want Alice still present after closing only one tab", got)
+	}
+
+	h.RemoveViewer("sess-a", "Alice")
+
+	if got := h.Viewers("sess-a"); len(got) != 0 {
+		t.Fatalf("got %v, want no viewers after closing the second tab", got)
+	}
+}
+
+func TestPresenceHubViewersIgnoresEmptyName(t *testing.T) {
+	h := NewPresenceHub()
+
+	h.AddViewer("sess-a", "")
+
+	if got := h.Viewers("sess-a"); len(got) != 0 {
+		t.Fatalf("got %v, want empty names ignored", got)
+	}
+}

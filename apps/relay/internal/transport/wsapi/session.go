@@ -8,9 +8,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-func NewSessionStreamHandler(store *stream.Store, webOrigins []string) http.HandlerFunc {
-	hub := stream.NewPresenceHub()
-
+func NewSessionStreamHandler(store *stream.Store, hub *stream.PresenceHub, webOrigins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 		name := r.URL.Query().Get("name")
@@ -28,6 +26,9 @@ func NewSessionStreamHandler(store *stream.Store, webOrigins []string) http.Hand
 
 		presenceCh, unsubscribePresence := hub.Subscribe(sessionID)
 		defer unsubscribePresence()
+
+		hub.AddViewer(sessionID, name)
+		defer hub.RemoveViewer(sessionID, name)
 
 		broadcastPresence(hub, sessionID, presenceCh, name, "human.join")
 		defer broadcastPresence(hub, sessionID, presenceCh, name, "human.leave")

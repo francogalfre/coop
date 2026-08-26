@@ -40,3 +40,29 @@ func RequireCliCredential(pool *db.Pool) func(http.HandlerFunc) http.HandlerFunc
 		}
 	}
 }
+
+func OptionalCliCredential(pool *db.Pool) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			header := r.Header.Get("Authorization")
+			if !strings.HasPrefix(header, bearerPrefix) {
+				next(w, r)
+				return
+			}
+
+			rawToken, err := hex.DecodeString(strings.TrimPrefix(header, bearerPrefix))
+			if err != nil {
+				next(w, r)
+				return
+			}
+
+			userID, err := pool.AuthenticateCliCredential(r.Context(), rawToken)
+			if err != nil {
+				next(w, r)
+				return
+			}
+
+			next(w, r.WithContext(WithActor(r.Context(), Actor{UserID: userID})))
+		}
+	}
+}

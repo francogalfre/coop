@@ -10,14 +10,14 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-func doSteerPost(t *testing.T, mailbox *stream.Mailbox, sessionID, body string) *httptest.ResponseRecorder {
+func doSteerPost(t *testing.T, mailbox *stream.Mailbox, store *stream.Store, sessionID, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/steer", strings.NewReader(body))
 	req.SetPathValue("id", sessionID)
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(mailbox)(rec, req)
+	handleSteerPost(mailbox, store)(rec, req)
 
 	return rec
 }
@@ -36,8 +36,9 @@ func doSteerGet(t *testing.T, mailbox *stream.Mailbox, sessionID string) *httpte
 
 func TestSteerPostThenGetOnceThenEmpty(t *testing.T) {
 	mailbox := stream.NewMailbox()
+	store := stream.New()
 
-	postRec := doSteerPost(t, mailbox, "sess-a", `{"from":"Alice","text":"try the other branch"}`)
+	postRec := doSteerPost(t, mailbox, store, "sess-a", `{"from":"Alice","text":"try the other branch"}`)
 	if postRec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", postRec.Code, postRec.Body.String())
 	}
@@ -83,13 +84,56 @@ func TestHandleSteerPostValidation(t *testing.T) {
 	}
 
 	mailbox := stream.NewMailbox()
+	store := stream.New()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := doSteerPost(t, mailbox, "sess-a", tt.body)
+			rec := doSteerPost(t, mailbox, store, "sess-a", tt.body)
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("got status %d, want 400: %s", rec.Code, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestSteerPostEchoesHumanSteerToStore(t *testing.T) {
+	mailbox := stream.NewMailbox()
+	store := stream.New()
+
+	rec := doSteerPost(t, mailbox, store, "sess-a", `{"from":"Alice","text":"try the other branch"}`)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	var payload steerPostResponse
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("failed to decode body: %v", err)
+	}
+	if payload.Queued != 1 {
+		t.Fatalf("got queued %d, want 1", payload.Queued)
+	}
+
+	events := store.Since("sess-a", 0)
+	if len(events) != 1 {
+		t.Fatalf("got %d events in store, want 1", len(events))
+	}
+
+	var fields map[string]any
+	if err := json.Unmarshal(events[0].Data, &fields); err != nil {
+		t.Fatalf("failed to decode event: %v", err)
+	}
+
+	if fields["type"] != "human.steer" {
+		t.Fatalf("got type %v, want human.steer", fields["type"])
+	}
+
+	actor, _ := fields["actor"].(map[string]any)
+	if actor["display_name"] != "Alice" {
+		t.Fatalf("got actor %+v, want display_name Alice", actor)
+	}
+
+	text, _ := fields["text"].(map[string]any)
+	if text["text"] != "try the other branch" {
+		t.Fatalf("got text %+v, want \"try the other branch\"", text)
 	}
 }

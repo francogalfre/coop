@@ -17,7 +17,7 @@ import (
 const (
 	githubDeviceCodeURL      = "https://github.com/login/device/code"
 	githubAccessTokenURL     = "https://github.com/login/oauth/access_token"
-	githubDeviceCodeScope    = "read:user"
+	githubDeviceCodeScope    = "read:user user:email"
 	deviceFlowRequestTimeout = 10 * time.Second
 )
 

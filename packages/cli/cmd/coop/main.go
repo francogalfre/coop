@@ -50,26 +50,40 @@ func run(args []string) error {
 }
 
 func usageError() error {
-	return fmt.Errorf("usage: coop attach [--harness=<name>] | coop run [--harness=<name>] -- <cmd> [args...] | coop detach [dir] | coop login")
+	return fmt.Errorf("usage: coop attach [--harness=<name>] [--project=<slug>] | coop run [--harness=<name>] [--project=<slug>] -- <cmd> [args...] | coop detach [dir] | coop login")
 }
 
-func parseHarnessFlag(fsName string, args []string) (string, []string, error) {
+func parseAttachRunFlags(fsName string, args []string) (harnessFlag, project string, remaining []string, err error) {
 	fs := flag.NewFlagSet(fsName, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	name := fs.String("harness", "", "install hooks for only this harness (claude-code, opencode, pi)")
+	harnessName := fs.String("harness", "", "install hooks for only this harness (claude-code, opencode, pi)")
+	projectSlug := fs.String("project", "", "associate this session with a coop project (requires `coop login`)")
 
 	if err := fs.Parse(args); err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 
-	return *name, fs.Args(), nil
+	return *harnessName, *projectSlug, fs.Args(), nil
+}
+
+func requireLoginForProject(cmd string, cfg config.Config, project string) error {
+	if project != "" && cfg.CLICredential == "" {
+		return fmt.Errorf("coop %s: --project requires a login: run `coop login` first", cmd)
+	}
+
+	return nil
 }
 
 func runAttach(ctx context.Context, cfg config.Config, args []string) error {
-	harnessFlag, _, err := parseHarnessFlag("attach", args)
+	harnessFlag, project, _, err := parseAttachRunFlags("attach", args)
 	if err != nil {
 		return err
 	}
+
+	if err := requireLoginForProject("attach", cfg, project); err != nil {
+		return err
+	}
+	cfg.Project = project
 
 	dir, err := os.Getwd()
 	if err != nil {
@@ -106,10 +120,15 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 }
 
 func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
-	harnessFlag, remaining, err := parseHarnessFlag("run", args)
+	harnessFlag, project, remaining, err := parseAttachRunFlags("run", args)
 	if err != nil {
 		return err
 	}
+
+	if err := requireLoginForProject("run", cfg, project); err != nil {
+		return err
+	}
+	cfg.Project = project
 
 	name, cmdArgs := parseRunArgs(remaining)
 

@@ -74,6 +74,23 @@ func (p *Pool) MemberRole(ctx context.Context, projectID int, userID string) (ro
 	return m.Role, true, nil
 }
 
+func (p *Pool) ListUserProjects(ctx context.Context, userID string) ([]*ent.Project, error) {
+	members, err := p.client.ProjectMember.Query().
+		Where(projectmember.UserID(userID)).
+		WithProject().
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("db: list user projects: %w", err)
+	}
+
+	projects := make([]*ent.Project, 0, len(members))
+	for _, m := range members {
+		projects = append(projects, m.Edges.Project)
+	}
+
+	return projects, nil
+}
+
 func (p *Pool) AddMember(ctx context.Context, proj *ent.Project, userID, role string) error {
 	exists, err := p.client.ProjectMember.Query().
 		Where(projectmember.UserID(userID), projectmember.HasProjectWith(project.ID(proj.ID))).
