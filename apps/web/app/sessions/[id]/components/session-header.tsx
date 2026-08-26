@@ -3,10 +3,12 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { motion } from "motion/react";
-import { IconChevronLeft, IconFolder } from "@/components/icons";
+import { IconChevronLeft, IconFolder, IconLock, IconUnlock } from "@/components/icons";
 import { HarnessLogo } from "@/components/harness-logo";
 import { PresenceStack } from "./presence-stack";
 import { MetaChip, StatusPill } from "@/components/status-pill";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { SessionMeta } from "../types";
 
 export function SessionHeader({
@@ -17,6 +19,8 @@ export function SessionHeader({
   viewers,
   backTo,
   backLabel,
+  displayName,
+  onToggleTakeover,
 }: {
   sessionId: string;
   meta: SessionMeta;
@@ -25,8 +29,13 @@ export function SessionHeader({
   viewers: string[];
   backTo: string;
   backLabel: string;
+  displayName: string;
+  onToggleTakeover: () => void;
 }) {
   const agentName = meta.harness ?? "agent";
+  const takeover = meta.takeover;
+  const heldByMe = Boolean(takeover?.active && takeover.by === displayName);
+  const heldByOther = Boolean(takeover?.active && !heldByMe);
 
   return (
     <header className="border-border/70 border-b bg-card/30 backdrop-blur-sm">
@@ -40,9 +49,35 @@ export function SessionHeader({
         </Link>
         <div className="ml-auto flex items-center gap-3">
           {viewers.length > 0 && <PresenceStack names={viewers} />}
+          {live && (
+            <Button
+              size="sm"
+              variant={heldByMe ? "default" : "outline"}
+              disabled={heldByOther}
+              onClick={onToggleTakeover}
+              className="h-7 gap-1.5 rounded-full px-2.5 text-[12px]"
+            >
+              {heldByMe ? <IconUnlock size={12} /> : <IconLock size={12} />}
+              {heldByMe ? "Release" : heldByOther ? `Held by ${takeover?.by}` : "Take over"}
+            </Button>
+          )}
           <StatusPill tone={live ? "live" : "ended"}>{live ? "Live" : "Ended"}</StatusPill>
         </div>
       </div>
+
+      {takeover?.active && (
+        <div
+          className={cn(
+            "mx-auto flex max-w-3xl items-center gap-1.5 px-4 pb-2 text-[12px] sm:px-6",
+            heldByMe ? "text-human" : "text-muted-foreground",
+          )}
+        >
+          <IconLock size={11} />
+          {heldByMe
+            ? "You have taken over — the agent's tool calls are paused."
+            : `${takeover.by} has taken over — the agent is paused.`}
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-2 pb-3.5 sm:px-6">
         <h1 className="font-display font-semibold text-[19px] text-foreground tracking-tight">

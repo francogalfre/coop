@@ -4,6 +4,7 @@ import {
   Alert02Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  ArrowUp01Icon,
   ArrowUpRight01Icon,
   Cancel01Icon,
   CheckmarkCircle02Icon,
@@ -21,6 +22,8 @@ import {
   Sent02Icon,
   SourceCodeIcon,
   SparklesIcon,
+  SquareLock01Icon,
+  SquareUnlock01Icon,
   TerminalIcon,
   Tick02Icon,
   UserGroupIcon,
@@ -39,6 +42,7 @@ export const IconCheck = makeIcon(Tick02Icon);
 export const IconCheckCircle = makeIcon(CheckmarkCircle02Icon);
 export const IconChevronRight = makeIcon(ArrowRight01Icon);
 export const IconChevronLeft = makeIcon(ArrowLeft01Icon);
+export const IconChevronUp = makeIcon(ArrowUp01Icon);
 export const IconExternal = makeIcon(ArrowUpRight01Icon);
 export const IconPlus = makeIcon(Add01Icon);
 export const IconCopy = makeIcon(Copy01Icon);
@@ -58,3 +62,5 @@ export const IconClock = makeIcon(Clock01Icon);
 export const IconSpinner = makeIcon(Loading03Icon);
 export const IconSparkles = makeIcon(SparklesIcon);
 export const IconAlert = makeIcon(Alert02Icon);
+export const IconLock = makeIcon(SquareLock01Icon);
+export const IconUnlock = makeIcon(SquareUnlock01Icon);

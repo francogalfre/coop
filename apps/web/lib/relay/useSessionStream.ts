@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseEvent } from "@coop/protocol";
 import type { Event } from "@coop/protocol";
 import { relayConfig } from "./config";
@@ -16,21 +16,28 @@ export const RETRY_WARNING_THRESHOLD = 3;
 const INITIAL_RETRY_MS = 1000;
 const MAX_RETRY_MS = 15000;
 
-export function useSessionStream(
-  sessionId: string,
-  name?: string,
-): {
+export function useSessionStream(sessionId: string): {
   events: Event[];
   presence: PresenceState;
   connectionState: ConnectionState;
   retryCount: number;
   sendPresence: (active: boolean) => void;
+  mergeEvents: (events: Event[]) => void;
 } {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [eventsBySeq, setEventsBySeq] = useState<Map<number, Event>>(new Map());
   const [presence, setPresence] = useState<PresenceState>(emptyPresenceState);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [retryCount, setRetryCount] = useState(0);
   const socketRef = useRef<WebSocket | null>(null);
+
+  const mergeEvents = useCallback((incoming: Event[]) => {
+    if (incoming.length === 0) return;
+    setEventsBySeq((prev) => {
+      const next = new Map(prev);
+      for (const event of incoming) next.set(event.seq, event);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,14 +46,14 @@ export function useSessionStream(
     let retryDelay = INITIAL_RETRY_MS;
     let attempts = 0;
 
+    setEventsBySeq(new Map());
+    setPresence(emptyPresenceState());
+
     function connect() {
       if (cancelled) return;
 
       setConnectionState("connecting");
-      setEvents([]);
-      setPresence(emptyPresenceState());
-      const query = name ? `?name=${encodeURIComponent(name)}` : "";
-      socket = new WebSocket(`${relayConfig.wsUrl}/v1/sessions/${sessionId}/stream${query}`);
+      socket = new WebSocket(`${relayConfig.wsUrl}/v1/sessions/${sessionId}/stream`);
       socketRef.current = socket;
 
       socket.addEventListener("open", () => {
@@ -75,7 +82,7 @@ export function useSessionStream(
 
         const result = parseEvent(parsed);
         if (result.ok) {
-          setEvents((prev) => [...prev, result.value]);
+          mergeEvents([result.value]);
         }
       });
 
@@ -105,7 +112,12 @@ export function useSessionStream(
       if (retryTimer) clearTimeout(retryTimer);
       socket?.close();
     };
-  }, [sessionId, name]);
+  }, [sessionId, mergeEvents]);
+
+  const events = useMemo(
+    () => [...eventsBySeq.values()].toSorted((a, b) => a.seq - b.seq),
+    [eventsBySeq],
+  );
 
   function sendPresence(active: boolean) {
     const socket = socketRef.current;
@@ -113,5 +125,5 @@ export function useSessionStream(
     socket.send(JSON.stringify({ type: "presence.typing", active }));
   }
 
-  return { events, presence, connectionState, retryCount, sendPresence };
+  return { events, presence, connectionState, retryCount, sendPresence, mergeEvents };
 }

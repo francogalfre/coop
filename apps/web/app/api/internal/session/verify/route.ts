@@ -23,5 +23,5 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.json({ userId: result.user.id });
+  return NextResponse.json({ userId: result.user.id, name: result.user.name });
 }

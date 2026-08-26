@@ -18,6 +18,12 @@ export type AgentSession = {
   ended_at?: string | null;
 };
 
+export type EventsPage = {
+  events: unknown[];
+  oldest_seq: number;
+  has_more: boolean;
+};
+
 export class RelayError extends Error {
   constructor(
     message: string,
@@ -79,15 +85,32 @@ export const relayApi = {
       method: "POST",
     }),
 
-  listViewers: (sessionId: string) =>
-    request<{ viewers: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/viewers`),
-
-  sendMessage: (sessionId: string, from: string, text: string) =>
+  sendMessage: (sessionId: string, text: string) =>
     request<{ status: string; queued: number }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
       {
         method: "POST",
-        body: JSON.stringify({ from, text }),
+        body: JSON.stringify({ text }),
       },
     ),
+
+  setTakeover: (sessionId: string, active: boolean) =>
+    request<{ active: boolean; by?: string }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/takeover`,
+      {
+        method: "POST",
+        body: JSON.stringify({ active }),
+      },
+    ),
+
+  listEvents: (sessionId: string, before?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (before !== undefined) params.set("before", String(before));
+    if (limit !== undefined) params.set("limit", String(limit));
+    const query = params.toString();
+
+    return request<EventsPage>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/events${query ? `?${query}` : ""}`,
+    );
+  },
 };

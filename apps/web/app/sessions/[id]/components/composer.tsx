@@ -13,17 +13,20 @@ export function Composer({
   displayName,
   disabled,
   typingNames,
+  takeoverHeldBy,
   onSend,
   onTypingChange,
 }: {
   displayName: string;
   disabled?: boolean;
   typingNames: string[];
+  takeoverHeldBy?: string;
   onSend: (text: string, toAgent: boolean) => Promise<void>;
   onTypingChange: (active: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [toAgent, setToAgent] = useState(true);
+  const agentToggleDisabled = disabled || Boolean(takeoverHeldBy);
   const [sending, setSending] = useState(false);
   const typingRef = useRef(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,6 +37,10 @@ export function Composer({
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (agentToggleDisabled) setToAgent(false);
+  }, [agentToggleDisabled]);
 
   useEffect(() => {
     const el = areaRef.current;
@@ -134,17 +141,18 @@ export function Composer({
           <button
             type="button"
             onClick={() => setToAgent((v) => !v)}
-            disabled={disabled}
+            disabled={agentToggleDisabled}
             aria-pressed={toAgent}
+            title={takeoverHeldBy ? `${takeoverHeldBy} has taken over — the agent is paused` : undefined}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] transition-all",
+              "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] transition-all disabled:cursor-not-allowed disabled:opacity-60",
               toAgent
                 ? "bg-human/15 text-human"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
             <IconAgent size={13} />
-            {toAgent ? "Sending to agent" : "Team only"}
+            {takeoverHeldBy ? `${takeoverHeldBy} has taken over` : toAgent ? "Sending to agent" : "Team only"}
             <span
               className={cn(
                 "relative ml-0.5 h-3.5 w-6 rounded-full transition-colors",

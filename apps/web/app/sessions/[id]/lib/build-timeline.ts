@@ -138,6 +138,32 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         break;
       }
 
+      case "human.prompt": {
+        items.push({
+          kind: "message",
+          key,
+          ts: event.ts,
+          author: meta.owner ?? "someone",
+          text: textOf(event.text),
+          toAgent: true,
+        });
+        sawTurnEnd = false;
+        break;
+      }
+
+      case "human.takeover": {
+        const by = event.actor?.display_name ?? "someone";
+        meta.takeover = { active: event.active, by: event.active ? by : undefined };
+        items.push({
+          kind: "notice",
+          key,
+          ts: event.ts,
+          tone: "takeover",
+          text: event.active ? `${by} took over this session` : `${by} released this session`,
+        });
+        break;
+      }
+
       case "human.join":
       case "human.leave": {
         items.push({

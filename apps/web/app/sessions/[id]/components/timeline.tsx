@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { IconSparkles } from "@/components/icons";
+import { IconChevronUp, IconSparkles } from "@/components/icons";
 import { TimelineRow } from "./timeline-item";
 import type { TimelineItem } from "../types";
 
@@ -22,7 +22,19 @@ function EmptyState() {
   );
 }
 
-export function Timeline({ items, harness }: { items: TimelineItem[]; harness?: string }) {
+export function Timeline({
+  items,
+  harness,
+  onLoadEarlier,
+  hasEarlier,
+  loadingEarlier,
+}: {
+  items: TimelineItem[];
+  harness?: string;
+  onLoadEarlier?: () => Promise<void>;
+  hasEarlier?: boolean;
+  loadingEarlier?: boolean;
+}) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
@@ -44,10 +56,39 @@ export function Timeline({ items, harness }: { items: TimelineItem[]; harness?: 
     if (pinnedRef.current) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [items.length]);
 
+  async function handleLoadEarlier() {
+    const el = containerRef.current;
+    if (!el || !onLoadEarlier) return;
+
+    const prevHeight = el.scrollHeight;
+    await onLoadEarlier();
+
+    requestAnimationFrame(() => {
+      const el2 = containerRef.current;
+      if (!el2) return;
+      el2.scrollTop += el2.scrollHeight - prevHeight;
+    });
+  }
+
   if (items.length === 0) return <EmptyState />;
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto py-3">
+      {hasEarlier && (
+        <div className="flex justify-center pb-2">
+          <button
+            type="button"
+            onClick={handleLoadEarlier}
+            disabled={loadingEarlier}
+            className="rounded-full border border-border bg-card px-3 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          >
+            <span className="inline-flex items-center gap-1">
+              <IconChevronUp size={12} />
+              {loadingEarlier ? "Loading…" : "Load earlier"}
+            </span>
+          </button>
+        </div>
+      )}
       {items.map((item, index) => (
         <motion.div
           key={item.key}

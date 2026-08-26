@@ -32,7 +32,7 @@ export type MessageItem = {
   toAgent: boolean;
 };
 
-export type NoticeTone = "start" | "end" | "join" | "leave" | "turn";
+export type NoticeTone = "start" | "end" | "join" | "leave" | "turn" | "takeover";
 
 export type NoticeItem = {
   kind: "notice";
@@ -44,6 +44,11 @@ export type NoticeItem = {
 
 export type TimelineItem = ToolItem | AgentTextItem | MessageItem | NoticeItem;
 
+export type TakeoverState = {
+  active: boolean;
+  by?: string;
+};
+
 export type SessionMeta = {
   harness?: string;
   owner?: string;
@@ -51,6 +56,7 @@ export type SessionMeta = {
   cwd?: string;
   startedAt?: string;
   endedAt?: string;
+  takeover?: TakeoverState;
 };
 
 export type BuiltTimeline = {

@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { parseEvent } from "@coop/protocol";
 import { useSession } from "@/lib/auth/auth-client";
 import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
 import { relayApi } from "@/lib/relay/api";
@@ -28,13 +29,34 @@ function SessionView() {
 
   const displayName = authData?.user?.name ?? "Guest";
   const [localMessages, setLocalMessages] = useState<MessageItem[]>([]);
+  const [hasEarlier, setHasEarlier] = useState(true);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
 
-  const { events, presence, connectionState, retryCount, sendPresence } = useSessionStream(
-    sessionId,
-    displayName,
-  );
+  const { events, presence, connectionState, retryCount, sendPresence, mergeEvents } =
+    useSessionStream(sessionId);
 
   const { items, meta, agentBusy } = useMemo(() => buildTimeline(events), [events]);
+
+  const loadEarlier = useCallback(async () => {
+    const oldestSeq = events[0]?.seq;
+    if (oldestSeq === undefined || loadingEarlier) return;
+
+    setLoadingEarlier(true);
+    try {
+      const page = await relayApi.listEvents(sessionId, oldestSeq);
+      const earlier = page.events.flatMap((raw) => {
+        const result = parseEvent(raw);
+        return result.ok ? [result.value] : [];
+      });
+
+      mergeEvents(earlier);
+      setHasEarlier(page.has_more);
+    } catch {
+      // leave hasEarlier as-is so the control stays available to retry
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }, [sessionId, events, loadingEarlier, mergeEvents]);
 
   const merged = useMemo(
     () =>
@@ -60,6 +82,16 @@ function SessionView() {
   }, [presence, displayName]);
 
   const live = !meta.endedAt;
+  const heldByMe = Boolean(meta.takeover?.active && meta.takeover.by === displayName);
+  const takeoverHeldBy = meta.takeover?.active && !heldByMe ? meta.takeover.by : undefined;
+
+  const handleToggleTakeover = useCallback(async () => {
+    try {
+      await relayApi.setTakeover(sessionId, !heldByMe);
+    } catch {
+      toast.error("Failed to update takeover.");
+    }
+  }, [sessionId, heldByMe]);
 
   const handleSend = useCallback(
     async (text: string, toAgent: boolean) => {
@@ -78,7 +110,7 @@ function SessionView() {
         return;
       }
 
-      const result = await relayApi.sendMessage(sessionId, displayName, text);
+      const result = await relayApi.sendMessage(sessionId, text);
       if (result.queued > 1) toast(`Queued — ${result.queued} messages ahead of yours.`);
     },
     [sessionId, displayName],
@@ -94,6 +126,8 @@ function SessionView() {
         viewers={viewers}
         backTo={from ? `/projects/${from}` : "/"}
         backLabel={from ?? "projects"}
+        displayName={displayName}
+        onToggleTakeover={handleToggleTakeover}
       />
 
       {connectionState === "closed" && retryCount >= RETRY_WARNING_THRESHOLD && (
@@ -102,12 +136,19 @@ function SessionView() {
         </div>
       )}
 
-      <Timeline items={merged} harness={meta.harness} />
+      <Timeline
+        items={merged}
+        harness={meta.harness}
+        onLoadEarlier={loadEarlier}
+        hasEarlier={hasEarlier}
+        loadingEarlier={loadingEarlier}
+      />
 
       <Composer
         displayName={displayName}
         disabled={!live}
         typingNames={typingNames}
+        takeoverHeldBy={takeoverHeldBy}
         onSend={handleSend}
         onTypingChange={sendPresence}
       />
