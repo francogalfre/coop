@@ -2,42 +2,20 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import type { Route } from "next";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth/auth-client";
 import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
 import { relayApi } from "@/lib/relay/api";
-import { buildTimeline, type MessageItem } from "@/lib/session/timeline";
-import { SessionHeader } from "@/components/session/session-header";
-import { Timeline } from "@/components/session/timeline";
-import { Composer } from "@/components/session/composer";
-import { IconAlert } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { buildTimeline } from "./lib/build-timeline";
+import type { MessageItem } from "./types";
+import { SessionHeader } from "./components/session-header";
+import { Timeline } from "./components/timeline";
+import { Composer } from "./components/composer";
 
 const TYPING_WINDOW_MS = 3000;
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <div className="flex h-dvh flex-col bg-background">{children}</div>;
-}
-
-function Blocked({ title, body }: { title: string; body: string }) {
-  return (
-    <Shell>
-      <div className="flex flex-1 items-center justify-center px-6">
-        <div className="max-w-sm space-y-3 text-center">
-          <span className="mx-auto grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
-            <IconAlert size={19} />
-          </span>
-          <h1 className="font-display font-semibold text-[17px] text-foreground">{title}</h1>
-          <p className="text-[13.5px] text-muted-foreground leading-relaxed">{body}</p>
-          <Button asChild variant="secondary" size="sm" className="mt-1">
-            <Link href={"/" as Route}>Back to projects</Link>
-          </Button>
-        </div>
-      </div>
-    </Shell>
-  );
 }
 
 function SessionView() {
@@ -46,7 +24,6 @@ function SessionView() {
   const { data: authData } = useSession();
 
   const sessionId = params.id;
-  const token = searchParams.get("token") ?? "";
   const from = searchParams.get("from");
 
   const displayName = authData?.user?.name ?? "Guest";
@@ -54,7 +31,6 @@ function SessionView() {
 
   const { events, presence, connectionState, retryCount, sendPresence } = useSessionStream(
     sessionId,
-    token,
     displayName,
   );
 
@@ -102,20 +78,11 @@ function SessionView() {
         return;
       }
 
-      const result = await relayApi.sendMessage(sessionId, token, displayName, text);
+      const result = await relayApi.sendMessage(sessionId, displayName, text);
       if (result.queued > 1) toast(`Queued — ${result.queued} messages ahead of yours.`);
     },
-    [sessionId, token, displayName],
+    [sessionId, displayName],
   );
-
-  if (!token) {
-    return (
-      <Blocked
-        title="This link is missing its token"
-        body="Ask whoever shared this session to send the full link, or open it from your project dashboard."
-      />
-    );
-  }
 
   return (
     <Shell>
@@ -135,7 +102,7 @@ function SessionView() {
         </div>
       )}
 
-      <Timeline items={merged} />
+      <Timeline items={merged} harness={meta.harness} />
 
       <Composer
         displayName={displayName}

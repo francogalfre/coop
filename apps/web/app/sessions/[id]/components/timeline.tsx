@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { IconSparkles } from "@/components/icons";
 import { TimelineRow } from "./timeline-item";
-import type { TimelineItem } from "@/lib/session/timeline";
+import type { TimelineItem } from "../types";
 
 function EmptyState() {
   return (
@@ -22,7 +22,7 @@ function EmptyState() {
   );
 }
 
-export function Timeline({ items }: { items: TimelineItem[] }) {
+export function Timeline({ items, harness }: { items: TimelineItem[]; harness?: string }) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
@@ -55,7 +55,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         >
-          <TimelineRow item={item} />
+          <TimelineRow item={item} harness={harness} />
         </motion.div>
       ))}
       <div ref={endRef} />

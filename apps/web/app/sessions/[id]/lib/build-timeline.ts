@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { KNOWN_EVENT_TYPES, type Event, type knownEvent } from "@coop/protocol";
+import type { BuiltTimeline, SessionMeta, TimelineItem, ToolItem } from "../types";
 
 type KnownEvent = z.infer<typeof knownEvent>;
 
@@ -8,52 +9,6 @@ const KNOWN = new Set<string>(KNOWN_EVENT_TYPES);
 function asKnown(event: Event): KnownEvent | null {
   return KNOWN.has(event.type) ? (event as KnownEvent) : null;
 }
-
-export type ToolItem = {
-  kind: "tool";
-  key: string;
-  ts: string;
-  toolName: string;
-  input: string;
-  output?: string;
-  status: "running" | "ok" | "failed";
-  files: { path: string; mode: "read" | "write" }[];
-};
-
-export type AgentTextItem = {
-  kind: "agent-text";
-  key: string;
-  ts: string;
-  text: string;
-};
-
-export type MessageItem = {
-  kind: "message";
-  key: string;
-  ts: string;
-  author: string;
-  text: string;
-  toAgent: boolean;
-};
-
-export type NoticeItem = {
-  kind: "notice";
-  key: string;
-  ts: string;
-  tone: "start" | "end" | "join" | "leave" | "turn";
-  text: string;
-};
-
-export type TimelineItem = ToolItem | AgentTextItem | MessageItem | NoticeItem;
-
-export type SessionMeta = {
-  harness?: string;
-  owner?: string;
-  repo?: string;
-  cwd?: string;
-  startedAt?: string;
-  endedAt?: string;
-};
 
 function textOf(value: unknown): string {
   if (typeof value === "string") return value;
@@ -64,11 +19,7 @@ function textOf(value: unknown): string {
   return "";
 }
 
-export function buildTimeline(events: Event[]): {
-  items: TimelineItem[];
-  meta: SessionMeta;
-  agentBusy: boolean;
-} {
+export function buildTimeline(events: Event[]): BuiltTimeline {
   const items: TimelineItem[] = [];
   const meta: SessionMeta = {};
   const toolIndex = new Map<string, ToolItem>();

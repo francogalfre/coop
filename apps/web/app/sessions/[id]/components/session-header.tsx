@@ -3,10 +3,11 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { motion } from "motion/react";
-import { IconAgent, IconChevronLeft, IconFolder } from "@/components/icons";
-import { PresenceStack } from "@/components/presence-stack";
+import { IconChevronLeft, IconFolder } from "@/components/icons";
+import { HarnessLogo } from "@/components/harness-logo";
+import { PresenceStack } from "./presence-stack";
 import { MetaChip, StatusPill } from "@/components/status-pill";
-import type { SessionMeta } from "@/lib/session/timeline";
+import type { SessionMeta } from "../types";
 
 export function SessionHeader({
   sessionId,
@@ -50,7 +51,7 @@ export function SessionHeader({
 
         {live && agentBusy ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-agent/12 px-2.5 py-1 text-[12px] text-agent">
-            <IconAgent size={12} />
+            <HarnessLogo harness={meta.harness} size={12} className="shrink-0" />
             <span className="font-medium">{agentName}</span>
             <span className="text-agent/80">is working</span>
             <span className="flex gap-0.5">
@@ -66,7 +67,7 @@ export function SessionHeader({
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-2.5 py-1 text-[12px] text-muted-foreground">
-            <IconAgent size={12} />
+            <HarnessLogo harness={meta.harness} size={12} className="shrink-0" />
             {agentName} {live ? "idle" : "stopped"}
           </span>
         )}

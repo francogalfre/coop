@@ -4,7 +4,6 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  IconAgent,
   IconCheck,
   IconChevronRight,
   IconCode,
@@ -14,9 +13,10 @@ import {
   IconSpinner,
   IconTerminal,
 } from "@/components/icons";
+import { HarnessLogo } from "@/components/harness-logo";
 import { LiveDot } from "@/components/status-pill";
 import { basename, clockTime, initials, prettyJson, summarizeToolInput, tintFor } from "@/lib/format";
-import type { TimelineItem } from "@/lib/session/timeline";
+import type { TimelineItem } from "../types";
 import { cn } from "@/lib/utils";
 
 const TOOL_ICONS: Record<string, typeof IconTerminal> = {
@@ -156,13 +156,19 @@ function CodeBlock({ label, body }: { label: string; body: string }) {
   );
 }
 
-function AgentTextRow({ item }: { item: Extract<TimelineItem, { kind: "agent-text" }> }) {
+function AgentTextRow({
+  item,
+  harness,
+}: {
+  item: Extract<TimelineItem, { kind: "agent-text" }>;
+  harness?: string;
+}) {
   return (
     <Row
       ts={item.ts}
       rail={
         <span className="relative z-10 grid size-6 place-items-center rounded-md border border-agent/30 bg-agent/10 text-agent">
-          <IconAgent size={13} />
+          <HarnessLogo harness={harness} size={13} />
         </span>
       }
     >
@@ -221,12 +227,12 @@ function NoticeRow({ item }: { item: Extract<TimelineItem, { kind: "notice" }> }
   );
 }
 
-export function TimelineRow({ item }: { item: TimelineItem }) {
+export function TimelineRow({ item, harness }: { item: TimelineItem; harness?: string }) {
   switch (item.kind) {
     case "tool":
       return <ToolRow item={item} />;
     case "agent-text":
-      return <AgentTextRow item={item} />;
+      return <AgentTextRow item={item} harness={harness} />;
     case "message":
       return <MessageRow item={item} />;
     case "notice":

@@ -79,17 +79,14 @@ export const relayApi = {
       method: "POST",
     }),
 
-  listViewers: (sessionId: string, token: string) =>
-    request<{ viewers: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/viewers`, {
-      headers: { "X-Coop-Session-Token": token },
-    }),
+  listViewers: (sessionId: string) =>
+    request<{ viewers: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/viewers`),
 
-  sendMessage: (sessionId: string, token: string, from: string, text: string) =>
+  sendMessage: (sessionId: string, from: string, text: string) =>
     request<{ status: string; queued: number }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
       {
         method: "POST",
-        headers: { "X-Coop-Session-Token": token },
         body: JSON.stringify({ from, text }),
       },
     ),

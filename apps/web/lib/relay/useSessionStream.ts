@@ -18,7 +18,6 @@ const MAX_RETRY_MS = 15000;
 
 export function useSessionStream(
   sessionId: string,
-  token: string,
   name?: string,
 ): {
   events: Event[];
@@ -40,21 +39,14 @@ export function useSessionStream(
     let retryDelay = INITIAL_RETRY_MS;
     let attempts = 0;
 
-    if (!token) {
-      setConnectionState("closed");
-      return () => {
-        cancelled = true;
-      };
-    }
-
     function connect() {
       if (cancelled) return;
 
       setConnectionState("connecting");
       setEvents([]);
       setPresence(emptyPresenceState());
-      const query = `token=${encodeURIComponent(token)}${name ? `&name=${encodeURIComponent(name)}` : ""}`;
-      socket = new WebSocket(`${relayConfig.wsUrl}/v1/sessions/${sessionId}/stream?${query}`);
+      const query = name ? `?name=${encodeURIComponent(name)}` : "";
+      socket = new WebSocket(`${relayConfig.wsUrl}/v1/sessions/${sessionId}/stream${query}`);
       socketRef.current = socket;
 
       socket.addEventListener("open", () => {
@@ -113,7 +105,7 @@ export function useSessionStream(
       if (retryTimer) clearTimeout(retryTimer);
       socket?.close();
     };
-  }, [sessionId, token, name]);
+  }, [sessionId, name]);
 
   function sendPresence(active: boolean) {
     const socket = socketRef.current;
