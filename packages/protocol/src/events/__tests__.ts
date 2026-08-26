@@ -360,13 +360,23 @@ describe("humanSteer", () => {
 });
 
 describe("humanTakeover", () => {
-  it("parses a minimal valid fixture", () => {
-    const fixture = { ...base, type: "human.takeover", actor: anActor };
+  it("parses a minimal valid fixture claiming takeover", () => {
+    const fixture = { ...base, type: "human.takeover", actor: anActor, active: true };
+    expect(humanTakeover.safeParse(fixture).success).toBe(true);
+  });
+
+  it("parses a fixture releasing takeover", () => {
+    const fixture = { ...base, type: "human.takeover", actor: anActor, active: false };
     expect(humanTakeover.safeParse(fixture).success).toBe(true);
   });
 
   it("rejects a fixture missing actor", () => {
-    const fixture = { ...base, type: "human.takeover" };
+    const fixture = { ...base, type: "human.takeover", active: true };
+    expect(humanTakeover.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects a fixture missing active", () => {
+    const fixture = { ...base, type: "human.takeover", actor: anActor };
     expect(humanTakeover.safeParse(fixture).success).toBe(false);
   });
 });
