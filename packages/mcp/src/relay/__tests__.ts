@@ -78,6 +78,30 @@ describe("fetchPresence", () => {
     expect(url.searchParams.has("window_seconds")).toBe(false);
   });
 
+  it("sends the CLI credential as a bearer token when configured", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ repo: "/repo", window_seconds: 900, paths: [] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPresence({ ...baseConfig, cliCredential: "cli-token-abc" }, ["a.ts"]);
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer cli-token-abc");
+  });
+
+  it("omits the Authorization header when no CLI credential is configured", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ repo: "/repo", window_seconds: 900, paths: [] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPresence(baseConfig, ["a.ts"]);
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit | undefined;
+    expect(init?.headers).toBeUndefined();
+  });
+
   it("throws RelayUnreachableError on a non-2xx response", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "boom" }, false, 500)));
     await expect(fetchPresence(baseConfig, ["a.ts"])).rejects.toThrow(RelayUnreachableError);

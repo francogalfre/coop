@@ -7,6 +7,7 @@ describe("loadConfig", () => {
     expect(config.relayUrl).toBe("http://localhost:8787");
     expect(config.repo).toBe(process.cwd());
     expect(config.sessionId).toBeUndefined();
+    expect(config.cliCredential).toBeUndefined();
   });
 
   it("honors env overrides", () => {
@@ -14,11 +15,13 @@ describe("loadConfig", () => {
       COOP_RELAY_URL: "http://relay.example:9000",
       COOP_REPO: "/some/repo",
       COOP_SESSION_ID: "sess-xyz",
+      COOP_CLI_CREDENTIAL: "cli-token-abc",
     });
     expect(config).toEqual({
       relayUrl: "http://relay.example:9000",
       repo: "/some/repo",
       sessionId: "sess-xyz",
+      cliCredential: "cli-token-abc",
     });
   });
 });

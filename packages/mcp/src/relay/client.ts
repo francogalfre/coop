@@ -21,11 +21,13 @@ type RawSessionsResponse = {
   sessions: { session_id: string; owner: string; started_at: string; active: boolean }[];
 };
 
-async function getJson(url: URL): Promise<unknown> {
+async function getJson(url: URL, config: Config): Promise<unknown> {
   let response: Response;
 
   try {
-    response = await fetch(url);
+    response = await fetch(url, {
+      headers: config.cliCredential ? { Authorization: `Bearer ${config.cliCredential}` } : undefined,
+    });
   } catch (cause) {
     throw new RelayUnreachableError(
       `failed to reach relay at ${url}: ${cause instanceof Error ? cause.message : String(cause)}`,
@@ -50,7 +52,7 @@ export async function fetchPresence(
   if (windowSeconds !== undefined) params.set("window_seconds", String(windowSeconds));
 
   const url = new URL(`/v1/presence?${params.toString()}`, config.relayUrl);
-  const raw = (await getJson(url)) as RawPresenceResponse;
+  const raw = (await getJson(url, config)) as RawPresenceResponse;
 
   return {
     repo: raw.repo,
@@ -72,7 +74,7 @@ export async function fetchPresence(
 export async function fetchActiveSessions(config: Config): Promise<SessionSummary[]> {
   const params = new URLSearchParams({ repo: config.repo });
   const url = new URL(`/v1/sessions?${params.toString()}`, config.relayUrl);
-  const raw = (await getJson(url)) as RawSessionsResponse;
+  const raw = (await getJson(url, config)) as RawSessionsResponse;
 
   return raw.sessions.map((s) => ({
     sessionId: s.session_id,
