@@ -15,7 +15,7 @@ event detail.
 
 ```bash
 cd /home/francogalfre/Documentos/dev/coop
-pnpm dev
+bun run dev
 ```
 
 **Terminal 2: Build the CLI and use it**
@@ -60,9 +60,9 @@ You'll see your live session. Send steering text from the input box at the botto
 
 ```
 ./scripts/probe.sh     # verify Claude Code hook payloads against your harness
-./scripts/dev.sh       # start relay + web (also: pnpm dev)
-pnpm test              # run all tests
-pnpm lint && pnpm build
+./scripts/dev.sh       # start relay + web (also: bun run dev)
+bun run test           # run all tests
+bun run lint && bun run build
 ```
 
 See `.agents/context.md` for the full vision and `.agents/conventions.md` for code style.

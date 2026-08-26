@@ -13,4 +13,4 @@ a payload, update the fixture and `harnesses.md`, not the assertion.
 ## Commands
 
 - Go: `go test ./...`
-- TypeScript: `pnpm test`
+- TypeScript: `bun run test`

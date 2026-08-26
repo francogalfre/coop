@@ -8,6 +8,7 @@ export const sessionStart = z.object({
   type: z.literal("session.start"),
   harness: z.enum(["claude-code", "codex", "opencode", "pi", "amp", "other"]),
   cwd: z.string().min(1).max(LIMITS.path),
+  repo: z.string().min(1).max(LIMITS.path).optional(),
   owner: actor,
   harness_version: z.string().max(64).optional(),
   permission_mode: z.string().max(64).optional(),

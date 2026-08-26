@@ -20,6 +20,8 @@ func handleSteerPost(mailbox *stream.Mailbox) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+
 		var body steerMessageBody
 
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

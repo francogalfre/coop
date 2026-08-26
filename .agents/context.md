@@ -49,10 +49,10 @@ packages/mcp/       TypeScript — presence + conflict MCP server
      than no command. -->
 
 ```
-pnpm dev          # relay + web (scripts/dev.sh)
-pnpm test         # go test ./... (both modules) && pnpm test
-pnpm lint         # oxlint
-pnpm typecheck    # tsc --noEmit
+bun run dev       # relay + web (scripts/dev.sh)
+bun run test      # go test ./... (both modules) && bun run test
+bun run lint      # oxlint
+bun run typecheck # tsc --noEmit
 ```
 
 ## Rules
@@ -95,3 +95,31 @@ Say so and stop. A wrong guess about how a harness behaves costs more than a
 question. Do not fabricate a hook event name, a JSON field, or a CLI flag —
 if it isn't in `.agents/rules/harnesses.md` or verified output, it doesn't
 exist yet.
+
+ ## YCombinator Request to apply
+ by Aaron Epstein
+
+ The best work tools of the last two decades won by going multiplayer. Google Docs replaced Microsoft Word.
+ Figma beat Photoshop. And they turned solo tools into places where teams do their best work together.
+
+ But AI hasn't had its multiplayer moment yet.
+
+ AI agents are the most powerful new tool a team has, but it's the one thing people still use by themselves.
+ That's because right now, working with AI is largely single-player. You open a chat, type a prompt, and get
+ an answer, in a box only you can see. When you want to collaborate with your teammates and agents,
+ the best you can do is send a link to a read-only transcript they can't touch.
+
+ That's about to change.
+
+ Agents are starting to run tasks that take hours, days, even weeks. Work at that scale was never meant
+ to be done alone, and pulls in many people across a company. Anyone on a team should be able to drop
+ into the same live agent session to watch it work, redirect it, and hand it off, the way they'd work
+ with any other human team member. This turns the work a team does with agents into a shared, living
+ thing instead of a thousand private threads.
+
+ We think there's a version of this for every kind of work. Shared agents for engineers coding together
+ in real time. For sales teams working a deal together. For support teams resolving a ticket. For lawyers
+ drafting a contract, analysts building a model, and marketers shipping a campaign. Anywhere a team already
+ crowds around one problem, there should be multiplayer agents they all share.
+
+ So if you're building AI that's multiplayer by default, we'd love to hear from you.

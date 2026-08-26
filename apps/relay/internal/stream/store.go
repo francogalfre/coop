@@ -2,6 +2,7 @@ package stream
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 )
 
@@ -25,8 +26,11 @@ func New() *Store {
 	}
 }
 
-func (s *Store) Append(sessionID string, event json.RawMessage) int {
-	data := append(json.RawMessage(nil), event...)
+func (s *Store) Append(sessionID string, event json.RawMessage) (Event, error) {
+	var fields map[string]any
+	if err := json.Unmarshal(event, &fields); err != nil {
+		return Event{}, fmt.Errorf("append: unmarshal event: %w", err)
+	}
 
 	s.mu.Lock()
 	buf, ok := s.sessions[sessionID]
@@ -36,6 +40,14 @@ func (s *Store) Append(sessionID string, event json.RawMessage) int {
 	}
 
 	buf.nextSeq++
+	fields["seq"] = buf.nextSeq
+
+	data, err := json.Marshal(fields)
+	if err != nil {
+		s.mu.Unlock()
+		return Event{}, fmt.Errorf("append: marshal event: %w", err)
+	}
+
 	recorded := Event{Seq: buf.nextSeq, Data: data}
 
 	buf.events = append(buf.events, recorded)
@@ -46,7 +58,7 @@ func (s *Store) Append(sessionID string, event json.RawMessage) int {
 
 	s.publish(sessionID, recorded)
 
-	return recorded.Seq
+	return recorded, nil
 }
 
 func (s *Store) Since(sessionID string, afterSeq int) []Event {

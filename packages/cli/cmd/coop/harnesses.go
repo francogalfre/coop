@@ -3,20 +3,65 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/claudecode"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/opencode"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/pi"
 )
 
-const piHarnessName = "pi"
+const piHarnessName = pi.Name
 
-// installHarnesses wires every harness detected in dir up to baseURL. On a
-// partial failure it unwinds whatever it already installed before
-// returning the error.
-func installHarnesses(dir, baseURL string) ([]harness.Installation, error) {
-	adapters := harness.Detect(dir)
+var allAdapters = []harness.Adapter{
+	claudecode.Adapter{},
+	opencode.Adapter{},
+	pi.Adapter{},
+	generic.Adapter{},
+}
+
+func selectHarnesses(dir, harnessFlag string) ([]harness.Adapter, error) {
+	if harnessFlag != "" {
+		a, ok := harness.ByName(harnessFlag, allAdapters)
+		if !ok {
+			return nil, fmt.Errorf("harness: unknown --harness %q", harnessFlag)
+		}
+		return []harness.Adapter{a}, nil
+	}
+
+	detected := harness.Detect(dir, allAdapters)
+	if len(detected) > 1 {
+		names := make([]string, len(detected))
+		for i, a := range detected {
+			names[i] = a.Name()
+		}
+		return nil, fmt.Errorf("harness: multiple harnesses detected (%s), pass --harness=<name> to pick one", strings.Join(names, ", "))
+	}
+
+	return detected, nil
+}
+
+func selectRunHarness(harnessFlag, invokedName string) ([]harness.Adapter, error) {
+	if harnessFlag != "" {
+		a, ok := harness.ByName(harnessFlag, allAdapters)
+		if !ok {
+			return nil, fmt.Errorf("harness: unknown --harness %q", harnessFlag)
+		}
+		return []harness.Adapter{a}, nil
+	}
+
+	if a, ok := harness.ByBinary(filepath.Base(invokedName), allAdapters); ok {
+		return []harness.Adapter{a}, nil
+	}
+
+	return nil, nil
+}
+
+func installHarnesses(dir, baseURL string, adapters []harness.Adapter) ([]harness.Installation, error) {
 	if len(adapters) == 0 {
-		fmt.Println("coop: no supported harness detected in this directory (hook events disabled)")
+		fmt.Println("coop: no supported harness detected (hook events disabled)")
 		return nil, nil
 	}
 

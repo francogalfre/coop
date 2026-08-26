@@ -8,11 +8,14 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-func NewSessionStreamHandler(store *stream.Store) http.HandlerFunc {
+func NewSessionStreamHandler(store *stream.Store, webOrigins []string) http.HandlerFunc {
+	hub := stream.NewPresenceHub()
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
+		name := r.URL.Query().Get("name")
 
-		conn, err := websocket.Accept(w, r, nil)
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: webOrigins})
 		if err != nil {
 			return
 		}
@@ -20,8 +23,17 @@ func NewSessionStreamHandler(store *stream.Store) http.HandlerFunc {
 
 		ctx := r.Context()
 
-		live, unsubscribe := store.Subscribe(sessionID)
-		defer unsubscribe()
+		live, unsubscribeEvents := store.Subscribe(sessionID)
+		defer unsubscribeEvents()
+
+		presenceCh, unsubscribePresence := hub.Subscribe(sessionID)
+		defer unsubscribePresence()
+
+		broadcastPresence(hub, sessionID, presenceCh, name, "human.join")
+		defer broadcastPresence(hub, sessionID, presenceCh, name, "human.leave")
+
+		incoming := make(chan clientPresenceMessage)
+		go readClientFrames(ctx, conn, incoming)
 
 		lastSeq := 0
 		for _, event := range store.Since(sessionID, 0) {
@@ -47,6 +59,18 @@ func NewSessionStreamHandler(store *stream.Store) http.HandlerFunc {
 					return
 				}
 				lastSeq = event.Seq
+			case msg, ok := <-incoming:
+				if !ok {
+					return
+				}
+				broadcastTyping(hub, sessionID, presenceCh, name, msg.Active)
+			case frame, ok := <-presenceCh:
+				if !ok {
+					return
+				}
+				if err := conn.Write(ctx, websocket.MessageText, frame); err != nil {
+					return
+				}
 			}
 		}
 	}

@@ -1,43 +1,53 @@
-package harness
+package harness_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/francogalfre/coop/packages/cli/internal/harness"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/claudecode"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/opencode"
+	"github.com/francogalfre/coop/packages/cli/internal/harness/pi"
 )
 
-func TestRemoveAllRemovesEveryAdaptersTraces(t *testing.T) {
+func TestRemoveAllTracesRemovesEveryAdaptersTraces(t *testing.T) {
 	dir := t.TempDir()
 
-	if _, err := writeClaudeSettings(dir, "http://127.0.0.1:12345"); err != nil {
-		t.Fatalf("writeClaudeSettings() error = %v", err)
+	if _, err := (claudecode.Adapter{}).Install(dir, "http://127.0.0.1:12345"); err != nil {
+		t.Fatalf("claudecode Install() error = %v", err)
 	}
-	if _, err := (opencodeAdapter{}).Install(dir, "http://127.0.0.1:12345"); err != nil {
-		t.Fatalf("opencodeAdapter.Install() error = %v", err)
+	if _, err := (opencode.Adapter{}).Install(dir, "http://127.0.0.1:12345"); err != nil {
+		t.Fatalf("opencode Install() error = %v", err)
 	}
-	if _, err := (piAdapter{}).Install(dir, "http://127.0.0.1:12345"); err != nil {
-		t.Fatalf("piAdapter.Install() error = %v", err)
+	if _, err := (pi.Adapter{}).Install(dir, "http://127.0.0.1:12345"); err != nil {
+		t.Fatalf("pi Install() error = %v", err)
 	}
 
-	if err := RemoveAll(dir); err != nil {
-		t.Fatalf("RemoveAll() error = %v", err)
+	adapters := []harness.Adapter{claudecode.Adapter{}, opencode.Adapter{}, pi.Adapter{}, generic.Adapter{}}
+
+	if err := harness.RemoveAllTraces(dir, adapters); err != nil {
+		t.Fatalf("RemoveAllTraces() error = %v", err)
 	}
 
 	for _, p := range []string{
-		claudeSettingsPath(dir),
+		filepath.Join(dir, ".claude", "settings.local.json"),
 		filepath.Join(dir, ".opencode", "plugin", "coop.js"),
 		filepath.Join(dir, ".pi", "extensions", "coop.ts"),
 	} {
 		if _, err := os.Stat(p); !os.IsNotExist(err) {
-			t.Errorf("%s still exists after RemoveAll(), err = %v", p, err)
+			t.Errorf("%s still exists after RemoveAllTraces(), err = %v", p, err)
 		}
 	}
 }
 
-func TestRemoveAllNoopWhenNothingInstalled(t *testing.T) {
+func TestRemoveAllTracesNoopWhenNothingInstalled(t *testing.T) {
 	dir := t.TempDir()
 
-	if err := RemoveAll(dir); err != nil {
-		t.Fatalf("RemoveAll() error = %v, want nil for a directory with nothing installed", err)
+	adapters := []harness.Adapter{claudecode.Adapter{}, opencode.Adapter{}, pi.Adapter{}, generic.Adapter{}}
+
+	if err := harness.RemoveAllTraces(dir, adapters); err != nil {
+		t.Fatalf("RemoveAllTraces() error = %v, want nil for a directory with nothing installed", err)
 	}
 }

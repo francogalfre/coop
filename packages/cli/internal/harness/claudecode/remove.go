@@ -1,0 +1,59 @@
+package claudecode
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+func removeSettings(dir string) error {
+	path := settingsPath(dir)
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("harness: read %s: %w", path, err)
+	}
+
+	root := map[string]json.RawMessage{}
+	if err := json.Unmarshal(raw, &root); err != nil {
+		return fmt.Errorf("harness: unmarshal %s: %w", path, err)
+	}
+
+	hooksRoot := map[string][]hookGroup{}
+	if hooksRaw, ok := root["hooks"]; ok {
+		if err := json.Unmarshal(hooksRaw, &hooksRoot); err != nil {
+			return fmt.Errorf("harness: unmarshal hooks: %w", err)
+		}
+	}
+
+	for event, groups := range hooksRoot {
+		remaining := withoutCoopEntries(groups)
+		if len(remaining) == 0 {
+			delete(hooksRoot, event)
+		} else {
+			hooksRoot[event] = remaining
+		}
+	}
+
+	if len(hooksRoot) == 0 {
+		delete(root, "hooks")
+	} else {
+		hooksJSON, err := json.Marshal(hooksRoot)
+		if err != nil {
+			return fmt.Errorf("harness: marshal hooks: %w", err)
+		}
+		root["hooks"] = hooksJSON
+	}
+
+	if len(root) == 0 {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("harness: remove %s: %w", path, err)
+		}
+		return nil
+	}
+
+	return writeSettingsRoot(dir, path, root)
+}

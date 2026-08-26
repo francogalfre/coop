@@ -1,22 +1,10 @@
 package harness
 
-// All returns every adapter in priority order, generic always last as the
-// fallback (pty-wrap only, no hook events).
-func All() []Adapter {
-	return []Adapter{
-		claudeCodeAdapter{},
-		opencodeAdapter{},
-		piAdapter{},
-		genericAdapter{},
-	}
-}
-
-// Detect returns every non-generic adapter usable in dir.
-func Detect(dir string) []Adapter {
+func Detect(dir string, adapters []Adapter) []Adapter {
 	var found []Adapter
 
-	for _, a := range All() {
-		if a.Name() == genericName {
+	for _, a := range adapters {
+		if a.IsFallback() {
 			continue
 		}
 		if a.Detect(dir) {
@@ -25,4 +13,24 @@ func Detect(dir string) []Adapter {
 	}
 
 	return found
+}
+
+func ByName(name string, adapters []Adapter) (Adapter, bool) {
+	for _, a := range adapters {
+		if a.Name() == name {
+			return a, true
+		}
+	}
+
+	return nil, false
+}
+
+func ByBinary(name string, adapters []Adapter) (Adapter, bool) {
+	for _, a := range adapters {
+		if !a.IsFallback() && a.Binary() == name {
+			return a, true
+		}
+	}
+
+	return nil, false
 }

@@ -1,11 +1,10 @@
 package hooks
 
-import "github.com/francogalfre/coop/packages/cli/internal/redact"
+import (
+	"github.com/francogalfre/coop/packages/cli/internal/redact"
+	"github.com/francogalfre/coop/packages/cli/internal/repoid"
+)
 
-// translatePi covers tool_call, whose shape (toolName, toolCallId, input;
-// input.path for read/edit/write) is the one pi payload the docs actually
-// verify. turn_end maps to agent.turn_end since it needs no fields beyond
-// its type. Everything else round-trips as a redacted generic event.
 func translatePi(nextSeq func() int, sessionID, event string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	var bodies [][]byte
 
@@ -40,17 +39,24 @@ func translatePi(nextSeq func() int, sessionID, event string, payload map[string
 }
 
 func emitPiSessionStart(bodies *[][]byte, nextSeq func() int, sessionID string, payload map[string]any, red *redact.Redactor) error {
-	cwd, _ := red.Text(stringField(payload, "cwd"))
+	rawCwd := stringField(payload, "cwd")
+	cwd, _ := red.Text(rawCwd)
 	if cwd == "" {
 		return emitGenericPi(bodies, nextSeq, sessionID, "session_start", payload, red)
 	}
 
-	return emitEnvelope(bodies, nextSeq, sessionID, map[string]any{
+	fields := map[string]any{
 		"type":    "session.start",
 		"harness": "pi",
 		"cwd":     cwd,
 		"owner":   actorFields(),
-	})
+	}
+
+	if repo := repoid.Detect(rawCwd); repo != "" {
+		fields["repo"] = repo
+	}
+
+	return emitEnvelope(bodies, nextSeq, sessionID, fields)
 }
 
 func emitPiToolCall(bodies *[][]byte, nextSeq func() int, sessionID string, payload map[string]any, red *redact.Redactor) error {

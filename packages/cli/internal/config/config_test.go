@@ -84,6 +84,38 @@ func TestLoadReadsHookAddrFromEnv(t *testing.T) {
 	}
 }
 
+func TestLoadPopulatesCLICredentialFromSavedFile(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	if err := SaveCredentials(CLICredentials{Token: "deadbeef", Username: "octocat"}); err != nil {
+		t.Fatalf("SaveCredentials: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.CLICredential != "deadbeef" {
+		t.Fatalf("got %q, want %q", cfg.CLICredential, "deadbeef")
+	}
+}
+
+func TestLoadLeavesCLICredentialEmptyWhenNoFile(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.CLICredential != "" {
+		t.Fatalf("got %q, want empty", cfg.CLICredential)
+	}
+}
+
 func TestLoadGeneratesUniqueSessionIDs(t *testing.T) {
 	t.Setenv("COOP_SESSION_ID", "")
 

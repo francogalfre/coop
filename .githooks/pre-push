@@ -14,11 +14,11 @@ if command -v go >/dev/null 2>&1; then
 fi
 
 if [ -f package.json ] && grep -q '"test"[[:space:]]*:' package.json; then
-  if command -v pnpm >/dev/null 2>&1; then
-    pnpm test || fail "pnpm test failed"
+  if command -v bun >/dev/null 2>&1; then
+    bun run test || fail "bun test failed"
     ran=1
   else
-    echo "pre-push: pnpm not found, skipping TS tests"
+    echo "pre-push: bun not found, skipping TS tests"
   fi
 fi
 

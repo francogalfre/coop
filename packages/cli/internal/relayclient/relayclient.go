@@ -24,6 +24,8 @@ func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Coop-Session-Token", cfg.SessionToken)
+	setCLICredential(req, cfg)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -51,6 +53,9 @@ func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (from, t
 		return "", "", false, fmt.Errorf("relayclient: build request: %w", err)
 	}
 
+	req.Header.Set("X-Coop-Session-Token", cfg.SessionToken)
+	setCLICredential(req, cfg)
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", "", false, fmt.Errorf("relayclient: get steer: %w", err)
@@ -71,6 +76,61 @@ func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (from, t
 	}
 
 	return msg.From, msg.Text, true, nil
+}
+
+type LoginResult struct {
+	Token       string
+	Username    string
+	DisplayName string
+	AvatarURL   string
+}
+
+func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (LoginResult, error) {
+	payload, err := json.Marshal(map[string]string{"github_access_token": githubAccessToken})
+	if err != nil {
+		return LoginResult{}, fmt.Errorf("relayclient: login: encode request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.RelayURL+"/v1/auth/cli/exchange", bytes.NewReader(payload))
+	if err != nil {
+		return LoginResult{}, fmt.Errorf("relayclient: login: build request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return LoginResult{}, fmt.Errorf("relayclient: login: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return LoginResult{}, fmt.Errorf("relayclient: login: unexpected status %d: %s", resp.StatusCode, readBody(resp.Body))
+	}
+
+	var result struct {
+		Token       string `json:"token"`
+		Username    string `json:"username"`
+		DisplayName string `json:"display_name"`
+		AvatarURL   string `json:"avatar_url"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return LoginResult{}, fmt.Errorf("relayclient: login: decode response: %w", err)
+	}
+
+	return LoginResult{
+		Token:       result.Token,
+		Username:    result.Username,
+		DisplayName: result.DisplayName,
+		AvatarURL:   result.AvatarURL,
+	}, nil
+}
+
+func setCLICredential(req *http.Request, cfg config.Config) {
+	if cfg.CLICredential != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.CLICredential)
+	}
 }
 
 func readBody(r io.Reader) string {

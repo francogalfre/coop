@@ -6,34 +6,79 @@ import (
 	"testing"
 )
 
+func mustAppend(t *testing.T, s *Store, sessionID string, event json.RawMessage) Event {
+	t.Helper()
+
+	recorded, err := s.Append(sessionID, event)
+	if err != nil {
+		t.Fatalf("append failed: %v", err)
+	}
+
+	return recorded
+}
+
+func decodedSeq(t *testing.T, e Event) int {
+	t.Helper()
+
+	var fields struct {
+		Seq int `json:"seq"`
+	}
+	if err := json.Unmarshal(e.Data, &fields); err != nil {
+		t.Fatalf("failed to decode event data: %v", err)
+	}
+
+	return fields.Seq
+}
+
 func TestAppendAssignsIncreasingSeq(t *testing.T) {
 	s := New()
 
-	first := s.Append("sess-a", json.RawMessage(`{"n":1}`))
-	second := s.Append("sess-a", json.RawMessage(`{"n":2}`))
+	first := mustAppend(t, s, "sess-a", json.RawMessage(`{"n":1}`))
+	second := mustAppend(t, s, "sess-a", json.RawMessage(`{"n":2}`))
 
-	if first != 1 || second != 2 {
-		t.Fatalf("got seqs %d, %d, want 1, 2", first, second)
+	if first.Seq != 1 || second.Seq != 2 {
+		t.Fatalf("got seqs %d, %d, want 1, 2", first.Seq, second.Seq)
+	}
+	if decodedSeq(t, first) != 1 || decodedSeq(t, second) != 2 {
+		t.Fatalf("got encoded seqs %d, %d, want 1, 2", decodedSeq(t, first), decodedSeq(t, second))
 	}
 }
 
 func TestAppendSeqIsPerSession(t *testing.T) {
 	s := New()
 
-	s.Append("sess-a", json.RawMessage(`{"n":1}`))
-	first := s.Append("sess-b", json.RawMessage(`{"n":1}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":1}`))
+	first := mustAppend(t, s, "sess-b", json.RawMessage(`{"n":1}`))
 
-	if first != 1 {
-		t.Fatalf("got seq %d, want 1 for a fresh session", first)
+	if first.Seq != 1 {
+		t.Fatalf("got seq %d, want 1 for a fresh session", first.Seq)
+	}
+}
+
+func TestAppendRewritesSeqFieldInStoredData(t *testing.T) {
+	s := New()
+
+	recorded := mustAppend(t, s, "sess-a", json.RawMessage(`{"n":1,"seq":0}`))
+
+	if decodedSeq(t, recorded) != 1 {
+		t.Fatalf("got encoded seq %d, want 1", decodedSeq(t, recorded))
+	}
+}
+
+func TestAppendMalformedEventReturnsError(t *testing.T) {
+	s := New()
+
+	if _, err := s.Append("sess-a", json.RawMessage(`not json`)); err == nil {
+		t.Fatal("expected error for malformed event")
 	}
 }
 
 func TestSinceReturnsOrderedBacklog(t *testing.T) {
 	s := New()
 
-	s.Append("sess-a", json.RawMessage(`{"n":1}`))
-	s.Append("sess-a", json.RawMessage(`{"n":2}`))
-	s.Append("sess-a", json.RawMessage(`{"n":3}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":1}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":2}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":3}`))
 
 	events := s.Since("sess-a", 0)
 	if len(events) != 3 {
@@ -43,15 +88,18 @@ func TestSinceReturnsOrderedBacklog(t *testing.T) {
 		if e.Seq != i+1 {
 			t.Fatalf("event %d has seq %d, want %d", i, e.Seq, i+1)
 		}
+		if decodedSeq(t, e) != i+1 {
+			t.Fatalf("event %d has encoded seq %d, want %d", i, decodedSeq(t, e), i+1)
+		}
 	}
 }
 
 func TestSinceFiltersByAfterSeq(t *testing.T) {
 	s := New()
 
-	s.Append("sess-a", json.RawMessage(`{"n":1}`))
-	s.Append("sess-a", json.RawMessage(`{"n":2}`))
-	s.Append("sess-a", json.RawMessage(`{"n":3}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":1}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":2}`))
+	mustAppend(t, s, "sess-a", json.RawMessage(`{"n":3}`))
 
 	events := s.Since("sess-a", 1)
 	if len(events) != 2 {
@@ -75,7 +123,7 @@ func TestBufferEvictsOldestBeyondBound(t *testing.T) {
 	s := New()
 
 	for i := 0; i < bufferSize+10; i++ {
-		s.Append("sess-a", json.RawMessage(`{}`))
+		mustAppend(t, s, "sess-a", json.RawMessage(`{}`))
 	}
 
 	events := s.Since("sess-a", 0)

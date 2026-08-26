@@ -44,6 +44,8 @@ func parseTimestamp(ts string) (time.Time, error) {
 
 func handleIngest(registry *presence.Registry, store *stream.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "malformed JSON body")
@@ -111,7 +113,10 @@ func handleIngest(registry *presence.Registry, store *stream.Store) http.Handler
 			}
 		}
 
-		store.Append(event.SessionID, json.RawMessage(body))
+		if _, err := store.Append(event.SessionID, json.RawMessage(body)); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to record event")
+			return
+		}
 
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
 	}

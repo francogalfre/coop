@@ -23,7 +23,7 @@ echo "Starting relay and web..."
 RELAY_PID=$!
 sleep 1
 
-(cd apps/web && pnpm dev) &
+(cd apps/web && bun run dev) &
 WEB_PID=$!
 
 echo ""

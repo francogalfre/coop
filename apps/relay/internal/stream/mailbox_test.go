@@ -37,17 +37,66 @@ func TestMailboxTakeUnknownSession(t *testing.T) {
 	}
 }
 
-func TestMailboxPutReplacesPending(t *testing.T) {
+func TestMailboxPutQueuesInOrderInsteadOfOverwriting(t *testing.T) {
 	m := NewMailbox()
 
 	m.Put("sess-a", SteerMessage{From: "Alice", Text: "first"})
 	m.Put("sess-a", SteerMessage{From: "Bob", Text: "second"})
 
-	msg, ok := m.Take("sess-a")
+	first, ok := m.Take("sess-a")
+	if !ok {
+		t.Fatal("expected first pending message")
+	}
+	if first.From != "Alice" || first.Text != "first" {
+		t.Fatalf("unexpected first message: %+v", first)
+	}
+
+	second, ok := m.Take("sess-a")
+	if !ok {
+		t.Fatal("expected second pending message")
+	}
+	if second.From != "Bob" || second.Text != "second" {
+		t.Fatalf("unexpected second message: %+v", second)
+	}
+}
+
+func TestMailboxDepth(t *testing.T) {
+	m := NewMailbox()
+
+	if got := m.Depth("sess-a"); got != 0 {
+		t.Fatalf("got depth %d, want 0", got)
+	}
+
+	m.Put("sess-a", SteerMessage{From: "Alice", Text: "first"})
+	m.Put("sess-a", SteerMessage{From: "Bob", Text: "second"})
+
+	if got := m.Depth("sess-a"); got != 2 {
+		t.Fatalf("got depth %d, want 2", got)
+	}
+
+	m.Take("sess-a")
+
+	if got := m.Depth("sess-a"); got != 1 {
+		t.Fatalf("got depth %d, want 1", got)
+	}
+}
+
+func TestMailboxPutDropsOldestBeyondCap(t *testing.T) {
+	m := NewMailbox()
+
+	for i := 0; i < mailboxCap+1; i++ {
+		m.Put("sess-a", SteerMessage{From: "Alice", Text: string(rune('a' + i))})
+	}
+
+	if got := m.Depth("sess-a"); got != mailboxCap {
+		t.Fatalf("got depth %d, want %d", got, mailboxCap)
+	}
+
+	first, ok := m.Take("sess-a")
 	if !ok {
 		t.Fatal("expected a pending message")
 	}
-	if msg.From != "Bob" || msg.Text != "second" {
-		t.Fatalf("unexpected message: %+v", msg)
+	if first.Text != string(rune('a'+1)) {
+		t.Fatalf("expected oldest message dropped, got %+v", first)
 	}
 }

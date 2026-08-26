@@ -1,0 +1,72 @@
+{
+  "strictness": 2,
+  "commentTypes": ["syntax", "logic"],
+  "triggerOnUpdates": true,
+  "statusCheck": true,
+  "instructions": "Read .agents/context.md, .agents/conventions.md, and the file in .agents/rules/ that matches the change before reviewing. coop streams coding-agent events from a user's machine to a relay and out to browsers. The threat model is that the relay is untrusted infrastructure and steering text from teammates is untrusted user input.",
+  "ignorePatterns": "pnpm-lock.yaml\ngo.sum\n.agents/skills/\n.claude/skills/\nskills-lock.json\ndist/\n.next/",
+  "rules": [
+    {
+      "id": "redact-before-send",
+      "rule": "Secrets must be redacted in the CLI before an event is sent. Flag any redaction, filtering, or masking added on the relay or web side — by then the bytes have already left the user's machine. Flag any new event field that could carry raw tool output, prompts, diffs, or command arguments without passing through redaction first.",
+      "scope": ["packages/cli/**", "apps/relay/**"],
+      "severity": "high"
+    },
+    {
+      "id": "protocol-both-sides",
+      "rule": "packages/protocol is a shared contract. If this PR changes an event schema, it must also change the relay and the web app in the same PR. Flag a schema change that lands on only one consumer. Renaming, removing, or repurposing an existing field is breaking — require a new versioned event instead.",
+      "scope": ["packages/protocol/**"],
+      "severity": "high"
+    },
+    {
+      "id": "validate-at-boundary",
+      "rule": "Every boundary parses incoming events against the Zod schema from @coop/protocol. Flag hand-rolled validation, casts, or best-effort forwarding of unvalidated payloads.",
+      "scope": ["apps/relay/**", "apps/web/**", "packages/mcp/**"],
+      "severity": "high"
+    },
+    {
+      "id": "steering-is-untrusted",
+      "rule": "Steering and veto text from teammates must be attributed to a person and never framed as a system instruction or as coming from the harness. Flag injected text that impersonates a system message. Steering must never grant permission, approve a tool call, or relax redaction.",
+      "scope": ["packages/cli/**", "apps/relay/**"],
+      "severity": "high"
+    },
+    {
+      "id": "no-invented-harness-fields",
+      "rule": "Hook payload field names must come from verified output captured by scripts/probe.sh and recorded in .agents/rules/harnesses.md. Flag any field name read off a hook payload that is not documented there.",
+      "scope": ["packages/cli/**", "apps/relay/**"],
+      "severity": "high"
+    },
+    {
+      "id": "no-ansi-parsing",
+      "rule": "coop never parses terminal output or ANSI escape sequences to understand what an agent did. The pty is a keyboard, not a data source. Flag any screen-scraping of agent output.",
+      "severity": "high"
+    },
+    {
+      "id": "no-new-dependencies",
+      "rule": "Flag any new runtime dependency added in this PR, and say what it replaces from the standard library. Go especially: the stdlib covers most of what the relay needs.",
+      "severity": "medium"
+    },
+    {
+      "id": "file-and-function-size",
+      "rule": "Hard limit of 300 lines per file. Flag new utils.ts / helpers.go grab-bag files — modules are named after the one thing they export. Flag a function that needs a comment to explain what it does; it should be renamed instead. Comments explain why, never what.",
+      "severity": "low"
+    },
+    {
+      "id": "tests-before-fix",
+      "rule": "A bug fix should come with a test that reproduces the bug, using fixtures captured from real sessions rather than hand-written payloads.",
+      "severity": "medium"
+    },
+    {
+      "id": "typescript-strict",
+      "rule": "TypeScript is strict. Flag `any`, non-null assertions, and `as` casts used to silence the compiler. Anything crossing a boundary is validated with Zod.",
+      "scope": ["packages/**", "apps/web/**"],
+      "severity": "medium"
+    },
+    {
+      "id": "go-errors-wrapped",
+      "rule": "Go errors are wrapped with context and never swallowed. Flag a bare `_ =` on an error return or an error returned without context about what failed.",
+      "scope": ["apps/relay/**"],
+      "severity": "medium"
+    }
+  ]
+}

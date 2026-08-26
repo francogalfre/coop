@@ -6,13 +6,11 @@ import (
 	"os/user"
 
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
+	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
 
 const textLimit = 8192
 
-// buildEventBody can emit more than one protocol event per hook invocation
-// (e.g. PostToolUse also emits file.touched), so seq is drawn from nextSeq
-// once per event, not once per call.
 func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map[string]any, red *redact.Redactor) ([][]byte, error) {
 	var bodies [][]byte
 
@@ -57,21 +55,28 @@ func buildEventBody(nextSeq func() int, sessionID, hookEvent string, payload map
 }
 
 func emitSessionStart(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
-	cwd, _ := red.Text(stringField(payload, "cwd"))
+	rawCwd := stringField(payload, "cwd")
+	cwd, _ := red.Text(rawCwd)
 
-	return emit(map[string]any{
+	fields := map[string]any{
 		"type":    "session.start",
 		"harness": "claude-code",
 		"cwd":     cwd,
 		"owner":   actorFields(),
-	})
+	}
+
+	if rawCwd != "" {
+		if repo := repoid.Detect(rawCwd); repo != "" {
+			fields["repo"] = repo
+		}
+	}
+
+	return emit(fields)
 }
 
 func emitToolCall(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
 	toolName, _ := red.Text(stringField(payload, "tool_name"))
 	if toolName == "" {
-		// defensive: the relay schema requires tool_name min length 1; a
-		// blank one here means a hook payload we don't fully understand yet.
 		return nil
 	}
 
@@ -135,9 +140,6 @@ func emitStop(emit func(map[string]any) error, payload map[string]any, red *reda
 	return emit(map[string]any{"type": "agent.text", "text": text})
 }
 
-// emitSessionEnd passes through payload["reason"] only when it matches the
-// protocol's enum (completed|cancelled|error) -- an unrecognized value like
-// Claude Code's observed "other" is omitted rather than sent as invalid.
 func emitSessionEnd(emit func(map[string]any) error, payload map[string]any) error {
 	fields := map[string]any{"type": "session.end"}
 

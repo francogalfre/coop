@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	RelayURL  string
-	SessionID string
-	HookAddr  string
+	RelayURL      string
+	SessionID     string
+	HookAddr      string
+	SessionToken  string
+	CLICredential string
 }
 
 const (
@@ -39,15 +41,45 @@ func Load() (Config, error) {
 		sessionID = generated
 	}
 
-	return Config{RelayURL: relayURL, SessionID: sessionID, HookAddr: hookAddr}, nil
+	sessionToken := os.Getenv("COOP_SESSION_TOKEN")
+	if sessionToken == "" {
+		generated, err := generateHexToken(32)
+		if err != nil {
+			return Config{}, fmt.Errorf("config: generate session token: %w", err)
+		}
+
+		sessionToken = generated
+	}
+
+	cred, err := loadCredentials()
+	if err != nil {
+		return Config{}, err
+	}
+
+	return Config{
+		RelayURL:      relayURL,
+		SessionID:     sessionID,
+		HookAddr:      hookAddr,
+		SessionToken:  sessionToken,
+		CLICredential: cred.Token,
+	}, nil
 }
 
 func generateSessionID() (string, error) {
-	buf := make([]byte, 16)
+	token, err := generateHexToken(16)
+	if err != nil {
+		return "", err
+	}
+
+	return "sess-" + token, nil
+}
+
+func generateHexToken(byteLen int) (string, error) {
+	buf := make([]byte, byteLen)
 
 	if _, err := rand.Read(buf); err != nil {
 		return "", fmt.Errorf("read random bytes: %w", err)
 	}
 
-	return "sess-" + hex.EncodeToString(buf), nil
+	return hex.EncodeToString(buf), nil
 }
