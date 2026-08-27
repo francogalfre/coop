@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { signIn } from "@/lib/auth/auth-client";
-import { IconAgent, IconGithub, IconMessage, IconTerminal, IconUnlock } from "@/components/icons";
+import { IconGithub, IconMessage, IconTerminal, IconUnlock } from "@/components/icons";
+import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 
 const STEPS = [
@@ -30,8 +31,9 @@ export function SignedOut() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="space-y-6"
       >
+        <Mark size={44} />
+
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12px] text-muted-foreground">
-          <IconAgent size={13} />
           Multiplayer coding agents
         </span>
 

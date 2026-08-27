@@ -11,6 +11,8 @@ const foreground = "#fafafa";
 const muted = "#919191";
 const border = "rgba(255, 255, 255, 0.12)";
 const live = "#39c35f";
+const agent = "#63a0fa";
+const human = "#dcad1b";
 
 export default function Image() {
   return new ImageResponse(
@@ -44,8 +46,67 @@ export default function Image() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ display: "flex", fontSize: 96, fontWeight: 600, color: foreground }}>
-            coop
+          <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+            <div style={{ display: "flex", position: "relative", width: 88, height: 88 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: agent,
+                  left: 6,
+                  top: 12,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background,
+                  left: 34,
+                  top: 4,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: human,
+                  left: 38,
+                  top: 12,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background,
+                  left: 20,
+                  top: 38,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: live,
+                  left: 24,
+                  top: 44,
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", fontSize: 96, fontWeight: 600, color: foreground }}>
+              coop
+            </div>
           </div>
           <div style={{ display: "flex", fontSize: 34, color: muted, maxWidth: 900 }}>
             Watch a live coding agent, redirect it mid-task, and hand off control — together.

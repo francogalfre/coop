@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { signOut, useSession } from "@/lib/auth/auth-client";
 import { IconLogout } from "@/components/icons";
+import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { initials, tintFor } from "@/lib/format";
 
@@ -16,9 +17,17 @@ export function AppHeader() {
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-6">
         <Link
           href={"/" as Route}
-          className="font-display font-semibold text-[16px] text-foreground tracking-tight"
+          className="flex items-center gap-2 font-display font-semibold text-[16px] text-foreground tracking-tight"
         >
+          <Mark size={22} />
           coop
+        </Link>
+
+        <Link
+          href={"/docs" as Route}
+          className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+        >
+          Docs
         </Link>
 
         <div className="ml-auto flex items-center gap-3">
