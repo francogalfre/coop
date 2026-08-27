@@ -1,8 +1,8 @@
 # coop
 
-Multiplayer sessions for coding agents. Share a live session, steer it together.
+Multiplayer sessions for coding agents. Watch a live agent work, redirect it mid-task, and hand off control — the way you'd work with any other teammate.
 
-One person runs a coding agent. Teammates open a link and watch it work live, send it a message, or take over. Agents see what other sessions are touching, so they don't collide.
+One person runs a coding agent. Teammates open a link and watch it work live, send it a message the agent sees mid-task, or take over completely and drive. Agents see what other sessions are touching, so they don't collide.
 
 Works with Claude Code, opencode, and pi today — `coop attach` detects which
 harness you're using and installs the right adapter automatically. Anything

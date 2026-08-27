@@ -1,7 +1,7 @@
 # coop
 
 Multiplayer sessions for coding agents. One person runs an agent; teammates
-watch it live, steer it, and take it over.
+watch it live, redirect it mid-task, and hand it off.
 
 ## How it works (read this before touching code)
 
