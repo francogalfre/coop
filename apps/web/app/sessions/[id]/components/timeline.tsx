@@ -34,6 +34,8 @@ function EmptyState({ visible }: { visible: boolean }) {
 export function Timeline({
   items,
   harness,
+  sessionId,
+  isOwner,
   onLoadEarlier,
   hasEarlier,
   loadingEarlier,
@@ -41,6 +43,8 @@ export function Timeline({
 }: {
   items: TimelineItem[];
   harness?: string;
+  sessionId: string;
+  isOwner: boolean;
   onLoadEarlier?: () => Promise<void>;
   hasEarlier?: boolean;
   loadingEarlier?: boolean;
@@ -115,7 +119,7 @@ export function Timeline({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         >
-          <TimelineRow item={item} harness={harness} />
+          <TimelineRow item={item} harness={harness} sessionId={sessionId} isOwner={isOwner} />
         </motion.div>
       ))}
       <div ref={endRef} />

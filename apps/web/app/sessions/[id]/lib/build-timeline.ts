@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { KNOWN_EVENT_TYPES, type Event, type knownEvent } from "@coop/protocol";
-import type { BuiltTimeline, SessionMeta, TimelineItem, ToolItem } from "../types";
+import type { BuiltTimeline, SessionMeta, SteerRequestItem, TimelineItem, ToolItem } from "../types";
 
 type KnownEvent = z.infer<typeof knownEvent>;
 
@@ -23,6 +23,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
   const items: TimelineItem[] = [];
   const meta: SessionMeta = {};
   const toolItemIndex = new Map<string, number>();
+  const steerItemIndex = new Map<string, number>();
   let openTools = 0;
   let sawTurnEnd = false;
 
@@ -35,7 +36,8 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
     switch (event.type) {
       case "session.start": {
         meta.harness = event.harness;
-        meta.owner = event.owner?.display_name;
+        meta.owner = event.owner ? { id: event.owner.id, name: event.owner.display_name } : undefined;
+        meta.mode = event.mode ?? "auto";
         meta.repo = "repo" in event ? (event.repo as string | undefined) : undefined;
         meta.cwd = event.cwd;
         meta.startedAt = event.ts;
@@ -127,6 +129,10 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
       }
 
       case "human.steer": {
+        if (event.request_id && steerItemIndex.has(event.request_id)) {
+          sawTurnEnd = false;
+          break;
+        }
         items.push({
           kind: "message",
           key,
@@ -144,7 +150,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
           kind: "message",
           key,
           ts: event.ts,
-          author: meta.owner ?? "someone",
+          author: meta.owner?.name ?? "someone",
           text: textOf(event.text),
           toAgent: true,
         });
@@ -176,6 +182,40 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
             event.type === "human.join" ? "joined" : "left"
           }`,
         });
+        break;
+      }
+
+      case "session.mode_changed": {
+        meta.mode = event.mode;
+        break;
+      }
+
+      case "steer.requested": {
+        const item: SteerRequestItem = {
+          kind: "steer-request",
+          key,
+          ts: event.ts,
+          requestId: event.request_id,
+          author: event.actor?.display_name ?? "someone",
+          authorId: event.actor?.id ?? "",
+          text: textOf(event.text),
+          status: "pending",
+        };
+        items.push(item);
+        steerItemIndex.set(event.request_id, items.length - 1);
+        break;
+      }
+
+      case "steer.resolved": {
+        const targetIndex = steerItemIndex.get(event.request_id);
+        const target = targetIndex !== undefined ? (items[targetIndex] as SteerRequestItem) : undefined;
+        if (target && targetIndex !== undefined) {
+          items[targetIndex] = {
+            ...target,
+            status: event.decision === "allow" ? "allowed" : "denied",
+            resolvedBy: event.resolved_by?.display_name,
+          };
+        }
         break;
       }
     }

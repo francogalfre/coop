@@ -15,9 +15,11 @@ import {
 } from "@/components/icons";
 import { HarnessLogo } from "@/components/harness-logo";
 import { LiveDot } from "@/components/status-pill";
-import { basename, clockTime, initials, prettyJson, summarizeToolInput, tintFor } from "@/lib/format";
+import { basename, initials, prettyJson, summarizeToolInput, tintFor } from "@/lib/format";
 import type { TimelineItem } from "../types";
 import { cn } from "@/lib/utils";
+import { Row } from "./timeline-row-shell";
+import { SteerRequestRow } from "./steer-request-row";
 
 const TOOL_ICONS: Record<string, typeof IconTerminal> = {
   bash: IconTerminal,
@@ -30,31 +32,6 @@ const TOOL_ICONS: Record<string, typeof IconTerminal> = {
 
 function toolIconFor(name: string) {
   return TOOL_ICONS[name.toLowerCase()] ?? IconCode;
-}
-
-function Row({
-  ts,
-  rail,
-  children,
-  className,
-}: {
-  ts: string;
-  rail: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("group relative mx-auto flex max-w-3xl gap-3 px-4 py-2 sm:px-6", className)}>
-      <time className="hidden w-14 shrink-0 pt-1 text-right font-mono text-2xs text-muted-foreground/50 tabular-nums sm:block">
-        {clockTime(ts)}
-      </time>
-      <div className="relative flex w-6 shrink-0 justify-center">
-        <span className="absolute top-7 bottom-[-16px] w-px bg-border/60 group-last:hidden" />
-        {rail}
-      </div>
-      <div className="min-w-0 flex-1 pb-1">{children}</div>
-    </div>
-  );
 }
 
 function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
@@ -230,9 +207,13 @@ function NoticeRow({ item }: { item: Extract<TimelineItem, { kind: "notice" }> }
 export const TimelineRow = memo(function TimelineRow({
   item,
   harness,
+  sessionId,
+  isOwner,
 }: {
   item: TimelineItem;
   harness?: string;
+  sessionId: string;
+  isOwner: boolean;
 }) {
   switch (item.kind) {
     case "tool":
@@ -241,6 +222,8 @@ export const TimelineRow = memo(function TimelineRow({
       return <AgentTextRow item={item} harness={harness} />;
     case "message":
       return <MessageRow item={item} />;
+    case "steer-request":
+      return <SteerRequestRow item={item} sessionId={sessionId} isOwner={isOwner} />;
     case "notice":
       return <NoticeRow item={item} />;
   }

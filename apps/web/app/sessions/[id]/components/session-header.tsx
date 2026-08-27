@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { IconChevronLeft, IconFolder, IconLock, IconUnlock } from "@/components/icons";
 import { HarnessLogo } from "@/components/harness-logo";
 import { PresenceStack } from "./presence-stack";
+import { SessionModeToggle } from "./session-mode-toggle";
 import { MetaChip, StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ export function SessionHeader({
   backTo,
   backLabel,
   displayName,
+  isOwner,
   onToggleTakeover,
 }: {
   sessionId: string;
@@ -30,6 +32,7 @@ export function SessionHeader({
   backTo: string;
   backLabel: string;
   displayName: string;
+  isOwner: boolean;
   onToggleTakeover: () => void;
 }) {
   const agentName = meta.harness ?? "agent";
@@ -50,6 +53,7 @@ export function SessionHeader({
         </Link>
         <div className="ml-auto flex items-center gap-3">
           {viewers.length > 0 && <PresenceStack names={viewers} />}
+          {live && <SessionModeToggle sessionId={sessionId} mode={meta.mode ?? "auto"} isOwner={isOwner} />}
           {live && (
             <Button
               size="sm"
@@ -115,7 +119,7 @@ export function SessionHeader({
               {meta.repo}
             </MetaChip>
           )}
-          {meta.owner && <MetaChip>run by {meta.owner}</MetaChip>}
+          {meta.owner && <MetaChip>run by {meta.owner.name}</MetaChip>}
           <MetaChip className="hidden sm:inline-flex">{sessionId.slice(0, 16)}</MetaChip>
         </div>
       </div>

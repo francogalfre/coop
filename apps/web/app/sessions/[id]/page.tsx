@@ -88,6 +88,7 @@ function SessionView() {
   }, [presence, displayName]);
 
   const live = !meta.endedAt;
+  const isOwner = Boolean(authData?.user?.id && authData.user.id === meta.owner?.id);
   const confirmedHeldByMe = Boolean(meta.takeover?.active && meta.takeover.by === displayName);
   const [pendingTakeover, setPendingTakeover] = useState<boolean | null>(null);
 
@@ -127,7 +128,11 @@ function SessionView() {
       }
 
       const result = await relayApi.sendMessage(sessionId, text);
-      if (result.queued > 1) toast(`Queued — ${result.queued} messages ahead of yours.`);
+      if (result.status === "pending") {
+        toast("Waiting for the owner to approve.");
+      } else if (result.queued > 1) {
+        toast(`Queued — ${result.queued} messages ahead of yours.`);
+      }
     },
     [sessionId, displayName],
   );
@@ -143,6 +148,7 @@ function SessionView() {
         backTo={from ? `/projects/${from}` : "/"}
         backLabel={from ?? "projects"}
         displayName={displayName}
+        isOwner={isOwner}
         onToggleTakeover={handleToggleTakeover}
       />
 
@@ -157,6 +163,8 @@ function SessionView() {
       <Timeline
         items={merged}
         harness={meta.harness}
+        sessionId={sessionId}
+        isOwner={isOwner}
         onLoadEarlier={loadEarlier}
         hasEarlier={hasEarlier}
         loadingEarlier={loadingEarlier}

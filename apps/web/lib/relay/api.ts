@@ -86,7 +86,7 @@ export const relayApi = {
     }),
 
   sendMessage: (sessionId: string, text: string) =>
-    request<{ status: string; queued: number }>(
+    request<{ status: "accepted"; queued: number } | { status: "pending"; request_id: string }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
       {
         method: "POST",
@@ -100,6 +100,21 @@ export const relayApi = {
       {
         method: "POST",
         body: JSON.stringify({ active }),
+      },
+    ),
+
+  setSessionMode: (sessionId: string, mode: "auto" | "restricted") =>
+    request<{ mode: "auto" | "restricted" }>(`/v1/sessions/${encodeURIComponent(sessionId)}/mode`, {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    }),
+
+  resolveSteer: (sessionId: string, requestId: string, decision: "allow" | "deny") =>
+    request<{ decision: "allow" | "deny" }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/steer/${encodeURIComponent(requestId)}/resolve`,
+      {
+        method: "POST",
+        body: JSON.stringify({ decision }),
       },
     ),
 

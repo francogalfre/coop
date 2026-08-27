@@ -42,21 +42,41 @@ export type NoticeItem = {
   text: string;
 };
 
-export type TimelineItem = ToolItem | AgentTextItem | MessageItem | NoticeItem;
+export type SteerRequestStatus = "pending" | "allowed" | "denied";
+
+export type SteerRequestItem = {
+  kind: "steer-request";
+  key: string;
+  ts: string;
+  requestId: string;
+  author: string;
+  authorId: string;
+  text: string;
+  status: SteerRequestStatus;
+  resolvedBy?: string;
+};
+
+export type TimelineItem = ToolItem | AgentTextItem | MessageItem | NoticeItem | SteerRequestItem;
 
 export type TakeoverState = {
   active: boolean;
   by?: string;
 };
 
+export type SessionOwner = {
+  id: string;
+  name: string;
+};
+
 export type SessionMeta = {
   harness?: string;
-  owner?: string;
+  owner?: SessionOwner;
   repo?: string;
   cwd?: string;
   startedAt?: string;
   endedAt?: string;
   takeover?: TakeoverState;
+  mode?: "auto" | "restricted";
 };
 
 export type BuiltTimeline = {
