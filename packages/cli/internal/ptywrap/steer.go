@@ -45,7 +45,7 @@ func deliverPendingSteer(ctx context.Context, cfg config.Config, ptmx *os.File, 
 	}
 
 	if steer.HasMessage {
-		msg := fmt.Sprintf("\n[%s via coop] %s\n", steer.From, steer.Text)
+		msg := fmt.Sprintf("\r[%s via coop] %s\r", steer.From, steer.Text)
 		if _, err := ptmx.Write([]byte(msg)); err != nil {
 			log.Printf("coop: steer write: %v", err)
 		}
@@ -56,7 +56,7 @@ func deliverPendingSteer(ctx context.Context, cfg config.Config, ptmx *os.File, 
 	}
 
 	if !notified {
-		notice := fmt.Sprintf("\n[coop] %s has taken over this session\n", steer.Takeover.By)
+		notice := fmt.Sprintf("\r[coop] %s has taken over this session\r", steer.Takeover.By)
 		if _, err := ptmx.Write([]byte(notice)); err != nil {
 			log.Printf("coop: steer write: %v", err)
 		}
