@@ -12,13 +12,27 @@ type PtyFrame =
   | { type: "pty.input"; data: string }
   | { type: "pty.resize"; cols: number; rows: number };
 
+// native toBase64/fromBase64 aren't in our TS lib target yet, so feature-detect via a widened type
+type Base64Encodable = Uint8Array & { toBase64?: () => string };
+type Base64Decodable = typeof Uint8Array & { fromBase64?: (data: string) => Uint8Array };
+
+const CHUNK_SIZE = 0x8000;
+
 function encodeBase64(bytes: Uint8Array): string {
+  const fast = (bytes as Base64Encodable).toBase64;
+  if (fast) return fast.call(bytes);
+
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE));
+  }
   return btoa(binary);
 }
 
 function decodeBase64(data: string): Uint8Array {
+  const fast = (Uint8Array as Base64Decodable).fromBase64;
+  if (fast) return fast(data);
+
   const binary = atob(data);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

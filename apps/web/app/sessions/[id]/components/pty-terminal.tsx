@@ -6,6 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { IconTerminal } from "@/components/icons";
 import { usePtyStream } from "@/lib/relay/usePtyStream";
+import { cn } from "@/lib/utils";
 
 function readToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -27,8 +28,8 @@ function EmptyState() {
         <IconTerminal size={19} />
       </span>
       <div className="space-y-1">
-        <p className="font-display font-medium text-[15px] text-foreground">No live terminal</p>
-        <p className="max-w-xs text-[13px] text-muted-foreground leading-relaxed">
+        <p className="font-display font-medium text-md text-foreground">No live terminal</p>
+        <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
           Waiting for a pty to connect. Output will appear here as soon as one streams in.
         </p>
       </div>
@@ -39,9 +40,11 @@ function EmptyState() {
 export function PtyTerminal({
   sessionId,
   heldByMe,
+  visible = true,
 }: {
   sessionId: string;
   heldByMe: boolean;
+  visible?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -118,7 +121,12 @@ export function PtyTerminal({
   }, [heldByMe, sendResize]);
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div
+      id="panel-terminal"
+      role="tabpanel"
+      aria-labelledby="tab-terminal"
+      className={cn("relative flex-1 overflow-hidden", !visible && "hidden")}
+    >
       {!hasReceivedOutput && (
         <div className="absolute inset-0 z-10 bg-background">
           <EmptyState />

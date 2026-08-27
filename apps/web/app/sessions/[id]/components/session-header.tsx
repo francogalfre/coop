@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { IconChevronLeft, IconFolder, IconLock, IconUnlock } from "@/components/icons";
 import { HarnessLogo } from "@/components/harness-logo";
 import { PresenceStack } from "./presence-stack";
@@ -36,13 +36,14 @@ export function SessionHeader({
   const takeover = meta.takeover;
   const heldByMe = Boolean(takeover?.active && takeover.by === displayName);
   const heldByOther = Boolean(takeover?.active && !heldByMe);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <header className="border-border/70 border-b bg-card/30 backdrop-blur-sm">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 pt-3 sm:px-6">
         <Link
           href={backTo as Route}
-          className="inline-flex items-center gap-1 rounded-md py-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1 rounded-md py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <IconChevronLeft size={13} />
           {backLabel}
@@ -55,7 +56,7 @@ export function SessionHeader({
               variant={heldByMe ? "default" : "outline"}
               disabled={heldByOther}
               onClick={onToggleTakeover}
-              className="h-7 gap-1.5 rounded-full px-2.5 text-[12px]"
+              className="h-7 gap-1.5 rounded-full px-2.5 text-xs"
             >
               {heldByMe ? <IconUnlock size={12} /> : <IconLock size={12} />}
               {heldByMe ? "Release" : heldByOther ? `Held by ${takeover?.by}` : "Take over"}
@@ -68,7 +69,7 @@ export function SessionHeader({
       {takeover?.active && (
         <div
           className={cn(
-            "mx-auto flex max-w-3xl items-center gap-1.5 px-4 pb-2 text-[12px] sm:px-6",
+            "mx-auto flex max-w-3xl items-center gap-1.5 px-4 pb-2 text-xs sm:px-6",
             heldByMe ? "text-human" : "text-muted-foreground",
           )}
         >
@@ -80,12 +81,12 @@ export function SessionHeader({
       )}
 
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-2 pb-3.5 sm:px-6">
-        <h1 className="font-display font-semibold text-[19px] text-foreground tracking-tight">
+        <h1 className="font-display font-semibold text-lg text-foreground tracking-tight">
           {meta.repo ? meta.repo.split("/").slice(-1)[0] : "Session"}
         </h1>
 
         {live && agentBusy ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-agent/12 px-2.5 py-1 text-[12px] text-agent">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-agent/12 px-2.5 py-1 text-xs text-agent">
             <HarnessLogo harness={meta.harness} size={12} className="shrink-0" />
             <span className="font-medium">{agentName}</span>
             <span className="text-agent/80">is working</span>
@@ -94,14 +95,14 @@ export function SessionHeader({
                 <motion.span
                   key={i}
                   className="size-1 rounded-full bg-agent"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  animate={prefersReducedMotion ? undefined : { opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }}
                 />
               ))}
             </span>
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-2.5 py-1 text-[12px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground">
             <HarnessLogo harness={meta.harness} size={12} className="shrink-0" />
             {agentName} {live ? "idle" : "stopped"}
           </span>

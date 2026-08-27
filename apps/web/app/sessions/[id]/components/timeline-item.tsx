@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -45,7 +45,7 @@ function Row({
 }) {
   return (
     <div className={cn("group relative mx-auto flex max-w-3xl gap-3 px-4 py-2 sm:px-6", className)}>
-      <time className="hidden w-14 shrink-0 pt-1 text-right font-mono text-[11px] text-muted-foreground/50 tabular-nums sm:block">
+      <time className="hidden w-14 shrink-0 pt-1 text-right font-mono text-2xs text-muted-foreground/50 tabular-nums sm:block">
         {clockTime(ts)}
       </time>
       <div className="relative flex w-6 shrink-0 justify-center">
@@ -101,10 +101,10 @@ function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
             )}
           />
         )}
-        <span className="shrink-0 font-medium text-[13px] text-foreground">{item.toolName}</span>
-        <span className="truncate font-mono text-[12px] text-muted-foreground">{summary}</span>
+        <span className="shrink-0 font-medium text-sm text-foreground">{item.toolName}</span>
+        <span className="truncate font-mono text-xs text-muted-foreground">{summary}</span>
         {item.status === "failed" ? (
-          <span className="ml-auto shrink-0 rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] text-destructive">
+          <span className="ml-auto shrink-0 rounded bg-destructive/15 px-1.5 py-0.5 text-3xs text-destructive">
             failed
           </span>
         ) : item.status === "ok" ? (
@@ -117,7 +117,7 @@ function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
           {item.files.map((file) => (
             <span
               key={`${file.mode}-${file.path}`}
-              className="inline-flex items-center gap-1 rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+              className="inline-flex items-center gap-1 rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-2xs text-muted-foreground"
             >
               <span className={cn("size-1 rounded-full", file.mode === "write" ? "bg-human" : "bg-file")} />
               {basename(file.path)}
@@ -146,10 +146,10 @@ function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
 function CodeBlock({ label, body }: { label: string; body: string }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border/70 bg-background/60">
-      <div className="border-border/70 border-b px-3 py-1.5 font-mono text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+      <div className="border-border/70 border-b px-3 py-1.5 font-mono text-3xs text-muted-foreground/70 uppercase tracking-wider">
         {label}
       </div>
-      <pre className="max-h-72 overflow-auto p-3 font-mono text-[12px] text-foreground/85 leading-relaxed">
+      <pre className="max-h-72 overflow-auto p-3 font-mono text-xs text-foreground/85 leading-relaxed">
         {body}
       </pre>
     </div>
@@ -172,7 +172,7 @@ function AgentTextRow({
         </span>
       }
     >
-      <div className="prose-timeline max-w-none text-[13.5px] text-foreground/90 leading-relaxed">
+      <div className="prose-timeline max-w-none text-sm text-foreground/90 leading-relaxed">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
       </div>
     </Row>
@@ -185,7 +185,7 @@ function MessageRow({ item }: { item: Extract<TimelineItem, { kind: "message" }>
       ts={item.ts}
       rail={
         <span
-          className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-[10px] text-background"
+          className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-3xs text-background"
           style={{ background: tintFor(item.author) }}
         >
           {initials(item.author)}
@@ -194,15 +194,15 @@ function MessageRow({ item }: { item: Extract<TimelineItem, { kind: "message" }>
     >
       <div className="rounded-lg rounded-tl-sm border border-human/25 bg-human/[0.07] px-3 py-2">
         <div className="mb-0.5 flex items-center gap-2">
-          <span className="font-medium text-[12.5px] text-human">{item.author}</span>
+          <span className="font-medium text-xs text-human">{item.author}</span>
           {item.toAgent && (
-            <span className="inline-flex items-center gap-1 rounded bg-human/15 px-1.5 py-0.5 text-[10px] text-human/90">
+            <span className="inline-flex items-center gap-1 rounded bg-human/15 px-1.5 py-0.5 text-3xs text-human/90">
               <IconSend size={9} />
               to agent
             </span>
           )}
         </div>
-        <p className="whitespace-pre-wrap text-[13.5px] text-foreground/90 leading-relaxed">{item.text}</p>
+        <p className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">{item.text}</p>
       </div>
     </Row>
   );
@@ -222,12 +222,18 @@ function NoticeRow({ item }: { item: Extract<TimelineItem, { kind: "notice" }> }
         )
       }
     >
-      <p className="pt-0.5 text-[12.5px] text-muted-foreground">{item.text}</p>
+      <p className="pt-0.5 text-xs text-muted-foreground">{item.text}</p>
     </Row>
   );
 }
 
-export function TimelineRow({ item, harness }: { item: TimelineItem; harness?: string }) {
+export const TimelineRow = memo(function TimelineRow({
+  item,
+  harness,
+}: {
+  item: TimelineItem;
+  harness?: string;
+}) {
   switch (item.kind) {
     case "tool":
       return <ToolRow item={item} />;
@@ -238,4 +244,4 @@ export function TimelineRow({ item, harness }: { item: TimelineItem; harness?: s
     case "notice":
       return <NoticeRow item={item} />;
   }
-}
+});

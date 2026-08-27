@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useId, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { IconAgent, IconSend } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ export function Composer({
   const typingRef = useRef(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaId = useId();
+  const toggleDescriptionId = useId();
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     return () => {
@@ -96,14 +99,14 @@ export function Composer({
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
-              className="flex items-center gap-1.5 text-[12px] text-muted-foreground"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
             >
               <span className="flex gap-0.5">
                 {[0, 1, 2].map((i) => (
                   <motion.span
                     key={i}
                     className="size-1 rounded-full bg-muted-foreground/70"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    animate={prefersReducedMotion ? undefined : { opacity: [0.3, 1, 0.3] }}
                     transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }}
                   />
                 ))}
@@ -120,8 +123,12 @@ export function Composer({
           "focus-within:border-ring/60 focus-within:bg-background",
         )}
       >
+        <label htmlFor={textareaId} className="sr-only">
+          Message as {displayName}
+        </label>
         <textarea
           ref={areaRef}
+          id={textareaId}
           rows={1}
           value={text}
           disabled={disabled}
@@ -134,7 +141,7 @@ export function Composer({
             }
           }}
           placeholder={disabled ? "This session has ended" : `Message as ${displayName}…`}
-          className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-[13.5px] text-foreground leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
+          className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-sm text-foreground leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
         />
 
         <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
@@ -142,10 +149,12 @@ export function Composer({
             type="button"
             onClick={() => setToAgent((v) => !v)}
             disabled={agentToggleDisabled}
-            aria-pressed={toAgent}
+            role="switch"
+            aria-checked={toAgent}
+            aria-describedby={takeoverHeldBy ? toggleDescriptionId : undefined}
             title={takeoverHeldBy ? `${takeoverHeldBy} has taken over — the agent is paused` : undefined}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] transition-all disabled:cursor-not-allowed disabled:opacity-60",
+              "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-all disabled:cursor-not-allowed disabled:opacity-60",
               toAgent
                 ? "bg-human/15 text-human"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -169,12 +178,17 @@ export function Composer({
               />
             </span>
           </button>
+          {takeoverHeldBy && (
+            <span id={toggleDescriptionId} className="sr-only">
+              {`${takeoverHeldBy} has taken over — the agent is paused`}
+            </span>
+          )}
 
           <Button
             size="sm"
             onClick={() => void submit()}
             disabled={disabled || sending || !text.trim()}
-            className="h-8 gap-1.5 rounded-lg px-3 text-[12.5px]"
+            className="h-8 gap-1.5 rounded-lg px-3 text-xs"
           >
             <IconSend size={13} />
             Send
@@ -182,7 +196,7 @@ export function Composer({
         </div>
       </div>
 
-      <p className="mt-1.5 px-1 text-[11px] text-muted-foreground/60">
+      <p className="mt-1.5 px-1 text-2xs text-muted-foreground/60">
         {toAgent
           ? "The agent sees this attributed to you — never as a system instruction."
           : "Only teammates watching this session will see this."}

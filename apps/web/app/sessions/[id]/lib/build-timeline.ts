@@ -22,7 +22,7 @@ function textOf(value: unknown): string {
 export function buildTimeline(events: Event[]): BuiltTimeline {
   const items: TimelineItem[] = [];
   const meta: SessionMeta = {};
-  const toolIndex = new Map<string, ToolItem>();
+  const toolItemIndex = new Map<string, number>();
   let openTools = 0;
   let sawTurnEnd = false;
 
@@ -68,18 +68,18 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         items.push(item);
         openTools += 1;
         sawTurnEnd = false;
-        if (event.tool_use_id) toolIndex.set(event.tool_use_id, item);
+        if (event.tool_use_id) toolItemIndex.set(event.tool_use_id, items.length - 1);
         break;
       }
 
       case "tool.result": {
-        const target = event.tool_use_id ? toolIndex.get(event.tool_use_id) : undefined;
+        const targetIndex = event.tool_use_id ? toolItemIndex.get(event.tool_use_id) : undefined;
+        const target = targetIndex !== undefined ? (items[targetIndex] as ToolItem) : undefined;
         const output = textOf(event.output);
         const status = event.ok === false ? "failed" : "ok";
 
-        if (target) {
-          target.output = output;
-          target.status = status;
+        if (target && targetIndex !== undefined) {
+          items[targetIndex] = { ...target, output, status };
           openTools = Math.max(0, openTools - 1);
         } else {
           items.push({
@@ -97,9 +97,10 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
       }
 
       case "file.touched": {
-        const target = event.tool_use_id ? toolIndex.get(event.tool_use_id) : undefined;
-        if (target) {
-          target.files.push({ path: event.path, mode: event.mode });
+        const targetIndex = event.tool_use_id ? toolItemIndex.get(event.tool_use_id) : undefined;
+        const target = targetIndex !== undefined ? (items[targetIndex] as ToolItem) : undefined;
+        if (target && targetIndex !== undefined) {
+          items[targetIndex] = { ...target, files: [...target.files, { path: event.path, mode: event.mode }] };
         } else {
           items.push({
             kind: "tool",

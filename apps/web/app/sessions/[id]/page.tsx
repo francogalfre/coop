@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { parseEvent } from "@coop/protocol";
@@ -8,12 +9,16 @@ import { useSession } from "@/lib/auth/auth-client";
 import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
 import { relayApi } from "@/lib/relay/api";
 import { buildTimeline } from "./lib/build-timeline";
+import { useTypingNames } from "./lib/useTypingNames";
 import type { MessageItem } from "./types";
 import { SessionHeader } from "./components/session-header";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
 import { ViewTabs, type SessionViewTab } from "./components/view-tabs";
-import { PtyTerminal } from "./components/pty-terminal";
+
+const PtyTerminal = dynamic(() => import("./components/pty-terminal").then((m) => m.PtyTerminal), {
+  ssr: false,
+});
 
 const TYPING_WINDOW_MS = 3000;
 
@@ -34,6 +39,11 @@ function SessionView() {
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [viewTab, setViewTab] = useState<SessionViewTab>("timeline");
+  const [terminalMounted, setTerminalMounted] = useState(false);
+
+  useEffect(() => {
+    if (viewTab === "terminal") setTerminalMounted(true);
+  }, [viewTab]);
 
   const { events, presence, connectionState, retryCount, sendPresence, mergeEvents } =
     useSessionStream(sessionId);
@@ -69,14 +79,7 @@ function SessionView() {
     [items, localMessages],
   );
 
-  const typingNames = useMemo(() => {
-    const now = Date.now();
-    return Object.entries(presence)
-      .filter(
-        ([name, entry]) => entry.active && now - entry.at < TYPING_WINDOW_MS && name !== displayName,
-      )
-      .map(([name]) => name);
-  }, [presence, displayName]);
+  const typingNames = useTypingNames(presence, displayName, TYPING_WINDOW_MS);
 
   const viewers = useMemo(() => {
     const names = new Set<string>(Object.keys(presence));
@@ -144,23 +147,23 @@ function SessionView() {
       />
 
       {connectionState === "closed" && retryCount >= RETRY_WARNING_THRESHOLD && (
-        <div className="border-destructive/25 border-b bg-destructive/10 px-4 py-2 text-[12.5px] text-destructive sm:px-6">
+        <div className="border-destructive/25 border-b bg-destructive/10 px-4 py-2 text-xs text-destructive sm:px-6">
           Lost connection to the relay — retried {retryCount} times.
         </div>
       )}
 
       <ViewTabs active={viewTab} onChange={setViewTab} />
 
-      {viewTab === "timeline" ? (
-        <Timeline
-          items={merged}
-          harness={meta.harness}
-          onLoadEarlier={loadEarlier}
-          hasEarlier={hasEarlier}
-          loadingEarlier={loadingEarlier}
-        />
-      ) : (
-        <PtyTerminal sessionId={sessionId} heldByMe={heldByMe} />
+      <Timeline
+        items={merged}
+        harness={meta.harness}
+        onLoadEarlier={loadEarlier}
+        hasEarlier={hasEarlier}
+        loadingEarlier={loadingEarlier}
+        visible={viewTab === "timeline"}
+      />
+      {terminalMounted && (
+        <PtyTerminal sessionId={sessionId} heldByMe={heldByMe} visible={viewTab === "terminal"} />
       )}
 
       <Composer

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { useParams } from "next/navigation";
 import { relayApi, RelayError, type AgentSession } from "@/lib/relay/api";
+import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
 import { AppHeader } from "@/components/app-header";
 import { LiveDot } from "@/components/status-pill";
 import { IconFolder } from "@/components/icons";
@@ -21,29 +22,23 @@ export default function ProjectPage() {
   const [sessions, setSessions] = useState<AgentSession[] | null>(null);
   const [denied, setDenied] = useState(false);
   const [failed, setFailed] = useState(false);
+  const latestLoadRef = useRef<symbol | undefined>(undefined);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await relayApi.listSessions(slug);
-        if (!cancelled) setSessions(data.sessions);
-      } catch (error) {
-        if (cancelled) return;
-        if (error instanceof RelayError && error.isMissing) setDenied(true);
-        else setFailed(true);
-      }
+  const load = useCallback(async () => {
+    const token = Symbol();
+    latestLoadRef.current = token;
+    try {
+      const data = await relayApi.listSessions(slug);
+      if (latestLoadRef.current !== token) return;
+      setSessions(data.sessions);
+    } catch (error) {
+      if (latestLoadRef.current !== token) return;
+      if (error instanceof RelayError && error.isMissing) setDenied(true);
+      else setFailed(true);
     }
-
-    void load();
-    const timer = setInterval(load, 8000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
   }, [slug]);
+
+  useVisibilityPolling(load, 8000);
 
   const live = sessions?.filter((s) => s.status === "live") ?? [];
   const ended = sessions?.filter((s) => s.status === "ended") ?? [];

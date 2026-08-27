@@ -18,15 +18,18 @@ export function ViewTabs({
   ];
 
   return (
-    <div className="mx-auto flex max-w-3xl gap-1 px-4 pb-2 sm:px-6">
+    <div role="tablist" aria-label="Session view" className="mx-auto flex max-w-3xl gap-1 px-4 pb-2 sm:px-6">
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
+          id={`tab-${id}`}
           type="button"
-          aria-pressed={active === id}
+          role="tab"
+          aria-selected={active === id}
+          aria-controls={`panel-${id}`}
           onClick={() => onChange(id)}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors",
+            "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
             active === id
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",

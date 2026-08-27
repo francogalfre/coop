@@ -3,18 +3,27 @@
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { IconChevronUp, IconSparkles } from "@/components/icons";
+import { cn } from "@/lib/utils";
 import { TimelineRow } from "./timeline-item";
 import type { TimelineItem } from "../types";
 
-function EmptyState() {
+function EmptyState({ visible }: { visible: boolean }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+    <div
+      id="panel-timeline"
+      role="tabpanel"
+      aria-labelledby="tab-timeline"
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center",
+        !visible && "hidden",
+      )}
+    >
       <span className="grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
         <IconSparkles size={19} />
       </span>
       <div className="space-y-1">
-        <p className="font-display font-medium text-[15px] text-foreground">Waiting for the agent</p>
-        <p className="max-w-xs text-[13px] text-muted-foreground leading-relaxed">
+        <p className="font-display font-medium text-md text-foreground">Waiting for the agent</p>
+        <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
           Nothing has happened yet. Tool calls and messages will stream in here as they occur.
         </p>
       </div>
@@ -28,12 +37,14 @@ export function Timeline({
   onLoadEarlier,
   hasEarlier,
   loadingEarlier,
+  visible = true,
 }: {
   items: TimelineItem[];
   harness?: string;
   onLoadEarlier?: () => Promise<void>;
   hasEarlier?: boolean;
   loadingEarlier?: boolean;
+  visible?: boolean;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,17 +81,25 @@ export function Timeline({
     });
   }
 
-  if (items.length === 0) return <EmptyState />;
+  if (items.length === 0) return <EmptyState visible={visible} />;
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto py-3">
+    <div
+      ref={containerRef}
+      id="panel-timeline"
+      role="tabpanel"
+      aria-labelledby="tab-timeline"
+      aria-live="polite"
+      aria-relevant="additions"
+      className={cn("flex-1 overflow-y-auto py-3", !visible && "hidden")}
+    >
       {hasEarlier && (
         <div className="flex justify-center pb-2">
           <button
             type="button"
             onClick={handleLoadEarlier}
             disabled={loadingEarlier}
-            className="rounded-full border border-border bg-card px-3 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             <span className="inline-flex items-center gap-1">
               <IconChevronUp size={12} />

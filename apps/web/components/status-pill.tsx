@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export function LiveDot({ className }: { className?: string }) {
   return (
     <span className={cn("relative grid size-2 place-items-center", className)}>
-      <span className="absolute inline-flex size-2 animate-pulse-live rounded-full bg-live/70" />
+      <span className="absolute inline-flex size-2 animate-pulse-live rounded-full bg-live/70 motion-reduce:animate-none" />
       <span className="relative inline-flex size-1.5 rounded-full bg-live" />
     </span>
   );
