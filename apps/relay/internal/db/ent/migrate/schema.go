@@ -16,6 +16,7 @@ var (
 		{Name: "cwd", Type: field.TypeString, Default: ""},
 		{Name: "harness", Type: field.TypeString, Default: ""},
 		{Name: "status", Type: field.TypeString, Default: "live"},
+		{Name: "mode", Type: field.TypeString, Default: "auto"},
 		{Name: "next_seq", Type: field.TypeInt, Default: 0},
 		{Name: "started_at", Type: field.TypeTime},
 		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
@@ -29,7 +30,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "agent_sessions_projects_sessions",
-				Columns:    []*schema.Column{AgentSessionsColumns[9]},
+				Columns:    []*schema.Column{AgentSessionsColumns[10]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

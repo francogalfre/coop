@@ -90,6 +90,11 @@ func Status(v string) predicate.AgentSession {
 	return predicate.AgentSession(sql.FieldEQ(FieldStatus, v))
 }
 
+// Mode applies equality check predicate on the "mode" field. It's identical to ModeEQ.
+func Mode(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldEQ(FieldMode, v))
+}
+
 // NextSeq applies equality check predicate on the "next_seq" field. It's identical to NextSeqEQ.
 func NextSeq(v int) predicate.AgentSession {
 	return predicate.AgentSession(sql.FieldEQ(FieldNextSeq, v))
@@ -428,6 +433,71 @@ func StatusEqualFold(v string) predicate.AgentSession {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.AgentSession {
 	return predicate.AgentSession(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// ModeEQ applies the EQ predicate on the "mode" field.
+func ModeEQ(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldEQ(FieldMode, v))
+}
+
+// ModeNEQ applies the NEQ predicate on the "mode" field.
+func ModeNEQ(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldNEQ(FieldMode, v))
+}
+
+// ModeIn applies the In predicate on the "mode" field.
+func ModeIn(vs ...string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldIn(FieldMode, vs...))
+}
+
+// ModeNotIn applies the NotIn predicate on the "mode" field.
+func ModeNotIn(vs ...string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldNotIn(FieldMode, vs...))
+}
+
+// ModeGT applies the GT predicate on the "mode" field.
+func ModeGT(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldGT(FieldMode, v))
+}
+
+// ModeGTE applies the GTE predicate on the "mode" field.
+func ModeGTE(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldGTE(FieldMode, v))
+}
+
+// ModeLT applies the LT predicate on the "mode" field.
+func ModeLT(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldLT(FieldMode, v))
+}
+
+// ModeLTE applies the LTE predicate on the "mode" field.
+func ModeLTE(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldLTE(FieldMode, v))
+}
+
+// ModeContains applies the Contains predicate on the "mode" field.
+func ModeContains(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldContains(FieldMode, v))
+}
+
+// ModeHasPrefix applies the HasPrefix predicate on the "mode" field.
+func ModeHasPrefix(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldHasPrefix(FieldMode, v))
+}
+
+// ModeHasSuffix applies the HasSuffix predicate on the "mode" field.
+func ModeHasSuffix(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldHasSuffix(FieldMode, v))
+}
+
+// ModeEqualFold applies the EqualFold predicate on the "mode" field.
+func ModeEqualFold(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldEqualFold(FieldMode, v))
+}
+
+// ModeContainsFold applies the ContainsFold predicate on the "mode" field.
+func ModeContainsFold(v string) predicate.AgentSession {
+	return predicate.AgentSession(sql.FieldContainsFold(FieldMode, v))
 }
 
 // NextSeqEQ applies the EQ predicate on the "next_seq" field.

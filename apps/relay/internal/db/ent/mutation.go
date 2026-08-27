@@ -48,6 +48,7 @@ type AgentSessionMutation struct {
 	cwd            *string
 	harness        *string
 	status         *string
+	mode           *string
 	next_seq       *int
 	addnext_seq    *int
 	started_at     *time.Time
@@ -347,6 +348,42 @@ func (m *AgentSessionMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetMode sets the "mode" field.
+func (m *AgentSessionMutation) SetMode(s string) {
+	m.mode = &s
+}
+
+// Mode returns the value of the "mode" field in the mutation.
+func (m *AgentSessionMutation) Mode() (r string, exists bool) {
+	v := m.mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMode returns the old "mode" field's value of the AgentSession entity.
+// If the AgentSession object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentSessionMutation) OldMode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMode: %w", err)
+	}
+	return oldValue.Mode, nil
+}
+
+// ResetMode resets all changes to the "mode" field.
+func (m *AgentSessionMutation) ResetMode() {
+	m.mode = nil
+}
+
 // SetNextSeq sets the "next_seq" field.
 func (m *AgentSessionMutation) SetNextSeq(i int) {
 	m.next_seq = &i
@@ -615,7 +652,7 @@ func (m *AgentSessionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AgentSessionMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.owner_id != nil {
 		fields = append(fields, agentsession.FieldOwnerID)
 	}
@@ -630,6 +667,9 @@ func (m *AgentSessionMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, agentsession.FieldStatus)
+	}
+	if m.mode != nil {
+		fields = append(fields, agentsession.FieldMode)
 	}
 	if m.next_seq != nil {
 		fields = append(fields, agentsession.FieldNextSeq)
@@ -658,6 +698,8 @@ func (m *AgentSessionMutation) Field(name string) (ent.Value, bool) {
 		return m.Harness()
 	case agentsession.FieldStatus:
 		return m.Status()
+	case agentsession.FieldMode:
+		return m.Mode()
 	case agentsession.FieldNextSeq:
 		return m.NextSeq()
 	case agentsession.FieldStartedAt:
@@ -683,6 +725,8 @@ func (m *AgentSessionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldHarness(ctx)
 	case agentsession.FieldStatus:
 		return m.OldStatus(ctx)
+	case agentsession.FieldMode:
+		return m.OldMode(ctx)
 	case agentsession.FieldNextSeq:
 		return m.OldNextSeq(ctx)
 	case agentsession.FieldStartedAt:
@@ -732,6 +776,13 @@ func (m *AgentSessionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case agentsession.FieldMode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMode(v)
 		return nil
 	case agentsession.FieldNextSeq:
 		v, ok := value.(int)
@@ -841,6 +892,9 @@ func (m *AgentSessionMutation) ResetField(name string) error {
 		return nil
 	case agentsession.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case agentsession.FieldMode:
+		m.ResetMode()
 		return nil
 	case agentsession.FieldNextSeq:
 		m.ResetNextSeq()

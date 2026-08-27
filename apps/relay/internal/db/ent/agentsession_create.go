@@ -84,6 +84,20 @@ func (_c *AgentSessionCreate) SetNillableStatus(v *string) *AgentSessionCreate {
 	return _c
 }
 
+// SetMode sets the "mode" field.
+func (_c *AgentSessionCreate) SetMode(v string) *AgentSessionCreate {
+	_c.mutation.SetMode(v)
+	return _c
+}
+
+// SetNillableMode sets the "mode" field if the given value is not nil.
+func (_c *AgentSessionCreate) SetNillableMode(v *string) *AgentSessionCreate {
+	if v != nil {
+		_c.SetMode(*v)
+	}
+	return _c
+}
+
 // SetNextSeq sets the "next_seq" field.
 func (_c *AgentSessionCreate) SetNextSeq(v int) *AgentSessionCreate {
 	_c.mutation.SetNextSeq(v)
@@ -201,6 +215,10 @@ func (_c *AgentSessionCreate) defaults() {
 		v := agentsession.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.Mode(); !ok {
+		v := agentsession.DefaultMode
+		_c.mutation.SetMode(v)
+	}
 	if _, ok := _c.mutation.NextSeq(); !ok {
 		v := agentsession.DefaultNextSeq
 		_c.mutation.SetNextSeq(v)
@@ -228,6 +246,9 @@ func (_c *AgentSessionCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "AgentSession.status"`)}
+	}
+	if _, ok := _c.mutation.Mode(); !ok {
+		return &ValidationError{Name: "mode", err: errors.New(`ent: missing required field "AgentSession.mode"`)}
 	}
 	if _, ok := _c.mutation.NextSeq(); !ok {
 		return &ValidationError{Name: "next_seq", err: errors.New(`ent: missing required field "AgentSession.next_seq"`)}
@@ -302,6 +323,10 @@ func (_c *AgentSessionCreate) createSpec() (*AgentSession, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(agentsession.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Mode(); ok {
+		_spec.SetField(agentsession.FieldMode, field.TypeString, value)
+		_node.Mode = value
 	}
 	if value, ok := _c.mutation.NextSeq(); ok {
 		_spec.SetField(agentsession.FieldNextSeq, field.TypeInt, value)

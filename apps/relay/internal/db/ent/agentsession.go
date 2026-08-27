@@ -28,6 +28,8 @@ type AgentSession struct {
 	Harness string `json:"harness,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
+	// Mode holds the value of the "mode" field.
+	Mode string `json:"mode,omitempty"`
 	// NextSeq holds the value of the "next_seq" field.
 	NextSeq int `json:"next_seq,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
@@ -79,7 +81,7 @@ func (*AgentSession) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case agentsession.FieldNextSeq:
 			values[i] = new(sql.NullInt64)
-		case agentsession.FieldID, agentsession.FieldOwnerID, agentsession.FieldRepo, agentsession.FieldCwd, agentsession.FieldHarness, agentsession.FieldStatus:
+		case agentsession.FieldID, agentsession.FieldOwnerID, agentsession.FieldRepo, agentsession.FieldCwd, agentsession.FieldHarness, agentsession.FieldStatus, agentsession.FieldMode:
 			values[i] = new(sql.NullString)
 		case agentsession.FieldStartedAt, agentsession.FieldEndedAt:
 			values[i] = new(sql.NullTime)
@@ -135,6 +137,12 @@ func (_m *AgentSession) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
+			}
+		case agentsession.FieldMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field mode", values[i])
+			} else if value.Valid {
+				_m.Mode = value.String
 			}
 		case agentsession.FieldNextSeq:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -222,6 +230,9 @@ func (_m *AgentSession) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	builder.WriteString("mode=")
+	builder.WriteString(_m.Mode)
 	builder.WriteString(", ")
 	builder.WriteString("next_seq=")
 	builder.WriteString(fmt.Sprintf("%v", _m.NextSeq))

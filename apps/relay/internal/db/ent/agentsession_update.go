@@ -100,6 +100,20 @@ func (_u *AgentSessionUpdate) SetNillableStatus(v *string) *AgentSessionUpdate {
 	return _u
 }
 
+// SetMode sets the "mode" field.
+func (_u *AgentSessionUpdate) SetMode(v string) *AgentSessionUpdate {
+	_u.mutation.SetMode(v)
+	return _u
+}
+
+// SetNillableMode sets the "mode" field if the given value is not nil.
+func (_u *AgentSessionUpdate) SetNillableMode(v *string) *AgentSessionUpdate {
+	if v != nil {
+		_u.SetMode(*v)
+	}
+	return _u
+}
+
 // SetNextSeq sets the "next_seq" field.
 func (_u *AgentSessionUpdate) SetNextSeq(v int) *AgentSessionUpdate {
 	_u.mutation.ResetNextSeq()
@@ -285,6 +299,9 @@ func (_u *AgentSessionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(agentsession.FieldStatus, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Mode(); ok {
+		_spec.SetField(agentsession.FieldMode, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.NextSeq(); ok {
 		_spec.SetField(agentsession.FieldNextSeq, field.TypeInt, value)
 	}
@@ -460,6 +477,20 @@ func (_u *AgentSessionUpdateOne) SetStatus(v string) *AgentSessionUpdateOne {
 func (_u *AgentSessionUpdateOne) SetNillableStatus(v *string) *AgentSessionUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetMode sets the "mode" field.
+func (_u *AgentSessionUpdateOne) SetMode(v string) *AgentSessionUpdateOne {
+	_u.mutation.SetMode(v)
+	return _u
+}
+
+// SetNillableMode sets the "mode" field if the given value is not nil.
+func (_u *AgentSessionUpdateOne) SetNillableMode(v *string) *AgentSessionUpdateOne {
+	if v != nil {
+		_u.SetMode(*v)
 	}
 	return _u
 }
@@ -678,6 +709,9 @@ func (_u *AgentSessionUpdateOne) sqlSave(ctx context.Context) (_node *AgentSessi
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(agentsession.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Mode(); ok {
+		_spec.SetField(agentsession.FieldMode, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.NextSeq(); ok {
 		_spec.SetField(agentsession.FieldNextSeq, field.TypeInt, value)

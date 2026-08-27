@@ -18,6 +18,7 @@ func (AgentSession) Fields() []ent.Field {
 		field.String("cwd").Default(""),
 		field.String("harness").Default(""),
 		field.String("status").Default("live"),
+		field.String("mode").Default("auto"),
 		field.Int("next_seq").Default(0).NonNegative(),
 		field.Time("started_at"),
 		field.Time("ended_at").Optional().Nillable(),

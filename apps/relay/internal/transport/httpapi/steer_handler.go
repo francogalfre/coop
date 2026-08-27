@@ -1,6 +1,9 @@
 package httpapi
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,7 +15,10 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
-const steerTextMax = 4096
+const (
+	steerTextMax        = 4096
+	steerRequestIDBytes = 16
+)
 
 type steerPostRequest struct {
 	Text string `json:"text"`
@@ -31,11 +37,12 @@ type takeoverGetState struct {
 }
 
 type steerPostResponse struct {
-	Status string `json:"status"`
-	Queued int    `json:"queued"`
+	Status    string `json:"status"`
+	Queued    int    `json:"queued,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 }
 
-func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store) http.HandlerFunc {
+func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, steerRequests *stream.SteerRequestRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.PathValue("id")
 
@@ -59,7 +66,18 @@ func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store
 			return
 		}
 
-		envelope, err := steerEnvelope(sessionID, actor, body.Text)
+		ownerID, mode, err := steerSessionState(r.Context(), pool, sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to look up agent session")
+			return
+		}
+
+		if mode == db.SessionModeRestricted && actor.UserID != ownerID {
+			handleSteerRequestPending(w, r, pool, store, steerRequests, sessionID, actor, body.Text)
+			return
+		}
+
+		envelope, err := steerEnvelope(sessionID, actor, body.Text, "")
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to build steer message")
 			return
@@ -84,12 +102,89 @@ func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store
 	}
 }
 
-func steerEnvelope(sessionID string, actor auth.Actor, text string) (json.RawMessage, error) {
+func handleSteerRequestPending(w http.ResponseWriter, r *http.Request, pool *db.Pool, store *stream.Store, steerRequests *stream.SteerRequestRegistry, sessionID string, actor auth.Actor, text string) {
+	requestID, err := generateSteerRequestID()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to build steer request")
+		return
+	}
+
+	envelope, err := steerRequestedEnvelope(sessionID, requestID, actor, text)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to build steer request event")
+		return
+	}
+
+	dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record steer request")
+		return
+	}
+
+	if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
+		log.Printf("coop: failed to append steer request to in-memory store for session %s: %v", sessionID, err)
+	}
+
+	steerRequests.Put(sessionID, stream.PendingSteerRequest{RequestID: requestID, Actor: actor, Text: text})
+
+	writeJSON(w, http.StatusAccepted, steerPostResponse{
+		Status:    "pending",
+		RequestID: requestID,
+	})
+}
+
+func steerSessionState(ctx context.Context, pool *db.Pool, sessionID string) (ownerID, mode string, err error) {
+	if pool == nil {
+		return "", db.SessionModeAuto, nil
+	}
+
+	sess, err := pool.GetAgentSession(ctx, sessionID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return "", db.SessionModeAuto, nil
+		}
+
+		return "", "", err
+	}
+
+	return sess.OwnerID, sess.Mode, nil
+}
+
+func generateSteerRequestID() (string, error) {
+	raw := make([]byte, steerRequestIDBytes)
+	if _, err := rand.Read(raw); err != nil {
+		return "", fmt.Errorf("steer: generate request id: %w", err)
+	}
+
+	return hex.EncodeToString(raw), nil
+}
+
+func steerEnvelope(sessionID string, actor auth.Actor, text, requestID string) (json.RawMessage, error) {
 	fields := map[string]any{
 		"v":          1,
 		"session_id": sessionID,
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "human.steer",
+		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"text":       map[string]any{"text": text, "redactions": 0, "truncated": false},
+	}
+
+	// request_id links this delivery back to the steer.requested/resolved pair it approved,
+	// so the web can skip rendering a redundant second bubble for the same message.
+	if requestID != "" {
+		fields["request_id"] = requestID
+	}
+
+	return json.Marshal(fields)
+}
+
+func steerRequestedEnvelope(sessionID, requestID string, actor auth.Actor, text string) (json.RawMessage, error) {
+	fields := map[string]any{
+		"v":          1,
+		"session_id": sessionID,
+		"ts":         time.Now().UTC().Format(time.RFC3339),
+		"type":       "steer.requested",
+		"request_id": requestID,
 		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
 		"text":       map[string]any{"text": text, "redactions": 0, "truncated": false},
 	}

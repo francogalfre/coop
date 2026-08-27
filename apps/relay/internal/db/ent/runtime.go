@@ -40,8 +40,12 @@ func init() {
 	agentsessionDescStatus := agentsessionFields[5].Descriptor()
 	// agentsession.DefaultStatus holds the default value on creation for the status field.
 	agentsession.DefaultStatus = agentsessionDescStatus.Default.(string)
+	// agentsessionDescMode is the schema descriptor for mode field.
+	agentsessionDescMode := agentsessionFields[6].Descriptor()
+	// agentsession.DefaultMode holds the default value on creation for the mode field.
+	agentsession.DefaultMode = agentsessionDescMode.Default.(string)
 	// agentsessionDescNextSeq is the schema descriptor for next_seq field.
-	agentsessionDescNextSeq := agentsessionFields[6].Descriptor()
+	agentsessionDescNextSeq := agentsessionFields[7].Descriptor()
 	// agentsession.DefaultNextSeq holds the default value on creation for the next_seq field.
 	agentsession.DefaultNextSeq = agentsessionDescNextSeq.Default.(int)
 	// agentsession.NextSeqValidator is a validator for the "next_seq" field. It is called by the builders before save.

@@ -43,7 +43,7 @@ func doSteerPost(t *testing.T, pool *db.Pool, mailbox *stream.Mailbox, store *st
 	req = withActorNamed(req, "user-alice", "Alice")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(pool, mailbox, store)(rec, req)
+	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
 
 	return rec
 }
@@ -122,7 +122,7 @@ func TestHandleSteerPostRequiresActor(t *testing.T) {
 	req.SetPathValue("id", "sess-a")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(nil, mailbox, store)(rec, req)
+	handleSteerPost(nil, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("got status %d, want 404: %s", rec.Code, rec.Body.String())
@@ -237,7 +237,7 @@ func TestSteerPostIgnoresForgedFromInBody(t *testing.T) {
 	req = withActorNamed(req, "user-alice", "Alice")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(pool, mailbox, store)(rec, req)
+	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
 
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())

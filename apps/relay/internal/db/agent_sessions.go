@@ -13,6 +13,9 @@ import (
 const (
 	SessionStatusLive  = "live"
 	SessionStatusEnded = "ended"
+
+	SessionModeAuto       = "auto"
+	SessionModeRestricted = "restricted"
 )
 
 func (p *Pool) CreateAgentSession(ctx context.Context, id string, proj *ent.Project, ownerID, repo, cwd, harness string, startedAt time.Time) (*ent.AgentSession, error) {
@@ -52,6 +55,17 @@ func (p *Pool) GetAgentSession(ctx context.Context, id string) (*ent.AgentSessio
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("db: get agent session: %w", err)
+	}
+
+	return sess, nil
+}
+
+func (p *Pool) SetSessionMode(ctx context.Context, id string, mode string) (*ent.AgentSession, error) {
+	sess, err := p.client.AgentSession.UpdateOneID(id).
+		SetMode(mode).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("db: set session mode: %w", err)
 	}
 
 	return sess, nil

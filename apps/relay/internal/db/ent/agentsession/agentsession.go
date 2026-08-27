@@ -22,6 +22,8 @@ const (
 	FieldHarness = "harness"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldMode holds the string denoting the mode field in the database.
+	FieldMode = "mode"
 	// FieldNextSeq holds the string denoting the next_seq field in the database.
 	FieldNextSeq = "next_seq"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
@@ -58,6 +60,7 @@ var Columns = []string{
 	FieldCwd,
 	FieldHarness,
 	FieldStatus,
+	FieldMode,
 	FieldNextSeq,
 	FieldStartedAt,
 	FieldEndedAt,
@@ -95,6 +98,8 @@ var (
 	DefaultHarness string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultMode holds the default value on creation for the "mode" field.
+	DefaultMode string
 	// DefaultNextSeq holds the default value on creation for the "next_seq" field.
 	DefaultNextSeq int
 	// NextSeqValidator is a validator for the "next_seq" field. It is called by the builders before save.
@@ -134,6 +139,11 @@ func ByHarness(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByMode orders the results by the mode field.
+func ByMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMode, opts...).ToFunc()
 }
 
 // ByNextSeq orders the results by the next_seq field.
