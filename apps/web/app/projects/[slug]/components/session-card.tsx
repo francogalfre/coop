@@ -28,11 +28,11 @@ export function SessionCard({
     >
       <Link
         href={`/sessions/${session.id}?from=${slug}` as Route}
-        className="group block rounded-xl border border-border bg-card/50 p-4 transition-all hover:border-border/80 hover:bg-card"
+        className="group block rounded-xl border border-border bg-card/50 p-5 transition-all hover:border-border/80 hover:bg-card"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
           <span
-            className={`grid size-9 shrink-0 place-items-center rounded-lg border ${
+            className={`grid size-10 shrink-0 place-items-center rounded-lg border ${
               live ? "border-live/30 bg-live/10 text-live" : "border-border bg-secondary/50 text-muted-foreground"
             }`}
           >
@@ -41,15 +41,15 @@ export function SessionCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate font-display font-medium text-[14.5px] text-foreground">
+              <p className="truncate font-display font-medium text-md text-foreground">
                 {session.repo ? session.repo.split("/").slice(-1)[0] : session.id.slice(0, 18)}
               </p>
               {live && <LiveDot />}
             </div>
-            <p className="mt-0.5 truncate font-mono text-[11.5px] text-muted-foreground">
+            <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
               {session.repo || session.cwd}
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
               <MetaChip>
                 <IconTerminal size={11} />
                 {session.harness}

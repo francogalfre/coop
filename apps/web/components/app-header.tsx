@@ -13,7 +13,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-border/70 border-b bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-5">
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-6">
         <Link
           href={"/" as Route}
           className="font-display font-semibold text-[16px] text-foreground tracking-tight"
@@ -21,30 +21,39 @@ export function AppHeader() {
           coop
         </Link>
 
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex items-center gap-3">
           {user ? (
             <>
-              <div className="flex items-center gap-2">
-                <span
-                  className="grid size-7 place-items-center rounded-full font-medium text-[11px] text-background"
-                  style={{ background: tintFor(user.name ?? "?") }}
-                >
-                  {initials(user.name ?? "?")}
-                </span>
-                <span className="hidden text-[13px] text-muted-foreground sm:block">{user.name}</span>
+              <div className="flex items-center gap-2.5">
+                {user.image ? (
+                  <img
+                    src={user.image}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="size-7 shrink-0 rounded-full border border-border/60 object-cover"
+                  />
+                ) : (
+                  <span
+                    className="grid size-7 shrink-0 place-items-center rounded-full font-medium text-[11px] text-background"
+                    style={{ background: tintFor(user.name ?? "?") }}
+                  >
+                    {initials(user.name ?? "?")}
+                  </span>
+                )}
+                <span className="hidden text-sm text-muted-foreground sm:block">{user.name}</span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => void signOut()}
-                className="h-8 gap-1.5 px-2 text-[12.5px] text-muted-foreground"
+                className="h-9 gap-1.5 px-2.5 text-xs text-muted-foreground"
               >
                 <IconLogout size={14} />
                 <span className="hidden sm:inline">Sign out</span>
               </Button>
             </>
           ) : (
-            <Button asChild size="sm" className="h-8 text-[12.5px]">
+            <Button asChild size="sm" className="h-9 text-xs">
               <Link href={"/login" as Route}>Sign in</Link>
             </Button>
           )}

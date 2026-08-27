@@ -132,7 +132,7 @@ export function PtyTerminal({
           <EmptyState />
         </div>
       )}
-      <div ref={containerRef} className="h-full w-full px-4 py-3 sm:px-6" />
+      <div ref={containerRef} className="mx-auto h-full w-full max-w-3xl px-4 py-3 sm:px-6" />
     </div>
   );
 }

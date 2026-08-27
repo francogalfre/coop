@@ -57,7 +57,7 @@ export function CreateProject({ onCreated }: { onCreated: (p: Project) => void }
     <motion.div
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      className="overflow-hidden rounded-xl border border-border bg-card/50 p-3"
+      className="overflow-hidden rounded-xl border border-border bg-card/50 p-4"
     >
       <Input
         autoFocus
@@ -65,20 +65,20 @@ export function CreateProject({ onCreated }: { onCreated: (p: Project) => void }
         placeholder="Project name"
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && void create()}
-        className="h-9 border-0 bg-transparent px-1 text-[14px] shadow-none focus-visible:ring-0"
+        className="h-10 border-0 bg-transparent px-3 text-md shadow-none focus-visible:ring-0"
       />
-      <div className="mt-2 flex items-center gap-2 border-border/60 border-t pt-2">
-        <span className="flex-1 truncate font-mono text-[11.5px] text-muted-foreground">
+      <div className="mt-3 flex items-center gap-2.5 border-border/60 border-t pt-3">
+        <span className="flex-1 truncate px-3 font-mono text-2xs text-muted-foreground">
           {name.trim() ? `/projects/${slugify(name)}` : "…"}
         </span>
-        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="h-8 text-[12.5px]">
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="h-9 text-xs">
           Cancel
         </Button>
         <Button
           size="sm"
           onClick={() => void create()}
           disabled={busy || !name.trim()}
-          className="h-8 gap-1.5 text-[12.5px]"
+          className="h-9 gap-1.5 text-xs"
         >
           {busy && <IconSpinner size={13} className="animate-spin" />}
           Create

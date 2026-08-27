@@ -14,13 +14,13 @@ export function ProjectRow({ project, index }: { project: Project; index: number
     >
       <Link
         href={`/projects/${project.slug}` as Route}
-        className="group flex items-center gap-3 rounded-xl border border-border bg-card/50 px-4 py-3.5 transition-all hover:border-border/80 hover:bg-card"
+        className="group flex items-center gap-4 rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-border/80 hover:bg-card"
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display font-medium text-[15px] text-foreground">
+          <p className="truncate font-display font-medium text-md text-foreground">
             {project.name}
           </p>
-          <p className="truncate font-mono text-[12px] text-muted-foreground">
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
             {project.slug} · created {relativeTime(project.created_at)}
           </p>
         </div>

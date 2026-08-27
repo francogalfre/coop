@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { useParams } from "next/navigation";
+import { motion } from "motion/react";
 import { relayApi, RelayError, type AgentSession } from "@/lib/relay/api";
 import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
 import { AppHeader } from "@/components/app-header";
@@ -46,48 +47,53 @@ export default function ProjectPage() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-5 py-10">
+      <main className="mx-auto max-w-5xl px-6 py-14">
         {denied ? (
           <NoAccess />
         ) : (
           <>
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="mb-8 flex flex-wrap items-end justify-between gap-3"
+            >
               <div>
-                <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <IconFolder size={13} />
                   <Link href={"/" as Route} className="transition-colors hover:text-foreground">
                     projects
                   </Link>
                   <span className="text-muted-foreground/40">/</span>
                 </div>
-                <h1 className="mt-1 font-display font-semibold text-[26px] text-foreground tracking-tight">
+                <h1 className="mt-1.5 font-display font-semibold text-[26px] text-foreground tracking-tight">
                   {slug}
                 </h1>
               </div>
               <InviteButton slug={slug} />
-            </div>
+            </motion.div>
 
             {failed ? (
-              <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-[13.5px] text-destructive">
+              <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 Could not reach the relay. Is it running?
               </p>
             ) : sessions === null ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {[0, 1].map((i) => (
-                  <Skeleton key={i} className="h-[104px] rounded-xl" />
+                  <Skeleton key={i} className="h-[112px] rounded-xl" />
                 ))}
               </div>
             ) : sessions.length === 0 ? (
               <EmptySessions />
             ) : (
-              <div className="space-y-7">
+              <div className="space-y-8">
                 {live.length > 0 && (
                   <section>
-                    <h2 className="mb-2.5 flex items-center gap-2 font-medium text-[12px] text-muted-foreground uppercase tracking-wider">
+                    <h2 className="mb-3 flex items-center gap-2 font-medium text-xs text-muted-foreground uppercase tracking-wider">
                       <LiveDot />
                       Live now
                     </h2>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2.5">
                       {live.map((s, i) => (
                         <SessionCard key={s.id} session={s} slug={slug} index={i} />
                       ))}
@@ -97,10 +103,10 @@ export default function ProjectPage() {
 
                 {ended.length > 0 && (
                   <section>
-                    <h2 className="mb-2.5 font-medium text-[12px] text-muted-foreground uppercase tracking-wider">
+                    <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
                       Earlier
                     </h2>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2.5">
                       {ended.map((s, i) => (
                         <SessionCard key={s.id} session={s} slug={slug} index={i} />
                       ))}
