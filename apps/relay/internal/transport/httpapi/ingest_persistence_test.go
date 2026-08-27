@@ -59,6 +59,7 @@ func TestHandleIngestPersistsSessionWithProjectAndMembership(t *testing.T) {
 
 	req2 := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(touchedBody))
 	req2.Header.Set(coopProjectHeader, "coop")
+	req2 = withActor(req2, "user-owner")
 	rec2 := httptest.NewRecorder()
 
 	ingest(rec2, req2)
@@ -87,6 +88,7 @@ func TestHandleIngestPersistsSessionWithProjectAndMembership(t *testing.T) {
 
 	req3 := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(endBody))
 	req3.Header.Set(coopProjectHeader, "coop")
+	req3 = withActor(req3, "user-owner")
 	rec3 := httptest.NewRecorder()
 
 	ingest(rec3, req3)

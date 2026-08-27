@@ -12,6 +12,8 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/stream"
 )
 
+const maxPtyFrameBytes = 256 * 1024
+
 type ptyFrameType struct {
 	Type string `json:"type"`
 }
@@ -33,6 +35,7 @@ func NewPtySessionHandler(hub *stream.PtyHub, takeover *stream.TakeoverRegistry,
 			return
 		}
 		defer conn.CloseNow()
+		conn.SetReadLimit(maxPtyFrameBytes)
 
 		ctx := r.Context()
 

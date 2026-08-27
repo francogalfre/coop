@@ -92,6 +92,7 @@ func TestHandleIngestSurvivesRestartMidSession(t *testing.T) {
 
 	req2 := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(textBody))
 	req2.Header.Set(coopProjectHeader, "coop")
+	req2 = withActor(req2, "user-owner")
 	rec2 := httptest.NewRecorder()
 
 	freshIngest(rec2, req2)
@@ -132,6 +133,7 @@ func TestHandleIngestSeqAgreesBetweenPostgresAndStore(t *testing.T) {
 
 	req2 := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(touchedBody))
 	req2.Header.Set(coopProjectHeader, "coop")
+	req2 = withActor(req2, "user-owner")
 	rec2 := httptest.NewRecorder()
 	ingest(rec2, req2)
 

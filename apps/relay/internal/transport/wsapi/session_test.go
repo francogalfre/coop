@@ -1,6 +1,7 @@
 package wsapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -192,6 +193,37 @@ func TestSessionStreamHumanJoinAndLeaveBroadcast(t *testing.T) {
 	actor, _ = leave["actor"].(map[string]any)
 	if actor["name"] != "Bob" {
 		t.Fatalf("unexpected actor: %+v", actor)
+	}
+}
+
+func TestSessionStreamClosesConnectionOnOversizedFrame(t *testing.T) {
+	store := stream.New()
+
+	server := newTestServer(store)
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/sess-a/stream"
+
+	conn, _, err := dialAs(ctx, wsURL, "Attacker")
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	defer conn.CloseNow()
+
+	oversized := append([]byte(`{"type":"presence.typing","active":true,"pad":"`), bytes.Repeat([]byte("a"), maxSessionFrameBytes+1)...)
+	oversized = append(oversized, []byte(`"}`)...)
+
+	if err := conn.Write(ctx, websocket.MessageText, oversized); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	shortCtx, shortCancel := context.WithTimeout(ctx, time.Second)
+	defer shortCancel()
+	if _, _, err := conn.Read(shortCtx); err == nil {
+		t.Fatal("expected the connection to be closed after an oversized frame")
 	}
 }
 

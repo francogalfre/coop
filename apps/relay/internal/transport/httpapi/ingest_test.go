@@ -18,6 +18,7 @@ func doIngest(t *testing.T, registry *presence.Registry, store *stream.Store, bo
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/events", strings.NewReader(body))
+	req = withActor(req, "user-test")
 	rec := httptest.NewRecorder()
 
 	handleIngest(nil, registry, store)(rec, req)

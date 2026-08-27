@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const maxBuckets = 8192
+
 type bucket struct {
 	tokens   float64
 	lastFill time.Time
@@ -33,6 +35,10 @@ func (l *Limiter) Allow(key string) bool {
 
 	b, ok := l.buckets[key]
 	if !ok {
+		if len(l.buckets) >= maxBuckets {
+			l.buckets = map[string]*bucket{}
+		}
+
 		b = &bucket{tokens: l.capacity, lastFill: now}
 		l.buckets[key] = b
 	}

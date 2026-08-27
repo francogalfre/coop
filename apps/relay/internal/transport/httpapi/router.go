@@ -17,14 +17,15 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 
 	ingestLimiter := ratelimit.New(ingestRatePerSecond, ingestBurst)
 	steerLimiter := ratelimit.New(steerRatePerSecond, steerBurst)
+	exchangeLimiter := ratelimit.New(exchangeRatePerSecond, exchangeBurst)
 
 	requireIdentity := auth.RequireAnyIdentity(pool, cfg)
-	optionalIdentity := auth.OptionalCliCredential(pool)
+	requireCliCredential := auth.RequireCliCredential(pool)
 	requireSessionMember := auth.RequireSessionMember(pool, cfg)
 	requireSessionOwner := auth.RequireSessionOwner(pool, cfg)
 
 	mux.HandleFunc("GET /healthz", handleHealthz)
-	mux.HandleFunc("POST /v1/events", withIPRateLimit(ingestLimiter, optionalIdentity(handleIngest(pool, registry, store))))
+	mux.HandleFunc("POST /v1/events", withIPRateLimit(ingestLimiter, requireCliCredential(handleIngest(pool, registry, store))))
 	mux.HandleFunc("GET /v1/presence", requireIdentity(handlePresence(pool, registry)))
 	mux.HandleFunc("GET /v1/sessions", requireIdentity(handleSessions(pool, registry)))
 	mux.HandleFunc("GET /v1/sessions/{id}/stream", requireSessionMember(wsapi.NewSessionStreamHandler(pool, store, hub, cfg.WebOrigins)))
@@ -34,7 +35,8 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("GET /v1/sessions/{id}/steer", requireSessionOwner(handleSteerGet(mailbox, takeover)))
 	mux.HandleFunc("GET /v1/sessions/{id}/events", requireSessionMember(handleEvents(pool)))
 	mux.HandleFunc("POST /v1/sessions/{id}/takeover", requireSessionMember(handleTakeoverPost(pool, store, takeover)))
-	mux.HandleFunc("POST /v1/auth/cli/exchange", handleCLIExchange(cfg, pool))
+	mux.HandleFunc("POST /v1/auth/cli/exchange", withIPRateLimit(exchangeLimiter, handleCLIExchange(cfg, pool)))
+	mux.HandleFunc("POST /v1/auth/cli/revoke", requireCliCredential(handleCLIRevoke(pool)))
 
 	mux.HandleFunc("POST /v1/projects", requireIdentity(handleCreateProject(pool)))
 	mux.HandleFunc("GET /v1/projects", requireIdentity(handleListUserProjects(pool)))

@@ -12,6 +12,7 @@ import (
 )
 
 const backfillLimit = 200
+const maxSessionFrameBytes = 64 * 1024
 
 func NewSessionStreamHandler(pool *db.Pool, store *stream.Store, hub *stream.PresenceHub, webOrigins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +30,7 @@ func NewSessionStreamHandler(pool *db.Pool, store *stream.Store, hub *stream.Pre
 			return
 		}
 		defer conn.CloseNow()
+		conn.SetReadLimit(maxSessionFrameBytes)
 
 		ctx := r.Context()
 

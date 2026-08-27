@@ -1,6 +1,7 @@
 package wsapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -238,6 +239,39 @@ func TestPtySessionSecondSourceReplacesFirst(t *testing.T) {
 	defer shortCancel()
 	if _, _, err := first.Read(shortCtx); err == nil {
 		t.Fatal("stale first source should not have received routed input")
+	}
+}
+
+func TestPtySessionClosesConnectionOnOversizedFrame(t *testing.T) {
+	pool, sessionID := ptySessionFixture(t)
+	hub := stream.NewPtyHub()
+	takeover := stream.NewTakeoverRegistry()
+
+	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + server.URL[len("http"):] + "/v1/sessions/" + sessionID + "/pty"
+
+	source, _, err := dialPty(ctx, wsURL, "Owner", true)
+	if err != nil {
+		t.Fatalf("dial source failed: %v", err)
+	}
+	defer source.CloseNow()
+
+	oversized := append([]byte(`{"type":"pty.output","data":"`), bytes.Repeat([]byte("a"), maxPtyFrameBytes+1)...)
+	oversized = append(oversized, []byte(`"}`)...)
+
+	if err := source.Write(ctx, websocket.MessageText, oversized); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	shortCtx, shortCancel := context.WithTimeout(ctx, time.Second)
+	defer shortCancel()
+	if _, _, err := source.Read(shortCtx); err == nil {
+		t.Fatal("expected the connection to be closed after an oversized frame")
 	}
 }
 

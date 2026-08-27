@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -88,6 +89,24 @@ func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Stor
 			return
 		}
 
+		if event.Type != "session.start" {
+			actor, ok := auth.FromContext(r.Context())
+			if !ok {
+				http.NotFound(w, r)
+				return
+			}
+
+			owns, err := actorOwnsExistingSession(r.Context(), pool, actor, event.SessionID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to look up agent session")
+				return
+			}
+			if !owns {
+				http.NotFound(w, r)
+				return
+			}
+		}
+
 		switch event.Type {
 		case "session.start":
 			if event.Cwd == "" {
@@ -157,6 +176,24 @@ func handleIngest(pool *db.Pool, registry *presence.Registry, store *stream.Stor
 
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
 	}
+}
+
+// A session absent from Postgres has no owner to check against yet; only session.start can create one, so other event types just pass through.
+func actorOwnsExistingSession(ctx context.Context, pool *db.Pool, actor auth.Actor, sessionID string) (bool, error) {
+	if pool == nil {
+		return true, nil
+	}
+
+	sess, err := pool.GetAgentSession(ctx, sessionID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return true, nil
+		}
+
+		return false, err
+	}
+
+	return sess.OwnerID == actor.UserID, nil
 }
 
 func persistSessionStart(w http.ResponseWriter, r *http.Request, pool *db.Pool, event ingestEvent, projectSlug string, at time.Time) bool {

@@ -10,7 +10,10 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/clicredential"
 )
 
-const credentialTokenBytes = 32
+const (
+	credentialTokenBytes = 32
+	credentialTTL        = 90 * 24 * time.Hour
+)
 
 func (p *Pool) CreateCliCredential(ctx context.Context, userID, displayName string) (rawToken []byte, err error) {
 	raw := make([]byte, credentialTokenBytes)
@@ -24,6 +27,7 @@ func (p *Pool) CreateCliCredential(ctx context.Context, userID, displayName stri
 		SetUserID(userID).
 		SetDisplayName(displayName).
 		SetTokenHash(sum[:]).
+		SetExpiresAt(time.Now().Add(credentialTTL)).
 		Save(ctx); err != nil {
 		return nil, fmt.Errorf("db: create cli credential: %w", err)
 	}
