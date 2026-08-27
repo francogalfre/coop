@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { IconAgent, IconSend } from "@/components/icons";
+import { IconAgent, IconSend, IconSpinner } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -131,7 +131,7 @@ export function Composer({
           id={textareaId}
           rows={1}
           value={text}
-          disabled={disabled}
+          disabled={disabled || sending}
           onChange={(e) => handleChange(e.target.value)}
           onBlur={stopTyping}
           onKeyDown={(e) => {
@@ -190,8 +190,8 @@ export function Composer({
             disabled={disabled || sending || !text.trim()}
             className="h-8 gap-1.5 rounded-lg px-3 text-xs"
           >
-            <IconSend size={13} />
-            Send
+            {sending ? <IconSpinner size={13} className="animate-spin" /> : <IconSend size={13} />}
+            {sending ? "Sending…" : "Send"}
           </Button>
         </div>
       </div>

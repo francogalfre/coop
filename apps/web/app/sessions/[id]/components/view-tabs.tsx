@@ -18,7 +18,11 @@ export function ViewTabs({
   ];
 
   return (
-    <div role="tablist" aria-label="Session view" className="mx-auto flex max-w-3xl gap-1 px-4 pb-2 sm:px-6">
+    <div
+      role="tablist"
+      aria-label="Session view"
+      className="mx-auto flex max-w-3xl gap-1 px-4 pt-3 pb-2 sm:px-6"
+    >
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
