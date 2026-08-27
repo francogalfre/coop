@@ -24,7 +24,7 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	requireSessionMember := auth.RequireSessionMember(pool, cfg)
 	requireSessionOwner := auth.RequireSessionOwner(pool, cfg)
 
-	mux.HandleFunc("GET /healthz", handleHealthz)
+	mux.HandleFunc("GET /healthz", handleHealthz(pool))
 	mux.HandleFunc("POST /v1/events", withIPRateLimit(ingestLimiter, requireCliCredential(handleIngest(pool, registry, store))))
 	mux.HandleFunc("GET /v1/presence", requireIdentity(handlePresence(pool, registry)))
 	mux.HandleFunc("GET /v1/sessions", requireIdentity(handleSessions(pool, registry)))

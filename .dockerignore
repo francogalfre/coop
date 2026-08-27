@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/*.tsbuildinfo
+.git
+.env
+.env.*
+!.env.*.example
+scripts/captures

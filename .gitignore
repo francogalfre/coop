@@ -21,6 +21,7 @@ coverage.out
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # probe captures — real hook payloads, may contain secrets
 scripts/captures/

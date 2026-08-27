@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/francogalfre/coop/apps/relay/internal/config"
@@ -15,8 +17,9 @@ import (
 )
 
 const (
-	sweepInterval = 5 * time.Minute
-	sweepMaxAge   = 30 * time.Minute
+	sweepInterval   = 5 * time.Minute
+	sweepMaxAge     = 30 * time.Minute
+	shutdownTimeout = 10 * time.Second
 )
 
 func main() {
@@ -25,7 +28,8 @@ func main() {
 		log.Fatalf("relay: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -54,8 +58,6 @@ func main() {
 		}
 	}()
 
-	log.Printf("relay listening on %s", cfg.Addr)
-
 	server := &http.Server{
 		Addr:         cfg.Addr,
 		Handler:      httpapi.NewRouter(cfg, pool, registry, store, mailbox, hub, takeover, ptyHub, steerRequests),
@@ -64,7 +66,30 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("relay: listen on %s: %v", cfg.Addr, err)
+	serveErr := make(chan error, 1)
+	go func() {
+		log.Printf("relay listening on %s", cfg.Addr)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- err
+			return
+		}
+		serveErr <- nil
+	}()
+
+	select {
+	case err := <-serveErr:
+		if err != nil {
+			log.Fatalf("relay: listen on %s: %v", cfg.Addr, err)
+		}
+	case <-ctx.Done():
+		stop()
+		log.Print("relay: shutting down")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("relay: shutdown: %v", err)
+		}
 	}
 }

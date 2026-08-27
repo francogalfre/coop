@@ -13,6 +13,7 @@ import (
 
 type Pool struct {
 	client *ent.Client
+	sqlDB  *sql.DB
 }
 
 func Open(ctx context.Context, connString string) (*Pool, error) {
@@ -29,11 +30,15 @@ func Open(ctx context.Context, connString string) (*Pool, error) {
 	driver := entsql.OpenDB("postgres", sqlDB)
 	client := ent.NewClient(ent.Driver(driver))
 
-	return &Pool{client: client}, nil
+	return &Pool{client: client, sqlDB: sqlDB}, nil
 }
 
 func (p *Pool) Close() error {
 	return p.client.Close()
+}
+
+func (p *Pool) Ping(ctx context.Context) error {
+	return p.sqlDB.PingContext(ctx)
 }
 
 func (p *Pool) Migrate(ctx context.Context) error {

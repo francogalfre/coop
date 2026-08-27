@@ -1,0 +1,68 @@
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: apps/relay/Dockerfile
+    # The relay keeps several in-memory singletons (Store, Mailbox,
+    # PresenceHub, TakeoverRegistry, PtyHub, SteerRequestRegistry — see
+    # apps/relay/cmd/relay/main.go). It is strictly single-instance:
+    # never raise this beyond 1 replica.
+    restart: unless-stopped
+    environment:
+      COOP_RELAY_ADDR: ":8787"
+      DATABASE_URL: ${DATABASE_URL}
+      COOP_WEB_ORIGINS: https://${COOP_DOMAIN}
+      COOP_GITHUB_CLIENT_ID: ${COOP_GITHUB_CLIENT_ID}
+      COOP_GITHUB_CLIENT_SECRET: ${COOP_GITHUB_CLIENT_SECRET}
+      COOP_INTERNAL_SECRET: ${COOP_INTERNAL_SECRET}
+      COOP_WEB_INTERNAL_URL: http://web:3000
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8787/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_COOP_RELAY_URL: https://${COOP_DOMAIN}
+        NEXT_PUBLIC_BETTER_AUTH_URL: https://${COOP_DOMAIN}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      COOP_GITHUB_CLIENT_ID: ${COOP_GITHUB_CLIENT_ID}
+      COOP_GITHUB_CLIENT_SECRET: ${COOP_GITHUB_CLIENT_SECRET}
+      COOP_INTERNAL_SECRET: ${COOP_INTERNAL_SECRET}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: https://${COOP_DOMAIN}
+      NEXT_PUBLIC_BETTER_AUTH_URL: https://${COOP_DOMAIN}
+      NEXT_PUBLIC_COOP_RELAY_URL: https://${COOP_DOMAIN}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      COOP_DOMAIN: ${COOP_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - relay
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

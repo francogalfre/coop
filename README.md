@@ -74,3 +74,27 @@ bun run lint && bun run build
 ```
 
 See `.agents/context.md` for the full vision and `.agents/conventions.md` for code style.
+
+## Deploying
+
+Single-VPS deployment via Docker Compose: `web`, `relay`, and a `caddy`
+reverse proxy on one host, sharing one domain so the relay's session cookie
+works same-origin. Postgres is external/managed (e.g. Neon) — bring your own
+`DATABASE_URL`.
+
+```bash
+git clone <this repo> && cd coop
+cp .env.production.example .env
+# fill in COOP_DOMAIN, DATABASE_URL, COOP_GITHUB_CLIENT_ID/SECRET,
+# COOP_INTERNAL_SECRET, BETTER_AUTH_SECRET
+
+docker compose up -d --build
+```
+
+Point `COOP_DOMAIN`'s DNS A/AAAA record at the VPS before starting Caddy —
+it provisions a TLS certificate automatically on first request.
+
+The relay holds several in-memory singletons (`Store`, `Mailbox`,
+`PresenceHub`, `TakeoverRegistry`, `PtyHub`, `SteerRequestRegistry` — see
+`apps/relay/cmd/relay/main.go`) and is strictly single-instance —
+`docker-compose.yml` runs exactly one `relay` replica and must keep doing so.
