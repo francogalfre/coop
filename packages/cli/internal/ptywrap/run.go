@@ -42,9 +42,12 @@ func Run(ctx context.Context, cfg config.Config, harnessName, name string, args 
 	stopSteer := watchSteer(ctx, cfg, ptmx)
 	defer stopSteer()
 
+	redactor := newPtyOutputRedactor(streamer)
+
 	outputDone := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(io.MultiWriter(os.Stdout, streamer), ptmx)
+		_, _ = io.Copy(io.MultiWriter(os.Stdout, redactor), ptmx)
+		redactor.Close()
 		close(outputDone)
 	}()
 
