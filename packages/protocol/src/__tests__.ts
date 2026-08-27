@@ -57,6 +57,55 @@ describe("parseEvent", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("parses a session.start event without a mode field, defaulting to auto", () => {
+    const result = parseEvent(validSessionStart);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.value.type === "session.start") {
+      expect(result.value.mode).toBe("auto");
+    }
+  });
+
+  it("round-trips a steer.requested event", () => {
+    const result = parseEvent({
+      v: 1,
+      session_id: "sess-1",
+      seq: 0,
+      ts: new Date().toISOString(),
+      type: "steer.requested",
+      request_id: "req_1",
+      actor: { id: "u1", display_name: "Franco" },
+      text: { text: "pause and check with me first", redactions: 0, truncated: false },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("round-trips a steer.resolved event", () => {
+    const result = parseEvent({
+      v: 1,
+      session_id: "sess-1",
+      seq: 1,
+      ts: new Date().toISOString(),
+      type: "steer.resolved",
+      request_id: "req_1",
+      decision: "allow",
+      resolved_by: { id: "u1", display_name: "Franco" },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("round-trips a session.mode_changed event", () => {
+    const result = parseEvent({
+      v: 1,
+      session_id: "sess-1",
+      seq: 2,
+      ts: new Date().toISOString(),
+      type: "session.mode_changed",
+      mode: "restricted",
+      changed_by: { id: "u1", display_name: "Franco" },
+    });
+    expect(result.ok).toBe(true);
+  });
+
   it("rejects a garbage envelope", () => {
     const result = parseEvent({ v: 2, seq: -1, type: "session.start" });
     expect(result.ok).toBe(false);
@@ -132,7 +181,7 @@ describe("eventsJsonSchema", () => {
     const union = schema.oneOf ?? schema.anyOf;
     expect(union).toBeDefined();
     expect(union).toHaveLength(KNOWN_EVENT_TYPES.length);
-    expect(KNOWN_EVENT_TYPES).toHaveLength(16);
+    expect(KNOWN_EVENT_TYPES).toHaveLength(19);
   });
 
   it("stringifies without throwing", () => {

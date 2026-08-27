@@ -12,6 +12,7 @@ export const sessionStart = z.object({
   owner: actor,
   harness_version: z.string().max(64).optional(),
   permission_mode: z.string().max(64).optional(),
+  mode: z.enum(["auto", "restricted"]).default("auto"),
 });
 export type SessionStart = z.infer<typeof sessionStart>;
 

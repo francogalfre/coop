@@ -14,6 +14,7 @@ export const humanSteer = z.object({
   type: z.literal("human.steer"),
   actor,
   text: redactedText,
+  request_id: z.string().min(1).optional(),
 });
 export type HumanSteer = z.infer<typeof humanSteer>;
 

@@ -5,6 +5,8 @@ import { toolCall, toolResult, toolBlocked } from "./tool.js";
 import { fileTouched } from "./file.js";
 import { permissionRequested, permissionResolved } from "./permission.js";
 import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt } from "./human.js";
+import { steerRequested, steerResolved } from "./steer.js";
+import { sessionModeChanged } from "./session-mode.js";
 import { unknownEvent } from "./unknown.js";
 
 const base = { v: 1 as const, session_id: "s_1", seq: 0, ts: "2026-08-24T15:31:07.812Z" };
@@ -42,6 +44,47 @@ describe("sessionStart", () => {
       harness: "claude-code",
       cwd: "/home/user/project",
       owner: { id: "u_1", display_name: "Alice" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("defaults mode to auto when omitted", () => {
+    const result = sessionStart.safeParse({
+      ...base,
+      type: "session.start",
+      harness: "claude-code",
+      cwd: "/home/user/project",
+      owner: { id: "u_1", display_name: "Alice" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mode).toBe("auto");
+    }
+  });
+
+  it("accepts an explicit restricted mode", () => {
+    const result = sessionStart.safeParse({
+      ...base,
+      type: "session.start",
+      harness: "claude-code",
+      cwd: "/home/user/project",
+      owner: { id: "u_1", display_name: "Alice" },
+      mode: "restricted",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mode).toBe("restricted");
+    }
+  });
+
+  it("rejects an invalid mode", () => {
+    const result = sessionStart.safeParse({
+      ...base,
+      type: "session.start",
+      harness: "claude-code",
+      cwd: "/home/user/project",
+      owner: { id: "u_1", display_name: "Alice" },
+      mode: "locked",
     });
     expect(result.success).toBe(false);
   });
@@ -408,6 +451,64 @@ describe("humanPrompt", () => {
     if (result.success) {
       expect(result.data).not.toHaveProperty("surprise_field");
     }
+  });
+});
+
+describe("steerRequested", () => {
+  it("parses a minimal valid fixture", () => {
+    const fixture = {
+      ...base,
+      type: "steer.requested",
+      request_id: "req_1",
+      actor: anActor,
+      text: { text: "try a different approach", redactions: 0, truncated: false },
+    };
+    expect(steerRequested.safeParse(fixture).success).toBe(true);
+  });
+
+  it("rejects a fixture missing actor", () => {
+    const fixture = {
+      ...base,
+      type: "steer.requested",
+      request_id: "req_1",
+      text: { text: "try a different approach", redactions: 0, truncated: false },
+    };
+    expect(steerRequested.safeParse(fixture).success).toBe(false);
+  });
+});
+
+describe("steerResolved", () => {
+  it("parses a minimal valid fixture", () => {
+    const fixture = {
+      ...base,
+      type: "steer.resolved",
+      request_id: "req_1",
+      decision: "allow",
+      resolved_by: anActor,
+    };
+    expect(steerResolved.safeParse(fixture).success).toBe(true);
+  });
+
+  it("rejects a fixture omitting resolved_by", () => {
+    const fixture = { ...base, type: "steer.resolved", request_id: "req_1", decision: "deny" };
+    expect(steerResolved.safeParse(fixture).success).toBe(false);
+  });
+});
+
+describe("sessionModeChanged", () => {
+  it("parses a minimal valid fixture", () => {
+    const fixture = { ...base, type: "session.mode_changed", mode: "restricted", changed_by: anActor };
+    expect(sessionModeChanged.safeParse(fixture).success).toBe(true);
+  });
+
+  it("rejects an invalid mode", () => {
+    const fixture = { ...base, type: "session.mode_changed", mode: "locked", changed_by: anActor };
+    expect(sessionModeChanged.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects a fixture missing changed_by", () => {
+    const fixture = { ...base, type: "session.mode_changed", mode: "restricted" };
+    expect(sessionModeChanged.safeParse(fixture).success).toBe(false);
   });
 });
 

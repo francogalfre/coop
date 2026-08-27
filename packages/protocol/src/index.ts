@@ -4,6 +4,8 @@ export * from "./events/tool.js";
 export * from "./events/file.js";
 export * from "./events/permission.js";
 export * from "./events/human.js";
+export * from "./events/steer.js";
+export * from "./events/session-mode.js";
 
 export { type Result } from "./shared/result.js";
 
