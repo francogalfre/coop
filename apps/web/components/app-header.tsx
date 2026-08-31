@@ -63,7 +63,7 @@ export function AppHeader() {
             </>
           ) : (
             <Button asChild size="sm" className="h-9 text-xs">
-              <Link href={"/login" as Route}>Sign in</Link>
+              <Link href={"/" as Route}>Sign in</Link>
             </Button>
           )}
         </div>
