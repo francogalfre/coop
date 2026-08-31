@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
@@ -147,6 +148,25 @@ func (_c *AgentSessionCreate) SetProjectID(id int) *AgentSessionCreate {
 // SetProject sets the "project" edge to the Project entity.
 func (_c *AgentSessionCreate) SetProject(v *Project) *AgentSessionCreate {
 	return _c.SetProjectID(v.ID)
+}
+
+// SetAgentID sets the "agent" edge to the Agent entity by ID.
+func (_c *AgentSessionCreate) SetAgentID(id string) *AgentSessionCreate {
+	_c.mutation.SetAgentID(id)
+	return _c
+}
+
+// SetNillableAgentID sets the "agent" edge to the Agent entity by ID if the given value is not nil.
+func (_c *AgentSessionCreate) SetNillableAgentID(id *string) *AgentSessionCreate {
+	if id != nil {
+		_c = _c.SetAgentID(*id)
+	}
+	return _c
+}
+
+// SetAgent sets the "agent" edge to the Agent entity.
+func (_c *AgentSessionCreate) SetAgent(v *Agent) *AgentSessionCreate {
+	return _c.SetAgentID(v.ID)
 }
 
 // AddEventIDs adds the "events" edge to the Event entity by IDs.
@@ -355,6 +375,23 @@ func (_c *AgentSessionCreate) createSpec() (*AgentSession, *sqlgraph.CreateSpec)
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.project_sessions = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AgentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   agentsession.AgentTable,
+			Columns: []string{agentsession.AgentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.agent_sessions = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.EventsIDs(); len(nodes) > 0 {

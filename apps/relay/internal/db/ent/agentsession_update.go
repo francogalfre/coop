@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/predicate"
@@ -180,6 +181,25 @@ func (_u *AgentSessionUpdate) SetProject(v *Project) *AgentSessionUpdate {
 	return _u.SetProjectID(v.ID)
 }
 
+// SetAgentID sets the "agent" edge to the Agent entity by ID.
+func (_u *AgentSessionUpdate) SetAgentID(id string) *AgentSessionUpdate {
+	_u.mutation.SetAgentID(id)
+	return _u
+}
+
+// SetNillableAgentID sets the "agent" edge to the Agent entity by ID if the given value is not nil.
+func (_u *AgentSessionUpdate) SetNillableAgentID(id *string) *AgentSessionUpdate {
+	if id != nil {
+		_u = _u.SetAgentID(*id)
+	}
+	return _u
+}
+
+// SetAgent sets the "agent" edge to the Agent entity.
+func (_u *AgentSessionUpdate) SetAgent(v *Agent) *AgentSessionUpdate {
+	return _u.SetAgentID(v.ID)
+}
+
 // AddEventIDs adds the "events" edge to the Event entity by IDs.
 func (_u *AgentSessionUpdate) AddEventIDs(ids ...int) *AgentSessionUpdate {
 	_u.mutation.AddEventIDs(ids...)
@@ -203,6 +223,12 @@ func (_u *AgentSessionUpdate) Mutation() *AgentSessionMutation {
 // ClearProject clears the "project" edge to the Project entity.
 func (_u *AgentSessionUpdate) ClearProject() *AgentSessionUpdate {
 	_u.mutation.ClearProject()
+	return _u
+}
+
+// ClearAgent clears the "agent" edge to the Agent entity.
+func (_u *AgentSessionUpdate) ClearAgent() *AgentSessionUpdate {
+	_u.mutation.ClearAgent()
 	return _u
 }
 
@@ -339,6 +365,35 @@ func (_u *AgentSessionUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AgentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   agentsession.AgentTable,
+			Columns: []string{agentsession.AgentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AgentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   agentsession.AgentTable,
+			Columns: []string{agentsession.AgentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -561,6 +616,25 @@ func (_u *AgentSessionUpdateOne) SetProject(v *Project) *AgentSessionUpdateOne {
 	return _u.SetProjectID(v.ID)
 }
 
+// SetAgentID sets the "agent" edge to the Agent entity by ID.
+func (_u *AgentSessionUpdateOne) SetAgentID(id string) *AgentSessionUpdateOne {
+	_u.mutation.SetAgentID(id)
+	return _u
+}
+
+// SetNillableAgentID sets the "agent" edge to the Agent entity by ID if the given value is not nil.
+func (_u *AgentSessionUpdateOne) SetNillableAgentID(id *string) *AgentSessionUpdateOne {
+	if id != nil {
+		_u = _u.SetAgentID(*id)
+	}
+	return _u
+}
+
+// SetAgent sets the "agent" edge to the Agent entity.
+func (_u *AgentSessionUpdateOne) SetAgent(v *Agent) *AgentSessionUpdateOne {
+	return _u.SetAgentID(v.ID)
+}
+
 // AddEventIDs adds the "events" edge to the Event entity by IDs.
 func (_u *AgentSessionUpdateOne) AddEventIDs(ids ...int) *AgentSessionUpdateOne {
 	_u.mutation.AddEventIDs(ids...)
@@ -584,6 +658,12 @@ func (_u *AgentSessionUpdateOne) Mutation() *AgentSessionMutation {
 // ClearProject clears the "project" edge to the Project entity.
 func (_u *AgentSessionUpdateOne) ClearProject() *AgentSessionUpdateOne {
 	_u.mutation.ClearProject()
+	return _u
+}
+
+// ClearAgent clears the "agent" edge to the Agent entity.
+func (_u *AgentSessionUpdateOne) ClearAgent() *AgentSessionUpdateOne {
+	_u.mutation.ClearAgent()
 	return _u
 }
 
@@ -750,6 +830,35 @@ func (_u *AgentSessionUpdateOne) sqlSave(ctx context.Context) (_node *AgentSessi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AgentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   agentsession.AgentTable,
+			Columns: []string{agentsession.AgentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AgentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   agentsession.AgentTable,
+			Columns: []string{agentsession.AgentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

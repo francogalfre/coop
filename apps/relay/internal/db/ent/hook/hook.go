@@ -9,6 +9,18 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent"
 )
 
+// The AgentFunc type is an adapter to allow the use of ordinary
+// function as Agent mutator.
+type AgentFunc func(context.Context, *ent.AgentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AgentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AgentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AgentMutation", m)
+}
+
 // The AgentSessionFunc type is an adapter to allow the use of ordinary
 // function as AgentSession mutator.
 type AgentSessionFunc func(context.Context, *ent.AgentSessionMutation) (ent.Value, error)

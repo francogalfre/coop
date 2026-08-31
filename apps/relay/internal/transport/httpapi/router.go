@@ -32,6 +32,7 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("GET /v1/sessions/{id}/pty", requireSessionMember(wsapi.NewPtySessionHandler(ptyHub, takeover, pool, cfg.WebOrigins)))
 	mux.HandleFunc("GET /v1/sessions/{id}/viewers", requireSessionMember(handleViewers(hub)))
 	mux.HandleFunc("POST /v1/sessions/{id}/steer", withIPRateLimit(steerLimiter, requireSessionMember(handleSteerPost(pool, mailbox, store, steerRequests))))
+	mux.HandleFunc("POST /v1/sessions/{id}/message", withIPRateLimit(steerLimiter, requireSessionMember(handleMessagePost(pool, store))))
 	mux.HandleFunc("GET /v1/sessions/{id}/steer", requireSessionOwner(handleSteerGet(mailbox, takeover)))
 	mux.HandleFunc("POST /v1/sessions/{id}/steer/{request_id}/resolve", requireSessionOwner(handleSteerResolvePost(pool, mailbox, store, steerRequests)))
 	mux.HandleFunc("GET /v1/sessions/{id}/events", requireSessionMember(handleEvents(pool)))
@@ -45,6 +46,8 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("POST /v1/projects/{slug}/invites", requireIdentity(handleCreateInvite(pool)))
 	mux.HandleFunc("POST /v1/projects/invites/{token}/accept", requireIdentity(handleAcceptInvite(pool)))
 	mux.HandleFunc("GET /v1/projects/{slug}/sessions", requireIdentity(handleListProjectSessions(pool)))
+	mux.HandleFunc("GET /v1/projects/{slug}/agents", requireIdentity(handleListProjectAgents(pool)))
+	mux.HandleFunc("POST /v1/projects/{slug}/agents/{name}/message", withIPRateLimit(steerLimiter, requireIdentity(handleMessageAgent(pool, mailbox, store, steerRequests))))
 
 	return withCORS(mux, cfg.WebOrigins)
 }

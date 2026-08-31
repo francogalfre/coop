@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/clicredential"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
@@ -18,6 +19,28 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	agentFields := schema.Agent{}.Fields()
+	_ = agentFields
+	// agentDescName is the schema descriptor for name field.
+	agentDescName := agentFields[1].Descriptor()
+	// agent.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	agent.NameValidator = agentDescName.Validators[0].(func(string) error)
+	// agentDescDisplayName is the schema descriptor for display_name field.
+	agentDescDisplayName := agentFields[2].Descriptor()
+	// agent.DefaultDisplayName holds the default value on creation for the display_name field.
+	agent.DefaultDisplayName = agentDescDisplayName.Default.(string)
+	// agentDescCreatedBy is the schema descriptor for created_by field.
+	agentDescCreatedBy := agentFields[3].Descriptor()
+	// agent.CreatedByValidator is a validator for the "created_by" field. It is called by the builders before save.
+	agent.CreatedByValidator = agentDescCreatedBy.Validators[0].(func(string) error)
+	// agentDescCreatedAt is the schema descriptor for created_at field.
+	agentDescCreatedAt := agentFields[4].Descriptor()
+	// agent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	agent.DefaultCreatedAt = agentDescCreatedAt.Default.(func() time.Time)
+	// agentDescID is the schema descriptor for id field.
+	agentDescID := agentFields[0].Descriptor()
+	// agent.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	agent.IDValidator = agentDescID.Validators[0].(func(string) error)
 	agentsessionFields := schema.AgentSession{}.Fields()
 	_ = agentsessionFields
 	// agentsessionDescOwnerID is the schema descriptor for owner_id field.

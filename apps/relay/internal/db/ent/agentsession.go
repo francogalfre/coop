@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 )
@@ -39,6 +40,7 @@ type AgentSession struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AgentSessionQuery when eager-loading is set.
 	Edges            AgentSessionEdges `json:"edges"`
+	agent_sessions   *string
 	project_sessions *int
 	selectValues     sql.SelectValues
 }
@@ -47,11 +49,13 @@ type AgentSession struct {
 type AgentSessionEdges struct {
 	// Project holds the value of the project edge.
 	Project *Project `json:"project,omitempty"`
+	// Agent holds the value of the agent edge.
+	Agent *Agent `json:"agent,omitempty"`
 	// Events holds the value of the events edge.
 	Events []*Event `json:"events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ProjectOrErr returns the Project value or an error if the edge
@@ -65,10 +69,21 @@ func (e AgentSessionEdges) ProjectOrErr() (*Project, error) {
 	return nil, &NotLoadedError{edge: "project"}
 }
 
+// AgentOrErr returns the Agent value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AgentSessionEdges) AgentOrErr() (*Agent, error) {
+	if e.Agent != nil {
+		return e.Agent, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: agent.Label}
+	}
+	return nil, &NotLoadedError{edge: "agent"}
+}
+
 // EventsOrErr returns the Events value or an error if the edge
 // was not loaded in eager-loading.
 func (e AgentSessionEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Events, nil
 	}
 	return nil, &NotLoadedError{edge: "events"}
@@ -85,7 +100,9 @@ func (*AgentSession) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case agentsession.FieldStartedAt, agentsession.FieldEndedAt:
 			values[i] = new(sql.NullTime)
-		case agentsession.ForeignKeys[0]: // project_sessions
+		case agentsession.ForeignKeys[0]: // agent_sessions
+			values[i] = new(sql.NullString)
+		case agentsession.ForeignKeys[1]: // project_sessions
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -164,6 +181,13 @@ func (_m *AgentSession) assignValues(columns []string, values []any) error {
 				*_m.EndedAt = value.Time
 			}
 		case agentsession.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field agent_sessions", values[i])
+			} else if value.Valid {
+				_m.agent_sessions = new(string)
+				*_m.agent_sessions = value.String
+			}
+		case agentsession.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field project_sessions", value)
 			} else if value.Valid {
@@ -186,6 +210,11 @@ func (_m *AgentSession) Value(name string) (ent.Value, error) {
 // QueryProject queries the "project" edge of the AgentSession entity.
 func (_m *AgentSession) QueryProject() *ProjectQuery {
 	return NewAgentSessionClient(_m.config).QueryProject(_m)
+}
+
+// QueryAgent queries the "agent" edge of the AgentSession entity.
+func (_m *AgentSession) QueryAgent() *AgentQuery {
+	return NewAgentSessionClient(_m.config).QueryAgent(_m)
 }
 
 // QueryEvents queries the "events" edge of the AgentSession entity.

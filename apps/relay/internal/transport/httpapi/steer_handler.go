@@ -77,29 +77,33 @@ func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store
 			return
 		}
 
-		envelope, err := steerEnvelope(sessionID, actor, body.Text, "")
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to build steer message")
-			return
-		}
-
-		dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to record steer message")
-			return
-		}
-
-		if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
-			log.Printf("coop: failed to append steer message to in-memory store for session %s: %v", sessionID, err)
-		}
-
-		mailbox.Put(sessionID, stream.SteerMessage{From: actor.DisplayName, Text: body.Text})
-
-		writeJSON(w, http.StatusAccepted, steerPostResponse{
-			Status: "accepted",
-			Queued: mailbox.Depth(sessionID),
-		})
+		deliverSteerNow(w, r, pool, mailbox, store, sessionID, actor, body.Text)
 	}
+}
+
+func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, sessionID string, actor auth.Actor, text string) {
+	envelope, err := steerEnvelope(sessionID, actor, text, "")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to build steer message")
+		return
+	}
+
+	dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record steer message")
+		return
+	}
+
+	if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
+		log.Printf("coop: failed to append steer message to in-memory store for session %s: %v", sessionID, err)
+	}
+
+	mailbox.Put(sessionID, stream.SteerMessage{From: actor.DisplayName, Text: text})
+
+	writeJSON(w, http.StatusAccepted, steerPostResponse{
+		Status: "accepted",
+		Queued: mailbox.Depth(sessionID),
+	})
 }
 
 func handleSteerRequestPending(w http.ResponseWriter, r *http.Request, pool *db.Pool, store *stream.Store, steerRequests *stream.SteerRequestRegistry, sessionID string, actor auth.Actor, text string) {

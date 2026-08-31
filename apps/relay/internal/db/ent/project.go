@@ -39,9 +39,11 @@ type ProjectEdges struct {
 	Invites []*ProjectInvite `json:"invites,omitempty"`
 	// Sessions holds the value of the sessions edge.
 	Sessions []*AgentSession `json:"sessions,omitempty"`
+	// Agents holds the value of the agents edge.
+	Agents []*Agent `json:"agents,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // MembersOrErr returns the Members value or an error if the edge
@@ -69,6 +71,15 @@ func (e ProjectEdges) SessionsOrErr() ([]*AgentSession, error) {
 		return e.Sessions, nil
 	}
 	return nil, &NotLoadedError{edge: "sessions"}
+}
+
+// AgentsOrErr returns the Agents value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProjectEdges) AgentsOrErr() ([]*Agent, error) {
+	if e.loadedTypes[3] {
+		return e.Agents, nil
+	}
+	return nil, &NotLoadedError{edge: "agents"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -153,6 +164,11 @@ func (_m *Project) QueryInvites() *ProjectInviteQuery {
 // QuerySessions queries the "sessions" edge of the Project entity.
 func (_m *Project) QuerySessions() *AgentSessionQuery {
 	return NewProjectClient(_m.config).QuerySessions(_m)
+}
+
+// QueryAgents queries the "agents" edge of the Project entity.
+func (_m *Project) QueryAgents() *AgentQuery {
+	return NewProjectClient(_m.config).QueryAgents(_m)
 }
 
 // Update returns a builder for updating this Project.

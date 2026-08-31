@@ -28,6 +28,7 @@ func (AgentSession) Fields() []ent.Field {
 func (AgentSession) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).Ref("sessions").Unique().Required(),
+		edge.From("agent", Agent.Type).Ref("sessions").Unique(),
 		edge.To("events", Event.Type),
 	}
 }

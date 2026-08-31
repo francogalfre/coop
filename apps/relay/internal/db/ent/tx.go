@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Agent is the client for interacting with the Agent builders.
+	Agent *AgentClient
 	// AgentSession is the client for interacting with the AgentSession builders.
 	AgentSession *AgentSessionClient
 	// CliCredential is the client for interacting with the CliCredential builders.
@@ -155,6 +157,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Agent = NewAgentClient(tx.config)
 	tx.AgentSession = NewAgentSessionClient(tx.config)
 	tx.CliCredential = NewCliCredentialClient(tx.config)
 	tx.Event = NewEventClient(tx.config)
@@ -170,7 +173,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: AgentSession.QueryXXX(), the query will be executed
+// applies a query, for example: Agent.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

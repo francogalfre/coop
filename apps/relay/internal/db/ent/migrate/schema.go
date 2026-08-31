@@ -8,6 +8,36 @@ import (
 )
 
 var (
+	// AgentsColumns holds the columns for the "agents" table.
+	AgentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "display_name", Type: field.TypeString, Default: ""},
+		{Name: "created_by", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "project_agents", Type: field.TypeInt},
+	}
+	// AgentsTable holds the schema information for the "agents" table.
+	AgentsTable = &schema.Table{
+		Name:       "agents",
+		Columns:    AgentsColumns,
+		PrimaryKey: []*schema.Column{AgentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "agents_projects_agents",
+				Columns:    []*schema.Column{AgentsColumns[5]},
+				RefColumns: []*schema.Column{ProjectsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "agent_name_project_agents",
+				Unique:  true,
+				Columns: []*schema.Column{AgentsColumns[1], AgentsColumns[5]},
+			},
+		},
+	}
 	// AgentSessionsColumns holds the columns for the "agent_sessions" table.
 	AgentSessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -20,6 +50,7 @@ var (
 		{Name: "next_seq", Type: field.TypeInt, Default: 0},
 		{Name: "started_at", Type: field.TypeTime},
 		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
+		{Name: "agent_sessions", Type: field.TypeString, Nullable: true},
 		{Name: "project_sessions", Type: field.TypeInt},
 	}
 	// AgentSessionsTable holds the schema information for the "agent_sessions" table.
@@ -29,8 +60,14 @@ var (
 		PrimaryKey: []*schema.Column{AgentSessionsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "agent_sessions_projects_sessions",
+				Symbol:     "agent_sessions_agents_sessions",
 				Columns:    []*schema.Column{AgentSessionsColumns[10]},
+				RefColumns: []*schema.Column{AgentsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "agent_sessions_projects_sessions",
+				Columns:    []*schema.Column{AgentSessionsColumns[11]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -150,6 +187,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AgentsTable,
 		AgentSessionsTable,
 		CliCredentialsTable,
 		EventsTable,
@@ -160,7 +198,9 @@ var (
 )
 
 func init() {
-	AgentSessionsTable.ForeignKeys[0].RefTable = ProjectsTable
+	AgentsTable.ForeignKeys[0].RefTable = ProjectsTable
+	AgentSessionsTable.ForeignKeys[0].RefTable = AgentsTable
+	AgentSessionsTable.ForeignKeys[1].RefTable = ProjectsTable
 	EventsTable.ForeignKeys[0].RefTable = AgentSessionsTable
 	ProjectInvitesTable.ForeignKeys[0].RefTable = ProjectsTable
 	ProjectMembersTable.ForeignKeys[0].RefTable = ProjectsTable

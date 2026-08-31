@@ -14,60 +14,58 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
-	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/predicate"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 )
 
-// AgentSessionQuery is the builder for querying AgentSession entities.
-type AgentSessionQuery struct {
+// AgentQuery is the builder for querying Agent entities.
+type AgentQuery struct {
 	config
-	ctx         *QueryContext
-	order       []agentsession.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.AgentSession
-	withProject *ProjectQuery
-	withAgent   *AgentQuery
-	withEvents  *EventQuery
-	withFKs     bool
+	ctx          *QueryContext
+	order        []agent.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Agent
+	withProject  *ProjectQuery
+	withSessions *AgentSessionQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the AgentSessionQuery builder.
-func (_q *AgentSessionQuery) Where(ps ...predicate.AgentSession) *AgentSessionQuery {
+// Where adds a new predicate for the AgentQuery builder.
+func (_q *AgentQuery) Where(ps ...predicate.Agent) *AgentQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *AgentSessionQuery) Limit(limit int) *AgentSessionQuery {
+func (_q *AgentQuery) Limit(limit int) *AgentQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *AgentSessionQuery) Offset(offset int) *AgentSessionQuery {
+func (_q *AgentQuery) Offset(offset int) *AgentQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *AgentSessionQuery) Unique(unique bool) *AgentSessionQuery {
+func (_q *AgentQuery) Unique(unique bool) *AgentQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *AgentSessionQuery) Order(o ...agentsession.OrderOption) *AgentSessionQuery {
+func (_q *AgentQuery) Order(o ...agent.OrderOption) *AgentQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
 // QueryProject chains the current query on the "project" edge.
-func (_q *AgentSessionQuery) QueryProject() *ProjectQuery {
+func (_q *AgentQuery) QueryProject() *ProjectQuery {
 	query := (&ProjectClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -78,9 +76,9 @@ func (_q *AgentSessionQuery) QueryProject() *ProjectQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
+			sqlgraph.From(agent.Table, agent.FieldID, selector),
 			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, agentsession.ProjectTable, agentsession.ProjectColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, agent.ProjectTable, agent.ProjectColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -88,9 +86,9 @@ func (_q *AgentSessionQuery) QueryProject() *ProjectQuery {
 	return query
 }
 
-// QueryAgent chains the current query on the "agent" edge.
-func (_q *AgentSessionQuery) QueryAgent() *AgentQuery {
-	query := (&AgentClient{config: _q.config}).Query()
+// QuerySessions chains the current query on the "sessions" edge.
+func (_q *AgentQuery) QuerySessions() *AgentSessionQuery {
+	query := (&AgentSessionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -100,9 +98,9 @@ func (_q *AgentSessionQuery) QueryAgent() *AgentQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
-			sqlgraph.To(agent.Table, agent.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, agentsession.AgentTable, agentsession.AgentColumn),
+			sqlgraph.From(agent.Table, agent.FieldID, selector),
+			sqlgraph.To(agentsession.Table, agentsession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, agent.SessionsTable, agent.SessionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -110,43 +108,21 @@ func (_q *AgentSessionQuery) QueryAgent() *AgentQuery {
 	return query
 }
 
-// QueryEvents chains the current query on the "events" edge.
-func (_q *AgentSessionQuery) QueryEvents() *EventQuery {
-	query := (&EventClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
-			sqlgraph.To(event.Table, event.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, agentsession.EventsTable, agentsession.EventsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// First returns the first AgentSession entity from the query.
-// Returns a *NotFoundError when no AgentSession was found.
-func (_q *AgentSessionQuery) First(ctx context.Context) (*AgentSession, error) {
+// First returns the first Agent entity from the query.
+// Returns a *NotFoundError when no Agent was found.
+func (_q *AgentQuery) First(ctx context.Context) (*Agent, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{agentsession.Label}
+		return nil, &NotFoundError{agent.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *AgentSessionQuery) FirstX(ctx context.Context) *AgentSession {
+func (_q *AgentQuery) FirstX(ctx context.Context) *Agent {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -154,22 +130,22 @@ func (_q *AgentSessionQuery) FirstX(ctx context.Context) *AgentSession {
 	return node
 }
 
-// FirstID returns the first AgentSession ID from the query.
-// Returns a *NotFoundError when no AgentSession ID was found.
-func (_q *AgentSessionQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first Agent ID from the query.
+// Returns a *NotFoundError when no Agent ID was found.
+func (_q *AgentQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{agentsession.Label}
+		err = &NotFoundError{agent.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *AgentSessionQuery) FirstIDX(ctx context.Context) string {
+func (_q *AgentQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -177,10 +153,10 @@ func (_q *AgentSessionQuery) FirstIDX(ctx context.Context) string {
 	return id
 }
 
-// Only returns a single AgentSession entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one AgentSession entity is found.
-// Returns a *NotFoundError when no AgentSession entities are found.
-func (_q *AgentSessionQuery) Only(ctx context.Context) (*AgentSession, error) {
+// Only returns a single Agent entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one Agent entity is found.
+// Returns a *NotFoundError when no Agent entities are found.
+func (_q *AgentQuery) Only(ctx context.Context) (*Agent, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -189,14 +165,14 @@ func (_q *AgentSessionQuery) Only(ctx context.Context) (*AgentSession, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{agentsession.Label}
+		return nil, &NotFoundError{agent.Label}
 	default:
-		return nil, &NotSingularError{agentsession.Label}
+		return nil, &NotSingularError{agent.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *AgentSessionQuery) OnlyX(ctx context.Context) *AgentSession {
+func (_q *AgentQuery) OnlyX(ctx context.Context) *Agent {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -204,10 +180,10 @@ func (_q *AgentSessionQuery) OnlyX(ctx context.Context) *AgentSession {
 	return node
 }
 
-// OnlyID is like Only, but returns the only AgentSession ID in the query.
-// Returns a *NotSingularError when more than one AgentSession ID is found.
+// OnlyID is like Only, but returns the only Agent ID in the query.
+// Returns a *NotSingularError when more than one Agent ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *AgentSessionQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *AgentQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -216,15 +192,15 @@ func (_q *AgentSessionQuery) OnlyID(ctx context.Context) (id string, err error) 
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{agentsession.Label}
+		err = &NotFoundError{agent.Label}
 	default:
-		err = &NotSingularError{agentsession.Label}
+		err = &NotSingularError{agent.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *AgentSessionQuery) OnlyIDX(ctx context.Context) string {
+func (_q *AgentQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -232,18 +208,18 @@ func (_q *AgentSessionQuery) OnlyIDX(ctx context.Context) string {
 	return id
 }
 
-// All executes the query and returns a list of AgentSessions.
-func (_q *AgentSessionQuery) All(ctx context.Context) ([]*AgentSession, error) {
+// All executes the query and returns a list of Agents.
+func (_q *AgentQuery) All(ctx context.Context) ([]*Agent, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*AgentSession, *AgentSessionQuery]()
-	return withInterceptors[[]*AgentSession](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*Agent, *AgentQuery]()
+	return withInterceptors[[]*Agent](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *AgentSessionQuery) AllX(ctx context.Context) []*AgentSession {
+func (_q *AgentQuery) AllX(ctx context.Context) []*Agent {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -251,20 +227,20 @@ func (_q *AgentSessionQuery) AllX(ctx context.Context) []*AgentSession {
 	return nodes
 }
 
-// IDs executes the query and returns a list of AgentSession IDs.
-func (_q *AgentSessionQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of Agent IDs.
+func (_q *AgentQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(agentsession.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(agent.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *AgentSessionQuery) IDsX(ctx context.Context) []string {
+func (_q *AgentQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -273,16 +249,16 @@ func (_q *AgentSessionQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (_q *AgentSessionQuery) Count(ctx context.Context) (int, error) {
+func (_q *AgentQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*AgentSessionQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AgentQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *AgentSessionQuery) CountX(ctx context.Context) int {
+func (_q *AgentQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -291,7 +267,7 @@ func (_q *AgentSessionQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *AgentSessionQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *AgentQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -304,7 +280,7 @@ func (_q *AgentSessionQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *AgentSessionQuery) ExistX(ctx context.Context) bool {
+func (_q *AgentQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -312,21 +288,20 @@ func (_q *AgentSessionQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the AgentSessionQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the AgentQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *AgentSessionQuery) Clone() *AgentSessionQuery {
+func (_q *AgentQuery) Clone() *AgentQuery {
 	if _q == nil {
 		return nil
 	}
-	return &AgentSessionQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]agentsession.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.AgentSession{}, _q.predicates...),
-		withProject: _q.withProject.Clone(),
-		withAgent:   _q.withAgent.Clone(),
-		withEvents:  _q.withEvents.Clone(),
+	return &AgentQuery{
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]agent.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.Agent{}, _q.predicates...),
+		withProject:  _q.withProject.Clone(),
+		withSessions: _q.withSessions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -335,7 +310,7 @@ func (_q *AgentSessionQuery) Clone() *AgentSessionQuery {
 
 // WithProject tells the query-builder to eager-load the nodes that are connected to
 // the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AgentSessionQuery) WithProject(opts ...func(*ProjectQuery)) *AgentSessionQuery {
+func (_q *AgentQuery) WithProject(opts ...func(*ProjectQuery)) *AgentQuery {
 	query := (&ProjectClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -344,25 +319,14 @@ func (_q *AgentSessionQuery) WithProject(opts ...func(*ProjectQuery)) *AgentSess
 	return _q
 }
 
-// WithAgent tells the query-builder to eager-load the nodes that are connected to
-// the "agent" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AgentSessionQuery) WithAgent(opts ...func(*AgentQuery)) *AgentSessionQuery {
-	query := (&AgentClient{config: _q.config}).Query()
+// WithSessions tells the query-builder to eager-load the nodes that are connected to
+// the "sessions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AgentQuery) WithSessions(opts ...func(*AgentSessionQuery)) *AgentQuery {
+	query := (&AgentSessionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withAgent = query
-	return _q
-}
-
-// WithEvents tells the query-builder to eager-load the nodes that are connected to
-// the "events" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AgentSessionQuery) WithEvents(opts ...func(*EventQuery)) *AgentSessionQuery {
-	query := (&EventClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withEvents = query
+	_q.withSessions = query
 	return _q
 }
 
@@ -372,19 +336,19 @@ func (_q *AgentSessionQuery) WithEvents(opts ...func(*EventQuery)) *AgentSession
 // Example:
 //
 //	var v []struct {
-//		OwnerID string `json:"owner_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.AgentSession.Query().
-//		GroupBy(agentsession.FieldOwnerID).
+//	client.Agent.Query().
+//		GroupBy(agent.FieldName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *AgentSessionQuery) GroupBy(field string, fields ...string) *AgentSessionGroupBy {
+func (_q *AgentQuery) GroupBy(field string, fields ...string) *AgentGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AgentSessionGroupBy{build: _q}
+	grbuild := &AgentGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = agentsession.Label
+	grbuild.label = agent.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -395,26 +359,26 @@ func (_q *AgentSessionQuery) GroupBy(field string, fields ...string) *AgentSessi
 // Example:
 //
 //	var v []struct {
-//		OwnerID string `json:"owner_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
-//	client.AgentSession.Query().
-//		Select(agentsession.FieldOwnerID).
+//	client.Agent.Query().
+//		Select(agent.FieldName).
 //		Scan(ctx, &v)
-func (_q *AgentSessionQuery) Select(fields ...string) *AgentSessionSelect {
+func (_q *AgentQuery) Select(fields ...string) *AgentSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &AgentSessionSelect{AgentSessionQuery: _q}
-	sbuild.label = agentsession.Label
+	sbuild := &AgentSelect{AgentQuery: _q}
+	sbuild.label = agent.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a AgentSessionSelect configured with the given aggregations.
-func (_q *AgentSessionQuery) Aggregate(fns ...AggregateFunc) *AgentSessionSelect {
+// Aggregate returns a AgentSelect configured with the given aggregations.
+func (_q *AgentQuery) Aggregate(fns ...AggregateFunc) *AgentSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *AgentSessionQuery) prepareQuery(ctx context.Context) error {
+func (_q *AgentQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -426,7 +390,7 @@ func (_q *AgentSessionQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !agentsession.ValidColumn(f) {
+		if !agent.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -440,28 +404,27 @@ func (_q *AgentSessionQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *AgentSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AgentSession, error) {
+func (_q *AgentQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Agent, error) {
 	var (
-		nodes       = []*AgentSession{}
+		nodes       = []*Agent{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			_q.withProject != nil,
-			_q.withAgent != nil,
-			_q.withEvents != nil,
+			_q.withSessions != nil,
 		}
 	)
-	if _q.withProject != nil || _q.withAgent != nil {
+	if _q.withProject != nil {
 		withFKs = true
 	}
 	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, agentsession.ForeignKeys...)
+		_spec.Node.Columns = append(_spec.Node.Columns, agent.ForeignKeys...)
 	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*AgentSession).scanValues(nil, columns)
+		return (*Agent).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &AgentSession{config: _q.config}
+		node := &Agent{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -477,34 +440,28 @@ func (_q *AgentSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	}
 	if query := _q.withProject; query != nil {
 		if err := _q.loadProject(ctx, query, nodes, nil,
-			func(n *AgentSession, e *Project) { n.Edges.Project = e }); err != nil {
+			func(n *Agent, e *Project) { n.Edges.Project = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withAgent; query != nil {
-		if err := _q.loadAgent(ctx, query, nodes, nil,
-			func(n *AgentSession, e *Agent) { n.Edges.Agent = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withEvents; query != nil {
-		if err := _q.loadEvents(ctx, query, nodes,
-			func(n *AgentSession) { n.Edges.Events = []*Event{} },
-			func(n *AgentSession, e *Event) { n.Edges.Events = append(n.Edges.Events, e) }); err != nil {
+	if query := _q.withSessions; query != nil {
+		if err := _q.loadSessions(ctx, query, nodes,
+			func(n *Agent) { n.Edges.Sessions = []*AgentSession{} },
+			func(n *Agent, e *AgentSession) { n.Edges.Sessions = append(n.Edges.Sessions, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *AgentSessionQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*AgentSession, init func(*AgentSession), assign func(*AgentSession, *Project)) error {
+func (_q *AgentQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*Agent, init func(*Agent), assign func(*Agent, *Project)) error {
 	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*AgentSession)
+	nodeids := make(map[int][]*Agent)
 	for i := range nodes {
-		if nodes[i].project_sessions == nil {
+		if nodes[i].project_agents == nil {
 			continue
 		}
-		fk := *nodes[i].project_sessions
+		fk := *nodes[i].project_agents
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -521,7 +478,7 @@ func (_q *AgentSessionQuery) loadProject(ctx context.Context, query *ProjectQuer
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "project_sessions" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "project_agents" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -529,41 +486,9 @@ func (_q *AgentSessionQuery) loadProject(ctx context.Context, query *ProjectQuer
 	}
 	return nil
 }
-func (_q *AgentSessionQuery) loadAgent(ctx context.Context, query *AgentQuery, nodes []*AgentSession, init func(*AgentSession), assign func(*AgentSession, *Agent)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*AgentSession)
-	for i := range nodes {
-		if nodes[i].agent_sessions == nil {
-			continue
-		}
-		fk := *nodes[i].agent_sessions
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(agent.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "agent_sessions" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *AgentSessionQuery) loadEvents(ctx context.Context, query *EventQuery, nodes []*AgentSession, init func(*AgentSession), assign func(*AgentSession, *Event)) error {
+func (_q *AgentQuery) loadSessions(ctx context.Context, query *AgentSessionQuery, nodes []*Agent, init func(*Agent), assign func(*Agent, *AgentSession)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*AgentSession)
+	nodeids := make(map[string]*Agent)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -572,28 +497,28 @@ func (_q *AgentSessionQuery) loadEvents(ctx context.Context, query *EventQuery, 
 		}
 	}
 	query.withFKs = true
-	query.Where(predicate.Event(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(agentsession.EventsColumn), fks...))
+	query.Where(predicate.AgentSession(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(agent.SessionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.agent_session_events
+		fk := n.agent_sessions
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "agent_session_events" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "agent_sessions" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "agent_session_events" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "agent_sessions" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
 
-func (_q *AgentSessionQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *AgentQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -602,8 +527,8 @@ func (_q *AgentSessionQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *AgentSessionQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(agentsession.Table, agentsession.Columns, sqlgraph.NewFieldSpec(agentsession.FieldID, field.TypeString))
+func (_q *AgentQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(agent.Table, agent.Columns, sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -612,9 +537,9 @@ func (_q *AgentSessionQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, agentsession.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, agent.FieldID)
 		for i := range fields {
-			if fields[i] != agentsession.FieldID {
+			if fields[i] != agent.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -642,12 +567,12 @@ func (_q *AgentSessionQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *AgentSessionQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *AgentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(agentsession.Table)
+	t1 := builder.Table(agent.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = agentsession.Columns
+		columns = agent.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -674,28 +599,28 @@ func (_q *AgentSessionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// AgentSessionGroupBy is the group-by builder for AgentSession entities.
-type AgentSessionGroupBy struct {
+// AgentGroupBy is the group-by builder for Agent entities.
+type AgentGroupBy struct {
 	selector
-	build *AgentSessionQuery
+	build *AgentQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *AgentSessionGroupBy) Aggregate(fns ...AggregateFunc) *AgentSessionGroupBy {
+func (_g *AgentGroupBy) Aggregate(fns ...AggregateFunc) *AgentGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *AgentSessionGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *AgentGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AgentSessionQuery, *AgentSessionGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*AgentQuery, *AgentGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *AgentSessionGroupBy) sqlScan(ctx context.Context, root *AgentSessionQuery, v any) error {
+func (_g *AgentGroupBy) sqlScan(ctx context.Context, root *AgentQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -722,28 +647,28 @@ func (_g *AgentSessionGroupBy) sqlScan(ctx context.Context, root *AgentSessionQu
 	return sql.ScanSlice(rows, v)
 }
 
-// AgentSessionSelect is the builder for selecting fields of AgentSession entities.
-type AgentSessionSelect struct {
-	*AgentSessionQuery
+// AgentSelect is the builder for selecting fields of Agent entities.
+type AgentSelect struct {
+	*AgentQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *AgentSessionSelect) Aggregate(fns ...AggregateFunc) *AgentSessionSelect {
+func (_s *AgentSelect) Aggregate(fns ...AggregateFunc) *AgentSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *AgentSessionSelect) Scan(ctx context.Context, v any) error {
+func (_s *AgentSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AgentSessionQuery, *AgentSessionSelect](ctx, _s.AgentSessionQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*AgentQuery, *AgentSelect](ctx, _s.AgentQuery, _s, _s.inters, v)
 }
 
-func (_s *AgentSessionSelect) sqlScan(ctx context.Context, root *AgentSessionQuery, v any) error {
+func (_s *AgentSelect) sqlScan(ctx context.Context, root *AgentQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

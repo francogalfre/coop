@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Agent is the predicate function for agent builders.
+type Agent func(*sql.Selector)
+
 // AgentSession is the predicate function for agentsession builders.
 type AgentSession func(*sql.Selector)
 

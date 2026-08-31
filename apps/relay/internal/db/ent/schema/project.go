@@ -26,5 +26,6 @@ func (Project) Edges() []ent.Edge {
 		edge.To("members", ProjectMember.Type),
 		edge.To("invites", ProjectInvite.Type),
 		edge.To("sessions", AgentSession.Type),
+		edge.To("agents", Agent.Type),
 	}
 }

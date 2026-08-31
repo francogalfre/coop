@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/clicredential"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
@@ -78,6 +79,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			agent.Table:         agent.ValidColumn,
 			agentsession.Table:  agentsession.ValidColumn,
 			clicredential.Table: clicredential.ValidColumn,
 			event.Table:         event.ValidColumn,

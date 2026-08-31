@@ -653,6 +653,29 @@ func HasProjectWith(preds ...predicate.Project) predicate.AgentSession {
 	})
 }
 
+// HasAgent applies the HasEdge predicate on the "agent" edge.
+func HasAgent() predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, AgentTable, AgentColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAgentWith applies the HasEdge predicate on the "agent" edge with a given conditions (other predicates).
+func HasAgentWith(preds ...predicate.Agent) predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := newAgentStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasEvents applies the HasEdge predicate on the "events" edge.
 func HasEvents() predicate.AgentSession {
 	return predicate.AgentSession(func(s *sql.Selector) {
