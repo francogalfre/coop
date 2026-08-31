@@ -1,24 +1,27 @@
 import { motion } from "motion/react";
 import { signIn } from "@/lib/auth/auth-client";
-import { IconGithub, IconMessage, IconTerminal, IconUnlock } from "@/components/icons";
+import { IconGithub, IconLock, IconMessage, IconUnlock } from "@/components/icons";
 import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 
 const STEPS = [
   {
-    icon: IconTerminal,
-    title: "Watch",
-    description: "Drop into a live session and see every tool call and message as it happens.",
+    icon: IconLock,
+    title: "Redacted at the source",
+    description:
+      "Secrets are filtered on your machine before an event is sent — never on the relay, never after the fact.",
   },
   {
     icon: IconMessage,
-    title: "Redirect",
-    description: "Send a message the agent sees mid-task, attributed to you.",
+    title: "Steering, attributed",
+    description:
+      "A teammate's message reaches the agent mid-task with their name on it — never disguised as a system instruction.",
   },
   {
     icon: IconUnlock,
-    title: "Hand off",
-    description: "Take over completely — the agent pauses, you drive.",
+    title: "A takeover that's real",
+    description:
+      "Taking over pauses the agent's next tool call through the harness's own permission hook, not a UI-only lock.",
   },
 ];
 
@@ -38,12 +41,14 @@ export function SignedOut() {
         </span>
 
         <h1 className="text-balance font-display font-semibold text-[42px] text-foreground leading-[1.05] tracking-tight sm:text-[56px]">
-          Your agent, <span className="text-muted-foreground">everyone&apos;s screen.</span>
+          The agent runs alone. <span className="text-muted-foreground">Your team doesn&apos;t have to.</span>
         </h1>
 
-        <p className="mx-auto max-w-md text-balance text-[15px] text-muted-foreground leading-relaxed">
-          One person runs a coding agent. Teammates open a link and watch it work live — reading
-          every tool call, messaging it, and steering it together.
+        <p className="mx-auto max-w-lg text-balance text-[15px] text-muted-foreground leading-relaxed">
+          One person runs the agent — everyone else gets a read-only transcript. Coop makes it a
+          room your whole team can enter: watch every tool call, steer it mid-task, take over for
+          real. We&apos;re starting with coding agents, where the line between what a teammate
+          sends and what an agent does is hardest to get right.
         </p>
 
         <Button
