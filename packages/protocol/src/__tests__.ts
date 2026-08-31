@@ -181,7 +181,7 @@ describe("eventsJsonSchema", () => {
     const union = schema.oneOf ?? schema.anyOf;
     expect(union).toBeDefined();
     expect(union).toHaveLength(KNOWN_EVENT_TYPES.length);
-    expect(KNOWN_EVENT_TYPES).toHaveLength(19);
+    expect(KNOWN_EVENT_TYPES).toHaveLength(20);
   });
 
   it("stringifies without throwing", () => {

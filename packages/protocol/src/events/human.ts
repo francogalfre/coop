@@ -18,6 +18,15 @@ export const humanSteer = z.object({
 });
 export type HumanSteer = z.infer<typeof humanSteer>;
 
+export const humanMessage = z.object({
+  ...envelopeFields,
+  type: z.literal("human.message"),
+  actor,
+  text: redactedText,
+  anchor_seq: z.int().nonnegative().optional(),
+});
+export type HumanMessage = z.infer<typeof humanMessage>;
+
 export const humanTakeover = z.object({
   ...envelopeFields,
   type: z.literal("human.takeover"),

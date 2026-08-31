@@ -4,7 +4,7 @@ import { agentTurnStart, agentText, agentTurnEnd } from "./events/agent.js";
 import { toolCall, toolResult, toolBlocked } from "./events/tool.js";
 import { fileTouched } from "./events/file.js";
 import { permissionRequested, permissionResolved } from "./events/permission.js";
-import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt } from "./events/human.js";
+import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt, humanMessage } from "./events/human.js";
 import { steerRequested, steerResolved } from "./events/steer.js";
 import { sessionModeChanged } from "./events/session-mode.js";
 import { unknownEvent } from "./events/unknown.js";
@@ -26,6 +26,7 @@ export const EVENT_SCHEMAS = {
   "human.steer": humanSteer,
   "human.takeover": humanTakeover,
   "human.prompt": humanPrompt,
+  "human.message": humanMessage,
   "steer.requested": steerRequested,
   "steer.resolved": steerResolved,
   "session.mode_changed": sessionModeChanged,
@@ -39,7 +40,7 @@ export const knownEvent = z.discriminatedUnion("type", [
   toolCall, toolResult, toolBlocked,
   fileTouched,
   permissionRequested, permissionResolved,
-  humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt,
+  humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt, humanMessage,
   steerRequested, steerResolved,
   sessionModeChanged,
 ]);

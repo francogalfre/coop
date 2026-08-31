@@ -4,7 +4,7 @@ import { agentTurnStart, agentText, agentTurnEnd } from "./agent.js";
 import { toolCall, toolResult, toolBlocked } from "./tool.js";
 import { fileTouched } from "./file.js";
 import { permissionRequested, permissionResolved } from "./permission.js";
-import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt } from "./human.js";
+import { humanJoin, humanLeave, humanSteer, humanTakeover, humanPrompt, humanMessage } from "./human.js";
 import { steerRequested, steerResolved } from "./steer.js";
 import { sessionModeChanged } from "./session-mode.js";
 import { unknownEvent } from "./unknown.js";
@@ -399,6 +399,49 @@ describe("humanSteer", () => {
       text: { text: "try a different approach", redactions: 0, truncated: false },
     };
     expect(humanSteer.safeParse(fixture).success).toBe(false);
+  });
+});
+
+describe("humanMessage", () => {
+  it("parses a minimal valid fixture", () => {
+    const fixture = {
+      ...base,
+      type: "human.message",
+      actor: anActor,
+      text: { text: "worth a look before this lands", redactions: 0, truncated: false },
+    };
+    expect(humanMessage.safeParse(fixture).success).toBe(true);
+  });
+
+  it("parses a fixture anchored to a past event", () => {
+    const fixture = {
+      ...base,
+      type: "human.message",
+      actor: anActor,
+      text: { text: "why this tool call?", redactions: 0, truncated: false },
+      anchor_seq: 482,
+    };
+    const result = humanMessage.safeParse(fixture);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.anchor_seq).toBe(482);
+    }
+  });
+
+  it("rejects a fixture missing text", () => {
+    const fixture = { ...base, type: "human.message", actor: anActor };
+    expect(humanMessage.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects a negative anchor_seq", () => {
+    const fixture = {
+      ...base,
+      type: "human.message",
+      actor: anActor,
+      text: { text: "why this tool call?", redactions: 0, truncated: false },
+      anchor_seq: -1,
+    };
+    expect(humanMessage.safeParse(fixture).success).toBe(false);
   });
 });
 
