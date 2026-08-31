@@ -16,6 +16,8 @@ import (
 	"github.com/francogalfre/coop/packages/cli/internal/ptywrap"
 )
 
+var version = "dev"
+
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "coop: %v\n", err)
@@ -26,6 +28,12 @@ func main() {
 func run(args []string) error {
 	if len(args) < 1 {
 		return usageError()
+	}
+
+	switch args[0] {
+	case "version", "--version", "-v":
+		fmt.Printf("coop %s\n", version)
+		return nil
 	}
 
 	cfg, err := config.Load()
@@ -51,7 +59,7 @@ func run(args []string) error {
 }
 
 func usageError() error {
-	return fmt.Errorf("usage: coop attach [--harness=<name>] --project=<slug> | coop run [--harness=<name>] --project=<slug> -- <cmd> [args...] | coop detach [dir] | coop login")
+	return fmt.Errorf("usage: coop attach [--harness=<name>] --project=<slug> | coop run [--harness=<name>] --project=<slug> -- <cmd> [args...] | coop detach [dir] | coop login | coop version")
 }
 
 func parseAttachRunFlags(fsName string, args []string) (harnessFlag, project string, remaining []string, err error) {
