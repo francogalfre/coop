@@ -22,6 +22,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      # Coolify proxies compose services through its managed Traefik
+      # instance and reads these labels directly — no separate proxy
+      # container needed. web and relay must share COOP_DOMAIN (path-routed,
+      # not subdomains): the relay's session cookie is host-only, not
+      # Domain=.${COOP_DOMAIN} (see apps/web/lib/auth/auth.ts), so it's
+      # only ever sent to the exact origin the browser signed in on.
+      # Verify entrypoint/certresolver names in Coolify's dashboard
+      # (Servers → Proxy → Configuration) if they differ on your instance.
+      - traefik.enable=true
+      - traefik.http.routers.coop-relay.rule=Host(`${COOP_DOMAIN}`) && (PathPrefix(`/v1`) || Path(`/healthz`))
+      - traefik.http.routers.coop-relay.priority=10
+      - traefik.http.routers.coop-relay.entrypoints=https
+      - traefik.http.routers.coop-relay.tls=true
+      - traefik.http.routers.coop-relay.tls.certresolver=letsencrypt
+      - traefik.http.services.coop-relay.loadbalancer.server.port=8787
 
   web:
     build:
@@ -46,23 +62,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      COOP_DOMAIN: ${COOP_DOMAIN}
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - relay
-      - web
-
-volumes:
-  caddy_data:
-  caddy_config:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.coop-web.rule=Host(`${COOP_DOMAIN}`)
+      - traefik.http.routers.coop-web.priority=1
+      - traefik.http.routers.coop-web.entrypoints=https
+      - traefik.http.routers.coop-web.tls=true
+      - traefik.http.routers.coop-web.tls.certresolver=letsencrypt
+      - traefik.http.services.coop-web.loadbalancer.server.port=3000
