@@ -25,6 +25,11 @@ bun run dev
 
 **Terminal 2: Build the CLI and use it**
 
+Release binaries are published to [GitHub Releases](../../releases) whenever
+a `vX.Y.Z` tag is pushed — download one for your platform instead of building
+from source if you just want to run `coop`. To build locally (needed for
+`coop` development, e.g. `./scripts/probe.sh`):
+
 ```bash
 cd packages/cli
 go build -o coop ./cmd/coop
@@ -61,7 +66,7 @@ You'll see your live session. Send steering text from the input box at the botto
 - Web viewer with live event feed, per-session harness label
 - Secret redaction before events leave your machine
 - Conflict detection between sessions (MCP tool)
-- Codex and Gemini CLI hooks exist but aren't wired up yet — see
+- Codex and Gemini CLI adapters aren't built yet — see
   `.agents/rules/harnesses.md`
 
 ## For Development
@@ -77,22 +82,22 @@ See `.agents/context.md` for the full vision and `.agents/conventions.md` for co
 
 ## Deploying
 
-Single-VPS deployment via Docker Compose: `web`, `relay`, and a `caddy`
-reverse proxy on one host, sharing one domain so the relay's session cookie
-works same-origin. Postgres is external/managed (e.g. Neon) — bring your own
+Deploy straight from GitHub with [Coolify](https://coolify.io): add this repo
+as a **Docker Compose** resource. Coolify builds `web` and `relay` from
+`docker-compose.yml` and proxies both through its own Traefik instance using
+the `traefik.*` labels already in that file — there's no separate reverse
+proxy to run. Postgres is external/managed (e.g. Neon) — bring your own
 `DATABASE_URL`.
 
-```bash
-git clone <this repo> && cd coop
-cp .env.production.example .env
-# fill in COOP_DOMAIN, DATABASE_URL, COOP_GITHUB_CLIENT_ID/SECRET,
-# COOP_INTERNAL_SECRET, BETTER_AUTH_SECRET
+1. Point `COOP_DOMAIN`'s DNS A/AAAA record at your Coolify server.
+2. Set the variables from `.env.production.example` (`COOP_DOMAIN`,
+   `DATABASE_URL`, `COOP_GITHUB_CLIENT_ID`/`SECRET`, `COOP_INTERNAL_SECRET`,
+   `BETTER_AUTH_SECRET`) as environment variables on the Coolify resource.
+3. Deploy. Coolify provisions the TLS certificate on first request.
 
-docker compose up -d --build
-```
-
-Point `COOP_DOMAIN`'s DNS A/AAAA record at the VPS before starting Caddy —
-it provisions a TLS certificate automatically on first request.
+To run it anywhere else without Coolify, `docker compose up -d --build` still
+works, but you'd need your own reverse proxy in front of it — the compose
+file only carries Traefik labels, not a bundled proxy.
 
 The relay holds several in-memory singletons (`Store`, `Mailbox`,
 `PresenceHub`, `TakeoverRegistry`, `PtyHub`, `SteerRequestRegistry` — see

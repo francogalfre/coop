@@ -7,7 +7,7 @@ export default function DocsCliReference() {
       <DocPageHeader
         eyebrow="CLI Reference"
         title="coop commands"
-        intro="Four commands, verified against packages/cli/cmd/coop. Nothing here is invented — if a flag isn't listed, it doesn't exist yet."
+        intro="Five commands, verified against packages/cli/cmd/coop. Nothing here is invented — if a flag isn't listed, it doesn't exist yet."
       />
 
       <div className="space-y-6">
@@ -63,6 +63,14 @@ export default function DocsCliReference() {
           usage="coop detach [dir]"
           flags={[{ flag: "[dir]", description: "Directory to clean up. Defaults to the current directory." }]}
           example="coop detach"
+        />
+
+        <CliCommand
+          name="coop version"
+          description="Prints the CLI version and exits. --version and -v are aliases."
+          usage="coop version"
+          example="coop version"
+          note="Release builds from GitHub Releases report their tag (e.g. v0.1.0); a build from source reports dev."
         />
       </div>
     </>

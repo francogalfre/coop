@@ -1,0 +1,59 @@
+name: release
+
+on:
+    push:
+        tags: ["v*"]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                goos: [linux, darwin, windows]
+                goarch: [amd64, arm64]
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-go@v7
+              with:
+                  go-version-file: packages/cli/go.mod
+            - name: build
+              working-directory: packages/cli
+              env:
+                  GOOS: ${{ matrix.goos }}
+                  GOARCH: ${{ matrix.goarch }}
+                  CGO_ENABLED: 0
+              run: |
+                  mkdir -p dist
+                  out=dist/coop
+                  if [ "$GOOS" = "windows" ]; then out=dist/coop.exe; fi
+                  go build -trimpath -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "$out" ./cmd/coop
+            - name: package
+              working-directory: packages/cli/dist
+              run: |
+                  name=coop_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}
+                  if [ "${{ matrix.goos }}" = "windows" ]; then
+                      zip "$name.zip" coop.exe
+                  else
+                      tar -czf "$name.tar.gz" coop
+                  fi
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: coop_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}
+                  path: |
+                      packages/cli/dist/*.tar.gz
+                      packages/cli/dist/*.zip
+
+    release:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  path: dist
+                  merge-multiple: true
+            - uses: softprops/action-gh-release@v2
+              with:
+                  files: dist/*
+                  generate_release_notes: true
