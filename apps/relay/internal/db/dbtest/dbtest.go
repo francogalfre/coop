@@ -28,12 +28,12 @@ func OpenScratch(t *testing.T) *db.Pool {
 
 	adminDB, err := sql.Open("pgx", adminURL)
 	if err != nil {
-		t.Skipf("dbtest: no Postgres available at %s: %v", adminURL, err)
+		skipOrFail(t, adminURL, err)
 	}
 
 	if err := adminDB.PingContext(ctx); err != nil {
 		adminDB.Close()
-		t.Skipf("dbtest: no Postgres available at %s: %v", adminURL, err)
+		skipOrFail(t, adminURL, err)
 	}
 
 	name := scratchName(t)
@@ -63,6 +63,16 @@ func OpenScratch(t *testing.T) *db.Pool {
 	}
 
 	return pool
+}
+
+func skipOrFail(t *testing.T, adminURL string, err error) {
+	t.Helper()
+
+	if os.Getenv("CI") == "true" {
+		t.Fatalf("dbtest: no Postgres available at %s: %v (CI must run the trust-boundary tests, not skip them)", adminURL, err)
+	}
+
+	t.Skipf("dbtest: no Postgres available at %s: %v", adminURL, err)
 }
 
 func scratchName(t *testing.T) string {
