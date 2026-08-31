@@ -18,6 +18,14 @@ export type AgentSession = {
   ended_at?: string | null;
 };
 
+export type Agent = {
+  id: string;
+  name: string;
+  display_name: string;
+  status: "online" | "idle" | "offline";
+  current_session_id: string | null;
+};
+
 export type EventsPage = {
   events: unknown[];
   oldest_seq: number;
@@ -85,12 +93,33 @@ export const relayApi = {
       method: "POST",
     }),
 
+  listAgents: (slug: string) =>
+    request<{ agents: Agent[] }>(`/v1/projects/${encodeURIComponent(slug)}/agents`),
+
+  messageAgent: (slug: string, name: string, text: string) =>
+    request<{ status: "accepted"; queued: number } | { status: "pending"; request_id: string }>(
+      `/v1/projects/${encodeURIComponent(slug)}/agents/${encodeURIComponent(name)}/message`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      },
+    ),
+
   sendMessage: (sessionId: string, text: string) =>
     request<{ status: "accepted"; queued: number } | { status: "pending"; request_id: string }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
       {
         method: "POST",
         body: JSON.stringify({ text }),
+      },
+    ),
+
+  sendTeamMessage: (sessionId: string, text: string, anchorSeq?: number) =>
+    request<{ status: "sent"; seq: number }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/message`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text, anchor_seq: anchorSeq }),
       },
     ),
 

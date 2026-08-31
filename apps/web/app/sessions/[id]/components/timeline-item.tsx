@@ -9,6 +9,7 @@ import {
   IconCode,
   IconEdit,
   IconFile,
+  IconReply,
   IconSend,
   IconSpinner,
   IconTerminal,
@@ -34,7 +35,15 @@ function toolIconFor(name: string) {
   return TOOL_ICONS[name.toLowerCase()] ?? IconCode;
 }
 
-function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
+function ToolRow({
+  item,
+  onReply,
+  highlighted,
+}: {
+  item: Extract<TimelineItem, { kind: "tool" }>;
+  onReply?: (seq: number) => void;
+  highlighted?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const Icon = toolIconFor(item.toolName);
   const summary = summarizeToolInput(item.toolName, item.input);
@@ -43,6 +52,9 @@ function ToolRow({ item }: { item: Extract<TimelineItem, { kind: "tool" }> }) {
   return (
     <Row
       ts={item.ts}
+      seq={item.seq}
+      onReply={onReply}
+      highlighted={highlighted}
       rail={
         <span
           className={cn(
@@ -136,13 +148,20 @@ function CodeBlock({ label, body }: { label: string; body: string }) {
 function AgentTextRow({
   item,
   harness,
+  onReply,
+  highlighted,
 }: {
   item: Extract<TimelineItem, { kind: "agent-text" }>;
   harness?: string;
+  onReply?: (seq: number) => void;
+  highlighted?: boolean;
 }) {
   return (
     <Row
       ts={item.ts}
+      seq={item.seq}
+      onReply={onReply}
+      highlighted={highlighted}
       rail={
         <span className="relative z-10 grid size-6 place-items-center rounded-md border border-agent/30 bg-agent/10 text-agent">
           <HarnessLogo harness={harness} size={13} />
@@ -156,10 +175,23 @@ function AgentTextRow({
   );
 }
 
-function MessageRow({ item }: { item: Extract<TimelineItem, { kind: "message" }> }) {
+function MessageRow({
+  item,
+  onReply,
+  highlighted,
+  onJumpToAnchor,
+}: {
+  item: Extract<TimelineItem, { kind: "message" }>;
+  onReply?: (seq: number) => void;
+  highlighted?: boolean;
+  onJumpToAnchor?: (seq: number) => void;
+}) {
   return (
     <Row
       ts={item.ts}
+      seq={item.seq}
+      onReply={onReply}
+      highlighted={highlighted}
       rail={
         <span
           className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-3xs text-background"
@@ -179,16 +211,37 @@ function MessageRow({ item }: { item: Extract<TimelineItem, { kind: "message" }>
             </span>
           )}
         </div>
+        {item.anchorSeq !== undefined && (
+          <button
+            type="button"
+            onClick={() => onJumpToAnchor?.(item.anchorSeq!)}
+            className="mb-1 flex items-center gap-1 text-2xs text-human/80 hover:underline"
+          >
+            <IconReply size={10} />
+            replying to step {item.anchorSeq}
+          </button>
+        )}
         <p className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">{item.text}</p>
       </div>
     </Row>
   );
 }
 
-function NoticeRow({ item }: { item: Extract<TimelineItem, { kind: "notice" }> }) {
+function NoticeRow({
+  item,
+  onReply,
+  highlighted,
+}: {
+  item: Extract<TimelineItem, { kind: "notice" }>;
+  onReply?: (seq: number) => void;
+  highlighted?: boolean;
+}) {
   return (
     <Row
       ts={item.ts}
+      seq={item.seq}
+      onReply={onReply}
+      highlighted={highlighted}
       rail={
         item.tone === "start" ? (
           <span className="relative z-10 mt-2 grid place-items-center">
@@ -209,22 +262,35 @@ export const TimelineRow = memo(function TimelineRow({
   harness,
   sessionId,
   isOwner,
+  onReply,
+  onJumpToAnchor,
+  highlighted,
 }: {
   item: TimelineItem;
   harness?: string;
   sessionId: string;
   isOwner: boolean;
+  onReply?: (seq: number) => void;
+  onJumpToAnchor?: (seq: number) => void;
+  highlighted?: boolean;
 }) {
   switch (item.kind) {
     case "tool":
-      return <ToolRow item={item} />;
+      return <ToolRow item={item} onReply={onReply} highlighted={highlighted} />;
     case "agent-text":
-      return <AgentTextRow item={item} harness={harness} />;
+      return <AgentTextRow item={item} harness={harness} onReply={onReply} highlighted={highlighted} />;
     case "message":
-      return <MessageRow item={item} />;
+      return (
+        <MessageRow
+          item={item}
+          onReply={onReply}
+          onJumpToAnchor={onJumpToAnchor}
+          highlighted={highlighted}
+        />
+      );
     case "steer-request":
       return <SteerRequestRow item={item} sessionId={sessionId} isOwner={isOwner} />;
     case "notice":
-      return <NoticeRow item={item} />;
+      return <NoticeRow item={item} onReply={onReply} highlighted={highlighted} />;
   }
 });

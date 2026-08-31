@@ -8,6 +8,7 @@ export type TouchedFile = {
 export type ToolItem = {
   kind: "tool";
   key: string;
+  seq: number;
   ts: string;
   toolName: string;
   input: string;
@@ -19,6 +20,7 @@ export type ToolItem = {
 export type AgentTextItem = {
   kind: "agent-text";
   key: string;
+  seq: number;
   ts: string;
   text: string;
 };
@@ -26,10 +28,12 @@ export type AgentTextItem = {
 export type MessageItem = {
   kind: "message";
   key: string;
+  seq: number;
   ts: string;
   author: string;
   text: string;
   toAgent: boolean;
+  anchorSeq?: number;
 };
 
 export type NoticeTone = "start" | "end" | "join" | "leave" | "turn" | "takeover";
@@ -37,6 +41,7 @@ export type NoticeTone = "start" | "end" | "join" | "leave" | "turn" | "takeover
 export type NoticeItem = {
   kind: "notice";
   key: string;
+  seq: number;
   ts: string;
   tone: NoticeTone;
   text: string;
@@ -47,6 +52,7 @@ export type SteerRequestStatus = "pending" | "allowed" | "denied";
 export type SteerRequestItem = {
   kind: "steer-request";
   key: string;
+  seq: number;
   ts: string;
   requestId: string;
   author: string;

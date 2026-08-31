@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { IconChevronUp, IconSparkles } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,13 @@ function EmptyState({ visible }: { visible: boolean }) {
   );
 }
 
+const HIGHLIGHT_MS = 2000;
+
+function seqFromHash(hash: string): number | null {
+  const match = /^#seq-(\d+)$/.exec(hash);
+  return match ? Number(match[1]) : null;
+}
+
 export function Timeline({
   items,
   harness,
@@ -40,6 +47,7 @@ export function Timeline({
   hasEarlier,
   loadingEarlier,
   visible = true,
+  onReply,
 }: {
   items: TimelineItem[];
   harness?: string;
@@ -49,10 +57,33 @@ export function Timeline({
   hasEarlier?: boolean;
   loadingEarlier?: boolean;
   visible?: boolean;
+  onReply?: (seq: number) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
+  const [highlightedSeq, setHighlightedSeq] = useState<number | null>(null);
+
+  const jumpToSeq = useCallback((seq: number) => {
+    const el = document.getElementById(`seq-${seq}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedSeq(seq);
+    setTimeout(() => setHighlightedSeq((current) => (current === seq ? null : current)), HIGHLIGHT_MS);
+  }, []);
+
+  const jumpedRef = useRef(false);
+
+  useEffect(() => {
+    if (jumpedRef.current || items.length === 0) return;
+    const seq = seqFromHash(window.location.hash);
+    if (seq === null) return;
+    if (!document.getElementById(`seq-${seq}`)) return;
+
+    jumpedRef.current = true;
+    const timer = setTimeout(() => jumpToSeq(seq), 50);
+    return () => clearTimeout(timer);
+  }, [jumpToSeq, items.length]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -119,7 +150,15 @@ export function Timeline({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         >
-          <TimelineRow item={item} harness={harness} sessionId={sessionId} isOwner={isOwner} />
+          <TimelineRow
+            item={item}
+            harness={harness}
+            sessionId={sessionId}
+            isOwner={isOwner}
+            onReply={onReply}
+            onJumpToAnchor={jumpToSeq}
+            highlighted={item.seq === highlightedSeq}
+          />
         </motion.div>
       ))}
       <div ref={endRef} />

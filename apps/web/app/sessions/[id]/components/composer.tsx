@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { IconAgent, IconSend, IconSpinner } from "@/components/icons";
+import { IconAgent, IconClose, IconReply, IconSend, IconSpinner } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,8 @@ export function Composer({
   takeoverHeldBy,
   onSend,
   onTypingChange,
+  replyingToSeq,
+  onDismissReply,
 }: {
   displayName: string;
   disabled?: boolean;
@@ -23,10 +25,12 @@ export function Composer({
   takeoverHeldBy?: string;
   onSend: (text: string, toAgent: boolean) => Promise<void>;
   onTypingChange: (active: boolean) => void;
+  replyingToSeq?: number;
+  onDismissReply?: () => void;
 }) {
   const [text, setText] = useState("");
   const [toAgent, setToAgent] = useState(true);
-  const agentToggleDisabled = disabled || Boolean(takeoverHeldBy);
+  const agentToggleDisabled = disabled || Boolean(takeoverHeldBy) || replyingToSeq !== undefined;
   const [sending, setSending] = useState(false);
   const typingRef = useRef(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,6 +96,27 @@ export function Composer({
   return (
     <div className="shrink-0 border-border/70 border-t bg-card/40 backdrop-blur-sm">
       <div className="mx-auto max-w-3xl px-4 pt-2 pb-3 sm:px-6">
+      <AnimatePresence>
+        {replyingToSeq !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-1.5 flex items-center gap-1.5 text-xs text-human"
+          >
+            <IconReply size={12} />
+            <span>replying to step {replyingToSeq}</span>
+            <button
+              type="button"
+              onClick={onDismissReply}
+              className="ml-0.5 grid size-4 place-items-center rounded text-human/70 hover:bg-human/15 hover:text-human"
+            >
+              <IconClose size={10} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="h-5">
         <AnimatePresence>
           {typingNames.length > 0 && (

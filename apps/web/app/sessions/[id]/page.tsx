@@ -10,7 +10,6 @@ import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessio
 import { relayApi } from "@/lib/relay/api";
 import { buildTimeline } from "./lib/build-timeline";
 import { useTypingNames } from "./lib/useTypingNames";
-import type { MessageItem } from "./types";
 import { SessionHeader } from "./components/session-header";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
@@ -35,7 +34,7 @@ function SessionView() {
   const from = searchParams.get("from");
 
   const displayName = authData?.user?.name ?? "Guest";
-  const [localMessages, setLocalMessages] = useState<MessageItem[]>([]);
+  const [replyingToSeq, setReplyingToSeq] = useState<number | null>(null);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [viewTab, setViewTab] = useState<SessionViewTab>("timeline");
@@ -71,14 +70,6 @@ function SessionView() {
     }
   }, [sessionId, events, loadingEarlier, mergeEvents]);
 
-  const merged = useMemo(
-    () =>
-      [...items, ...localMessages].toSorted(
-        (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime(),
-      ),
-    [items, localMessages],
-  );
-
   const typingNames = useTypingNames(presence, displayName, TYPING_WINDOW_MS);
 
   const viewers = useMemo(() => {
@@ -113,17 +104,8 @@ function SessionView() {
   const handleSend = useCallback(
     async (text: string, toAgent: boolean) => {
       if (!toAgent) {
-        setLocalMessages((prev) => [
-          ...prev,
-          {
-            kind: "message",
-            key: `local-${Date.now()}`,
-            ts: new Date().toISOString(),
-            author: displayName,
-            text,
-            toAgent: false,
-          },
-        ]);
+        await relayApi.sendTeamMessage(sessionId, text, replyingToSeq ?? undefined);
+        setReplyingToSeq(null);
         return;
       }
 
@@ -134,7 +116,7 @@ function SessionView() {
         toast(`Queued — ${result.queued} messages ahead of yours.`);
       }
     },
-    [sessionId, displayName],
+    [sessionId, replyingToSeq],
   );
 
   return (
@@ -161,7 +143,7 @@ function SessionView() {
       <ViewTabs active={viewTab} onChange={setViewTab} />
 
       <Timeline
-        items={merged}
+        items={items}
         harness={meta.harness}
         sessionId={sessionId}
         isOwner={isOwner}
@@ -169,6 +151,7 @@ function SessionView() {
         hasEarlier={hasEarlier}
         loadingEarlier={loadingEarlier}
         visible={viewTab === "timeline"}
+        onReply={setReplyingToSeq}
       />
       {terminalMounted && (
         <PtyTerminal sessionId={sessionId} heldByMe={heldByMe} visible={viewTab === "terminal"} />
@@ -181,6 +164,8 @@ function SessionView() {
         takeoverHeldBy={takeoverHeldBy}
         onSend={handleSend}
         onTypingChange={sendPresence}
+        replyingToSeq={replyingToSeq ?? undefined}
+        onDismissReply={() => setReplyingToSeq(null)}
       />
     </Shell>
   );

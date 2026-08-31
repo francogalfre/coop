@@ -44,6 +44,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         items.push({
           kind: "notice",
           key,
+          seq: event.seq,
           ts: event.ts,
           tone: "start",
           text: `${event.owner?.display_name ?? "someone"} started a ${event.harness} session`,
@@ -53,7 +54,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
 
       case "session.end": {
         meta.endedAt = event.ts;
-        items.push({ kind: "notice", key, ts: event.ts, tone: "end", text: "Session ended" });
+        items.push({ kind: "notice", key, seq: event.seq, ts: event.ts, tone: "end", text: "Session ended" });
         break;
       }
 
@@ -61,6 +62,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         const item: ToolItem = {
           kind: "tool",
           key,
+          seq: event.seq,
           ts: event.ts,
           toolName: event.tool_name,
           input: textOf(event.input),
@@ -87,6 +89,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
           items.push({
             kind: "tool",
             key,
+            seq: event.seq,
             ts: event.ts,
             toolName: event.tool_name,
             input: "",
@@ -107,6 +110,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
           items.push({
             kind: "tool",
             key,
+            seq: event.seq,
             ts: event.ts,
             toolName: event.mode === "write" ? "Write" : "Read",
             input: event.path,
@@ -119,7 +123,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
 
       case "agent.text": {
         const text = textOf(event.text);
-        if (text.trim()) items.push({ kind: "agent-text", key, ts: event.ts, text });
+        if (text.trim()) items.push({ kind: "agent-text", key, seq: event.seq, ts: event.ts, text });
         break;
       }
 
@@ -136,6 +140,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         items.push({
           kind: "message",
           key,
+          seq: event.seq,
           ts: event.ts,
           author: event.actor?.display_name ?? "someone",
           text: textOf(event.text),
@@ -149,6 +154,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         items.push({
           kind: "message",
           key,
+          seq: event.seq,
           ts: event.ts,
           author: meta.owner?.name ?? "someone",
           text: textOf(event.text),
@@ -158,12 +164,27 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         break;
       }
 
+      case "human.message": {
+        items.push({
+          kind: "message",
+          key,
+          seq: event.seq,
+          ts: event.ts,
+          author: event.actor?.display_name ?? "someone",
+          text: textOf(event.text),
+          toAgent: false,
+          anchorSeq: event.anchor_seq,
+        });
+        break;
+      }
+
       case "human.takeover": {
         const by = event.actor?.display_name ?? "someone";
         meta.takeover = { active: event.active, by: event.active ? by : undefined };
         items.push({
           kind: "notice",
           key,
+          seq: event.seq,
           ts: event.ts,
           tone: "takeover",
           text: event.active ? `${by} took over this session` : `${by} released this session`,
@@ -176,6 +197,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         items.push({
           kind: "notice",
           key,
+          seq: event.seq,
           ts: event.ts,
           tone: event.type === "human.join" ? "join" : "leave",
           text: `${event.actor?.display_name ?? "someone"} ${
@@ -194,6 +216,7 @@ export function buildTimeline(events: Event[]): BuiltTimeline {
         const item: SteerRequestItem = {
           kind: "steer-request",
           key,
+          seq: event.seq,
           ts: event.ts,
           requestId: event.request_id,
           author: event.actor?.display_name ?? "someone",

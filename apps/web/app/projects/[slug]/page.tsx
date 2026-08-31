@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useParams } from "next/navigation";
 import { motion } from "motion/react";
-import { relayApi, RelayError, type AgentSession } from "@/lib/relay/api";
+import { relayApi, RelayError, type Agent, type AgentSession } from "@/lib/relay/api";
 import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
 import { AppHeader } from "@/components/app-header";
 import { LiveDot } from "@/components/status-pill";
@@ -15,15 +15,18 @@ import { SessionCard } from "./components/session-card";
 import { InviteButton } from "./components/invite-button";
 import { NoAccess } from "./components/no-access";
 import { EmptySessions } from "./components/empty-sessions";
+import { AgentRoster } from "./components/agent-roster";
 
 export default function ProjectPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
 
   const [sessions, setSessions] = useState<AgentSession[] | null>(null);
+  const [agents, setAgents] = useState<Agent[] | null>(null);
   const [denied, setDenied] = useState(false);
   const [failed, setFailed] = useState(false);
   const latestLoadRef = useRef<symbol | undefined>(undefined);
+  const latestAgentsLoadRef = useRef<symbol | undefined>(undefined);
 
   const load = useCallback(async () => {
     const token = Symbol();
@@ -39,7 +42,22 @@ export default function ProjectPage() {
     }
   }, [slug]);
 
+  const loadAgents = useCallback(async () => {
+    const token = Symbol();
+    latestAgentsLoadRef.current = token;
+    try {
+      const data = await relayApi.listAgents(slug);
+      if (latestAgentsLoadRef.current !== token) return;
+      setAgents(data.agents);
+    } catch (error) {
+      if (latestAgentsLoadRef.current !== token) return;
+      if (error instanceof RelayError && error.isMissing) setDenied(true);
+      else setFailed(true);
+    }
+  }, [slug]);
+
   useVisibilityPolling(load, 8000);
+  useVisibilityPolling(loadAgents, 8000);
 
   const live = sessions?.filter((s) => s.status === "live") ?? [];
   const ended = sessions?.filter((s) => s.status === "ended") ?? [];
@@ -72,6 +90,15 @@ export default function ProjectPage() {
               </div>
               <InviteButton slug={slug} />
             </motion.div>
+
+            {agents !== null && agents.length > 0 && (
+              <section className="mb-8">
+                <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                  Agents
+                </h2>
+                <AgentRoster slug={slug} agents={agents} />
+              </section>
+            )}
 
             {failed ? (
               <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">

@@ -35,6 +35,7 @@ export function SteerRequestRow({
     return (
       <Row
         ts={item.ts}
+        seq={item.seq}
         rail={
           <span
             className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-3xs text-background opacity-50"
