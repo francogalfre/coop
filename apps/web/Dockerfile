@@ -19,6 +19,8 @@ ARG NEXT_PUBLIC_BETTER_AUTH_URL
 ENV NEXT_PUBLIC_COOP_RELAY_URL=${NEXT_PUBLIC_COOP_RELAY_URL}
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
 
+# apps/web imports @coop/protocol's built dist/, not its TS source directly.
+RUN cd packages/protocol && bun run build
 RUN cd apps/web && bun run build
 
 # No `output: "standalone"` in next.config.ts, so the production image keeps
