@@ -11,6 +11,7 @@ import (
 
 	"github.com/francogalfre/coop/packages/cli/internal/capabilities"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
+	"github.com/francogalfre/coop/packages/cli/internal/projectcontext"
 	"github.com/francogalfre/coop/packages/cli/internal/relayclient"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
@@ -43,6 +44,8 @@ func postSessionStart(cfg config.Config, harnessName string) {
 	}
 
 	postSessionEvent(cfg, nextSelfSeq(), fields)
+
+	projectcontext.Deliver(context.Background(), cfg)
 }
 
 func postSessionEnd(cfg config.Config) {
