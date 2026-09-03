@@ -34,16 +34,36 @@ func TestBuildEventBodyStopEmitsTurnEndAndAgentText(t *testing.T) {
 	}
 }
 
+func TestBuildEventBodyStopDoesNotDoubleEncodeText(t *testing.T) {
+	payload := map[string]any{
+		"hook_event_name":        "Stop",
+		"last_assistant_message": "line one\nline two",
+	}
+
+	bodies, err := buildEventBody(config.Config{}, seqFrom(1), "sess-a", "Stop", payload, redact.New())
+	if err != nil {
+		t.Fatalf("buildEventBody() error = %v", err)
+	}
+
+	text := decodeBody(t, bodies[1])
+	textField := text["text"].(map[string]any)
+	got := textField["text"].(string)
+	want := "line one\nline two"
+	if got != want {
+		t.Errorf("agent.text = %q, want %q (a plain string must not be JSON-marshaled a second time)", got, want)
+	}
+}
+
 func TestBuildEventBodySessionEndReason(t *testing.T) {
 	tests := []struct {
 		reason     string
-		wantReason bool
+		wantReason string
 	}{
-		{"completed", true},
-		{"cancelled", true},
-		{"error", true},
-		{"other", false},
-		{"", false},
+		{"completed", "completed"},
+		{"cancelled", "cancelled"},
+		{"error", "error"},
+		{"other", "completed"},
+		{"", "completed"},
 	}
 
 	for _, tt := range tests {
@@ -55,12 +75,8 @@ func TestBuildEventBodySessionEndReason(t *testing.T) {
 				t.Errorf("got type %v, want session.end", out["type"])
 			}
 
-			_, hasReason := out["reason"]
-			if hasReason != tt.wantReason {
-				t.Errorf("reason=%q: got hasReason=%v, want %v", tt.reason, hasReason, tt.wantReason)
-			}
-			if tt.wantReason && out["reason"] != tt.reason {
-				t.Errorf("got reason %v, want %v", out["reason"], tt.reason)
+			if out["reason"] != tt.wantReason {
+				t.Errorf("reason=%q: got %v, want %v", tt.reason, out["reason"], tt.wantReason)
 			}
 		})
 	}

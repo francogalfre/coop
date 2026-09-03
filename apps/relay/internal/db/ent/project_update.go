@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -16,6 +17,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
 )
 
 // ProjectUpdate is the builder for updating Project entities.
@@ -70,6 +72,75 @@ func (_u *ProjectUpdate) SetNillableCreatedBy(v *string) *ProjectUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
+	return _u
+}
+
+// SetContextText sets the "context_text" field.
+func (_u *ProjectUpdate) SetContextText(v string) *ProjectUpdate {
+	_u.mutation.SetContextText(v)
+	return _u
+}
+
+// SetNillableContextText sets the "context_text" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableContextText(v *string) *ProjectUpdate {
+	if v != nil {
+		_u.SetContextText(*v)
+	}
+	return _u
+}
+
+// SetContextVersion sets the "context_version" field.
+func (_u *ProjectUpdate) SetContextVersion(v int) *ProjectUpdate {
+	_u.mutation.ResetContextVersion()
+	_u.mutation.SetContextVersion(v)
+	return _u
+}
+
+// SetNillableContextVersion sets the "context_version" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableContextVersion(v *int) *ProjectUpdate {
+	if v != nil {
+		_u.SetContextVersion(*v)
+	}
+	return _u
+}
+
+// AddContextVersion adds value to the "context_version" field.
+func (_u *ProjectUpdate) AddContextVersion(v int) *ProjectUpdate {
+	_u.mutation.AddContextVersion(v)
+	return _u
+}
+
+// SetContextUpdatedBy sets the "context_updated_by" field.
+func (_u *ProjectUpdate) SetContextUpdatedBy(v string) *ProjectUpdate {
+	_u.mutation.SetContextUpdatedBy(v)
+	return _u
+}
+
+// SetNillableContextUpdatedBy sets the "context_updated_by" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableContextUpdatedBy(v *string) *ProjectUpdate {
+	if v != nil {
+		_u.SetContextUpdatedBy(*v)
+	}
+	return _u
+}
+
+// SetContextUpdatedAt sets the "context_updated_at" field.
+func (_u *ProjectUpdate) SetContextUpdatedAt(v time.Time) *ProjectUpdate {
+	_u.mutation.SetContextUpdatedAt(v)
+	return _u
+}
+
+// SetNillableContextUpdatedAt sets the "context_updated_at" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableContextUpdatedAt(v *time.Time) *ProjectUpdate {
+	if v != nil {
+		_u.SetContextUpdatedAt(*v)
+	}
+	return _u
+}
+
+// ClearContextUpdatedAt clears the value of the "context_updated_at" field.
+func (_u *ProjectUpdate) ClearContextUpdatedAt() *ProjectUpdate {
+	_u.mutation.ClearContextUpdatedAt()
 	return _u
 }
 
@@ -131,6 +202,21 @@ func (_u *ProjectUpdate) AddAgents(v ...*Agent) *ProjectUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddAgentIDs(ids...)
+}
+
+// AddNoteIDs adds the "notes" edge to the ProjectNote entity by IDs.
+func (_u *ProjectUpdate) AddNoteIDs(ids ...string) *ProjectUpdate {
+	_u.mutation.AddNoteIDs(ids...)
+	return _u
+}
+
+// AddNotes adds the "notes" edges to the ProjectNote entity.
+func (_u *ProjectUpdate) AddNotes(v ...*ProjectNote) *ProjectUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNoteIDs(ids...)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -222,6 +308,27 @@ func (_u *ProjectUpdate) RemoveAgents(v ...*Agent) *ProjectUpdate {
 	return _u.RemoveAgentIDs(ids...)
 }
 
+// ClearNotes clears all "notes" edges to the ProjectNote entity.
+func (_u *ProjectUpdate) ClearNotes() *ProjectUpdate {
+	_u.mutation.ClearNotes()
+	return _u
+}
+
+// RemoveNoteIDs removes the "notes" edge to ProjectNote entities by IDs.
+func (_u *ProjectUpdate) RemoveNoteIDs(ids ...string) *ProjectUpdate {
+	_u.mutation.RemoveNoteIDs(ids...)
+	return _u
+}
+
+// RemoveNotes removes "notes" edges to ProjectNote entities.
+func (_u *ProjectUpdate) RemoveNotes(v ...*ProjectNote) *ProjectUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNoteIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ProjectUpdate) Save(ctx context.Context) (int, error) {
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
@@ -266,6 +373,11 @@ func (_u *ProjectUpdate) check() error {
 			return &ValidationError{Name: "created_by", err: fmt.Errorf(`ent: validator failed for field "Project.created_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ContextVersion(); ok {
+		if err := project.ContextVersionValidator(v); err != nil {
+			return &ValidationError{Name: "context_version", err: fmt.Errorf(`ent: validator failed for field "Project.context_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -289,6 +401,24 @@ func (_u *ProjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.CreatedBy(); ok {
 		_spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextText(); ok {
+		_spec.SetField(project.FieldContextText, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextVersion(); ok {
+		_spec.SetField(project.FieldContextVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedContextVersion(); ok {
+		_spec.AddField(project.FieldContextVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ContextUpdatedBy(); ok {
+		_spec.SetField(project.FieldContextUpdatedBy, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextUpdatedAt(); ok {
+		_spec.SetField(project.FieldContextUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ContextUpdatedAtCleared() {
+		_spec.ClearField(project.FieldContextUpdatedAt, field.TypeTime)
 	}
 	if _u.mutation.MembersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -470,6 +600,51 @@ func (_u *ProjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotesIDs(); len(nodes) > 0 && !_u.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{project.Label}
@@ -532,6 +707,75 @@ func (_u *ProjectUpdateOne) SetNillableCreatedBy(v *string) *ProjectUpdateOne {
 	return _u
 }
 
+// SetContextText sets the "context_text" field.
+func (_u *ProjectUpdateOne) SetContextText(v string) *ProjectUpdateOne {
+	_u.mutation.SetContextText(v)
+	return _u
+}
+
+// SetNillableContextText sets the "context_text" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableContextText(v *string) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetContextText(*v)
+	}
+	return _u
+}
+
+// SetContextVersion sets the "context_version" field.
+func (_u *ProjectUpdateOne) SetContextVersion(v int) *ProjectUpdateOne {
+	_u.mutation.ResetContextVersion()
+	_u.mutation.SetContextVersion(v)
+	return _u
+}
+
+// SetNillableContextVersion sets the "context_version" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableContextVersion(v *int) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetContextVersion(*v)
+	}
+	return _u
+}
+
+// AddContextVersion adds value to the "context_version" field.
+func (_u *ProjectUpdateOne) AddContextVersion(v int) *ProjectUpdateOne {
+	_u.mutation.AddContextVersion(v)
+	return _u
+}
+
+// SetContextUpdatedBy sets the "context_updated_by" field.
+func (_u *ProjectUpdateOne) SetContextUpdatedBy(v string) *ProjectUpdateOne {
+	_u.mutation.SetContextUpdatedBy(v)
+	return _u
+}
+
+// SetNillableContextUpdatedBy sets the "context_updated_by" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableContextUpdatedBy(v *string) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetContextUpdatedBy(*v)
+	}
+	return _u
+}
+
+// SetContextUpdatedAt sets the "context_updated_at" field.
+func (_u *ProjectUpdateOne) SetContextUpdatedAt(v time.Time) *ProjectUpdateOne {
+	_u.mutation.SetContextUpdatedAt(v)
+	return _u
+}
+
+// SetNillableContextUpdatedAt sets the "context_updated_at" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableContextUpdatedAt(v *time.Time) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetContextUpdatedAt(*v)
+	}
+	return _u
+}
+
+// ClearContextUpdatedAt clears the value of the "context_updated_at" field.
+func (_u *ProjectUpdateOne) ClearContextUpdatedAt() *ProjectUpdateOne {
+	_u.mutation.ClearContextUpdatedAt()
+	return _u
+}
+
 // AddMemberIDs adds the "members" edge to the ProjectMember entity by IDs.
 func (_u *ProjectUpdateOne) AddMemberIDs(ids ...int) *ProjectUpdateOne {
 	_u.mutation.AddMemberIDs(ids...)
@@ -590,6 +834,21 @@ func (_u *ProjectUpdateOne) AddAgents(v ...*Agent) *ProjectUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddAgentIDs(ids...)
+}
+
+// AddNoteIDs adds the "notes" edge to the ProjectNote entity by IDs.
+func (_u *ProjectUpdateOne) AddNoteIDs(ids ...string) *ProjectUpdateOne {
+	_u.mutation.AddNoteIDs(ids...)
+	return _u
+}
+
+// AddNotes adds the "notes" edges to the ProjectNote entity.
+func (_u *ProjectUpdateOne) AddNotes(v ...*ProjectNote) *ProjectUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNoteIDs(ids...)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -681,6 +940,27 @@ func (_u *ProjectUpdateOne) RemoveAgents(v ...*Agent) *ProjectUpdateOne {
 	return _u.RemoveAgentIDs(ids...)
 }
 
+// ClearNotes clears all "notes" edges to the ProjectNote entity.
+func (_u *ProjectUpdateOne) ClearNotes() *ProjectUpdateOne {
+	_u.mutation.ClearNotes()
+	return _u
+}
+
+// RemoveNoteIDs removes the "notes" edge to ProjectNote entities by IDs.
+func (_u *ProjectUpdateOne) RemoveNoteIDs(ids ...string) *ProjectUpdateOne {
+	_u.mutation.RemoveNoteIDs(ids...)
+	return _u
+}
+
+// RemoveNotes removes "notes" edges to ProjectNote entities.
+func (_u *ProjectUpdateOne) RemoveNotes(v ...*ProjectNote) *ProjectUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNoteIDs(ids...)
+}
+
 // Where appends a list predicates to the ProjectUpdate builder.
 func (_u *ProjectUpdateOne) Where(ps ...predicate.Project) *ProjectUpdateOne {
 	_u.mutation.Where(ps...)
@@ -738,6 +1018,11 @@ func (_u *ProjectUpdateOne) check() error {
 			return &ValidationError{Name: "created_by", err: fmt.Errorf(`ent: validator failed for field "Project.created_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ContextVersion(); ok {
+		if err := project.ContextVersionValidator(v); err != nil {
+			return &ValidationError{Name: "context_version", err: fmt.Errorf(`ent: validator failed for field "Project.context_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -778,6 +1063,24 @@ func (_u *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err er
 	}
 	if value, ok := _u.mutation.CreatedBy(); ok {
 		_spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextText(); ok {
+		_spec.SetField(project.FieldContextText, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextVersion(); ok {
+		_spec.SetField(project.FieldContextVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedContextVersion(); ok {
+		_spec.AddField(project.FieldContextVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ContextUpdatedBy(); ok {
+		_spec.SetField(project.FieldContextUpdatedBy, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ContextUpdatedAt(); ok {
+		_spec.SetField(project.FieldContextUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ContextUpdatedAtCleared() {
+		_spec.ClearField(project.FieldContextUpdatedAt, field.TypeTime)
 	}
 	if _u.mutation.MembersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -952,6 +1255,51 @@ func (_u *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotesIDs(); len(nodes) > 0 && !_u.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

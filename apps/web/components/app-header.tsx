@@ -6,7 +6,7 @@ import { signOut, useSession } from "@/lib/auth/auth-client";
 import { IconLogout } from "@/components/icons";
 import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
-import { initials, tintFor } from "@/lib/format";
+import { PersonAvatar } from "@/components/person-avatar";
 
 export function AppHeader() {
   const { data } = useSession();
@@ -34,21 +34,11 @@ export function AppHeader() {
           {user ? (
             <>
               <div className="flex items-center gap-2.5">
-                {user.image ? (
-                  <img
-                    src={user.image}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="size-7 shrink-0 rounded-full border border-border/60 object-cover"
-                  />
-                ) : (
-                  <span
-                    className="grid size-7 shrink-0 place-items-center rounded-full font-medium text-[11px] text-background"
-                    style={{ background: tintFor(user.name ?? "?") }}
-                  >
-                    {initials(user.name ?? "?")}
-                  </span>
-                )}
+                <PersonAvatar
+                  name={user.name ?? "?"}
+                  avatarUrl={user.image ?? undefined}
+                  className="size-7 shrink-0 text-[11px]"
+                />
                 <span className="hidden text-sm text-muted-foreground sm:block">{user.name}</span>
               </div>
               <Button

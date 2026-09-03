@@ -18,6 +18,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
 )
 
 // ProjectQuery is the builder for querying Project entities.
@@ -31,6 +32,7 @@ type ProjectQuery struct {
 	withInvites  *ProjectInviteQuery
 	withSessions *AgentSessionQuery
 	withAgents   *AgentQuery
+	withNotes    *ProjectNoteQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +150,28 @@ func (_q *ProjectQuery) QueryAgents() *AgentQuery {
 			sqlgraph.From(project.Table, project.FieldID, selector),
 			sqlgraph.To(agent.Table, agent.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, project.AgentsTable, project.AgentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (_q *ProjectQuery) QueryNotes() *ProjectNoteQuery {
+	query := (&ProjectNoteClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(project.Table, project.FieldID, selector),
+			sqlgraph.To(projectnote.Table, projectnote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, project.NotesTable, project.NotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -351,6 +375,7 @@ func (_q *ProjectQuery) Clone() *ProjectQuery {
 		withInvites:  _q.withInvites.Clone(),
 		withSessions: _q.withSessions.Clone(),
 		withAgents:   _q.withAgents.Clone(),
+		withNotes:    _q.withNotes.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -398,6 +423,17 @@ func (_q *ProjectQuery) WithAgents(opts ...func(*AgentQuery)) *ProjectQuery {
 		opt(query)
 	}
 	_q.withAgents = query
+	return _q
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ProjectQuery) WithNotes(opts ...func(*ProjectNoteQuery)) *ProjectQuery {
+	query := (&ProjectNoteClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNotes = query
 	return _q
 }
 
@@ -479,11 +515,12 @@ func (_q *ProjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Proj
 	var (
 		nodes       = []*Project{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			_q.withMembers != nil,
 			_q.withInvites != nil,
 			_q.withSessions != nil,
 			_q.withAgents != nil,
+			_q.withNotes != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -529,6 +566,13 @@ func (_q *ProjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Proj
 		if err := _q.loadAgents(ctx, query, nodes,
 			func(n *Project) { n.Edges.Agents = []*Agent{} },
 			func(n *Project, e *Agent) { n.Edges.Agents = append(n.Edges.Agents, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNotes; query != nil {
+		if err := _q.loadNotes(ctx, query, nodes,
+			func(n *Project) { n.Edges.Notes = []*ProjectNote{} },
+			func(n *Project, e *ProjectNote) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -654,6 +698,37 @@ func (_q *ProjectQuery) loadAgents(ctx context.Context, query *AgentQuery, nodes
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "project_agents" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ProjectQuery) loadNotes(ctx context.Context, query *ProjectNoteQuery, nodes []*Project, init func(*Project), assign func(*Project, *ProjectNote)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Project)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.ProjectNote(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(project.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.project_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "project_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "project_notes" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

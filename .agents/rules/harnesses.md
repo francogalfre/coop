@@ -26,6 +26,16 @@ server) run against `claude -p` in a scratch dir. Facts below marked
   `duration_ms`. `Stop` adds `stop_hook_active`, `last_assistant_message`,
   `background_tasks`, `session_crons`. `SessionEnd` adds `reason` (observed
   value: `"other"` on a normal `-p` exit).
+- (live, 2026-09-03) `structuredPatch` shape confirmed via `claude -p` with
+  `--permission-mode acceptEdits` against an Edit and a Write in a scratch
+  dir: an array of `{oldStart, oldLines, newStart, newLines, lines}`
+  objects (camelCase), where `lines` is an array of strings each prefixed
+  `" "`, `"-"`, or `"+"` (unified-diff style, no file-header lines). Present
+  on both `Edit` and `Write` tool_response — for `Write` (a full file
+  create, `tool_response.type:"create"`) it was observed as `[]` (empty),
+  not absent. `duration_ms` was confirmed present as a top-level sibling of
+  `tool_response` on every `PostToolUse` payload observed (e.g. `2`, `3`,
+  `4`), never nested inside `tool_response`.
 - (live) **`additionalContext` is only safe on `PreToolUse`, `PostToolUse`,
   and `UserPromptSubmit`.** Returning `{"hookSpecificOutput":
   {"hookEventName":"SessionEnd","additionalContext":"..."}}` from a
@@ -143,6 +153,14 @@ that does not exist.*
   schema's only `experimental` keys are `disable_paste_summary`,
   `batch_tool`, `openTelemetry`, `primary_tools`, `continue_loop_on_deny`,
   `mcp_timeout`, `policies`. Do not target it.
+- *(Verified 2026-09-01, against the installed `@opencode-ai/plugin` and
+  `@opencode-ai/sdk` type declarations at `~/.config/opencode/node_modules/`.)*
+  `tool.execute.before`'s output carries `args`; `tool.execute.after`'s carries
+  `title`/`output`/`metadata`; both inputs carry `{tool, sessionID, callID}`.
+  The bus's `file.edited` is `{type, properties: {file}}` — **it carries no
+  read/write signal and no tool correlation**, so coop maps it to
+  `file.touched` with `mode: "write"` unconditionally. That is the honest
+  reading of the event, not an inference about the tool that caused it.
 - Steering: `client.tui.appendPrompt({body:{text}})`, a method on the SDK
   client injected into the plugin factory as `client`. No polling needed —
   call it directly from the `event` handler when a steer message arrives.
@@ -168,6 +186,10 @@ bundled docs at
   `tool_call` fires before execution and **can block**: return
   `{block: true, reason}`; `event.input` is mutable and tool-specific
   (`read` → `{path,...}`, `edit`/`write` similar).
+- *(Verified 2026-09-01, against the bundled `docs/extensions.md`.)*
+  `tool_result` exposes `toolName`, `toolCallId`, `input`, `content`,
+  `details`, `isError`, `usage`. `agent_end` exposes only `messages`. Note the
+  field names are camelCase and differ from Claude Code's snake_case.
 - Steering: `pi.sendUserMessage(text, {deliverAs: "steer"})` — delivered
   after the current turn's tool calls finish, before the next LLM call. No
   polling, no mailbox race — the cleanest steering primitive of any harness

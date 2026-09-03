@@ -15,6 +15,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
 )
 
 // ProjectCreate is the builder for creating a Project entity.
@@ -52,6 +53,62 @@ func (_c *ProjectCreate) SetCreatedAt(v time.Time) *ProjectCreate {
 func (_c *ProjectCreate) SetNillableCreatedAt(v *time.Time) *ProjectCreate {
 	if v != nil {
 		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetContextText sets the "context_text" field.
+func (_c *ProjectCreate) SetContextText(v string) *ProjectCreate {
+	_c.mutation.SetContextText(v)
+	return _c
+}
+
+// SetNillableContextText sets the "context_text" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableContextText(v *string) *ProjectCreate {
+	if v != nil {
+		_c.SetContextText(*v)
+	}
+	return _c
+}
+
+// SetContextVersion sets the "context_version" field.
+func (_c *ProjectCreate) SetContextVersion(v int) *ProjectCreate {
+	_c.mutation.SetContextVersion(v)
+	return _c
+}
+
+// SetNillableContextVersion sets the "context_version" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableContextVersion(v *int) *ProjectCreate {
+	if v != nil {
+		_c.SetContextVersion(*v)
+	}
+	return _c
+}
+
+// SetContextUpdatedBy sets the "context_updated_by" field.
+func (_c *ProjectCreate) SetContextUpdatedBy(v string) *ProjectCreate {
+	_c.mutation.SetContextUpdatedBy(v)
+	return _c
+}
+
+// SetNillableContextUpdatedBy sets the "context_updated_by" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableContextUpdatedBy(v *string) *ProjectCreate {
+	if v != nil {
+		_c.SetContextUpdatedBy(*v)
+	}
+	return _c
+}
+
+// SetContextUpdatedAt sets the "context_updated_at" field.
+func (_c *ProjectCreate) SetContextUpdatedAt(v time.Time) *ProjectCreate {
+	_c.mutation.SetContextUpdatedAt(v)
+	return _c
+}
+
+// SetNillableContextUpdatedAt sets the "context_updated_at" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableContextUpdatedAt(v *time.Time) *ProjectCreate {
+	if v != nil {
+		_c.SetContextUpdatedAt(*v)
 	}
 	return _c
 }
@@ -116,6 +173,21 @@ func (_c *ProjectCreate) AddAgents(v ...*Agent) *ProjectCreate {
 	return _c.AddAgentIDs(ids...)
 }
 
+// AddNoteIDs adds the "notes" edge to the ProjectNote entity by IDs.
+func (_c *ProjectCreate) AddNoteIDs(ids ...string) *ProjectCreate {
+	_c.mutation.AddNoteIDs(ids...)
+	return _c
+}
+
+// AddNotes adds the "notes" edges to the ProjectNote entity.
+func (_c *ProjectCreate) AddNotes(v ...*ProjectNote) *ProjectCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNoteIDs(ids...)
+}
+
 // Mutation returns the ProjectMutation object of the builder.
 func (_c *ProjectCreate) Mutation() *ProjectMutation {
 	return _c.mutation
@@ -155,6 +227,18 @@ func (_c *ProjectCreate) defaults() {
 		v := project.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
+	if _, ok := _c.mutation.ContextText(); !ok {
+		v := project.DefaultContextText
+		_c.mutation.SetContextText(v)
+	}
+	if _, ok := _c.mutation.ContextVersion(); !ok {
+		v := project.DefaultContextVersion
+		_c.mutation.SetContextVersion(v)
+	}
+	if _, ok := _c.mutation.ContextUpdatedBy(); !ok {
+		v := project.DefaultContextUpdatedBy
+		_c.mutation.SetContextUpdatedBy(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -185,6 +269,20 @@ func (_c *ProjectCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Project.created_at"`)}
+	}
+	if _, ok := _c.mutation.ContextText(); !ok {
+		return &ValidationError{Name: "context_text", err: errors.New(`ent: missing required field "Project.context_text"`)}
+	}
+	if _, ok := _c.mutation.ContextVersion(); !ok {
+		return &ValidationError{Name: "context_version", err: errors.New(`ent: missing required field "Project.context_version"`)}
+	}
+	if v, ok := _c.mutation.ContextVersion(); ok {
+		if err := project.ContextVersionValidator(v); err != nil {
+			return &ValidationError{Name: "context_version", err: fmt.Errorf(`ent: validator failed for field "Project.context_version": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ContextUpdatedBy(); !ok {
+		return &ValidationError{Name: "context_updated_by", err: errors.New(`ent: missing required field "Project.context_updated_by"`)}
 	}
 	return nil
 }
@@ -227,6 +325,22 @@ func (_c *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(project.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.ContextText(); ok {
+		_spec.SetField(project.FieldContextText, field.TypeString, value)
+		_node.ContextText = value
+	}
+	if value, ok := _c.mutation.ContextVersion(); ok {
+		_spec.SetField(project.FieldContextVersion, field.TypeInt, value)
+		_node.ContextVersion = value
+	}
+	if value, ok := _c.mutation.ContextUpdatedBy(); ok {
+		_spec.SetField(project.FieldContextUpdatedBy, field.TypeString, value)
+		_node.ContextUpdatedBy = value
+	}
+	if value, ok := _c.mutation.ContextUpdatedAt(); ok {
+		_spec.SetField(project.FieldContextUpdatedAt, field.TypeTime, value)
+		_node.ContextUpdatedAt = &value
 	}
 	if nodes := _c.mutation.MembersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -285,6 +399,22 @@ func (_c *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(agent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.NotesTable,
+			Columns: []string{project.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(projectnote.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -22,6 +22,9 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // Client is the client that holds all ent builders.
@@ -43,6 +46,12 @@ type Client struct {
 	ProjectInvite *ProjectInviteClient
 	// ProjectMember is the client for interacting with the ProjectMember builders.
 	ProjectMember *ProjectMemberClient
+	// ProjectNote is the client for interacting with the ProjectNote builders.
+	ProjectNote *ProjectNoteClient
+	// SteerRequest is the client for interacting with the SteerRequest builders.
+	SteerRequest *SteerRequestClient
+	// Takeover is the client for interacting with the Takeover builders.
+	Takeover *TakeoverClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -61,6 +70,9 @@ func (c *Client) init() {
 	c.Project = NewProjectClient(c.config)
 	c.ProjectInvite = NewProjectInviteClient(c.config)
 	c.ProjectMember = NewProjectMemberClient(c.config)
+	c.ProjectNote = NewProjectNoteClient(c.config)
+	c.SteerRequest = NewSteerRequestClient(c.config)
+	c.Takeover = NewTakeoverClient(c.config)
 }
 
 type (
@@ -160,6 +172,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Project:       NewProjectClient(cfg),
 		ProjectInvite: NewProjectInviteClient(cfg),
 		ProjectMember: NewProjectMemberClient(cfg),
+		ProjectNote:   NewProjectNoteClient(cfg),
+		SteerRequest:  NewSteerRequestClient(cfg),
+		Takeover:      NewTakeoverClient(cfg),
 	}, nil
 }
 
@@ -186,6 +201,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Project:       NewProjectClient(cfg),
 		ProjectInvite: NewProjectInviteClient(cfg),
 		ProjectMember: NewProjectMemberClient(cfg),
+		ProjectNote:   NewProjectNoteClient(cfg),
+		SteerRequest:  NewSteerRequestClient(cfg),
+		Takeover:      NewTakeoverClient(cfg),
 	}, nil
 }
 
@@ -216,7 +234,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Agent, c.AgentSession, c.CliCredential, c.Event, c.Project, c.ProjectInvite,
-		c.ProjectMember,
+		c.ProjectMember, c.ProjectNote, c.SteerRequest, c.Takeover,
 	} {
 		n.Use(hooks...)
 	}
@@ -227,7 +245,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Agent, c.AgentSession, c.CliCredential, c.Event, c.Project, c.ProjectInvite,
-		c.ProjectMember,
+		c.ProjectMember, c.ProjectNote, c.SteerRequest, c.Takeover,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -250,6 +268,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProjectInvite.mutate(ctx, m)
 	case *ProjectMemberMutation:
 		return c.ProjectMember.mutate(ctx, m)
+	case *ProjectNoteMutation:
+		return c.ProjectNote.mutate(ctx, m)
+	case *SteerRequestMutation:
+		return c.SteerRequest.mutate(ctx, m)
+	case *TakeoverMutation:
+		return c.Takeover.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -569,6 +593,38 @@ func (c *AgentSessionClient) QueryEvents(_m *AgentSession) *EventQuery {
 			sqlgraph.From(agentsession.Table, agentsession.FieldID, id),
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, agentsession.EventsTable, agentsession.EventsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySteerRequests queries the steer_requests edge of a AgentSession.
+func (c *AgentSessionClient) QuerySteerRequests(_m *AgentSession) *SteerRequestQuery {
+	query := (&SteerRequestClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agentsession.Table, agentsession.FieldID, id),
+			sqlgraph.To(steerrequest.Table, steerrequest.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, agentsession.SteerRequestsTable, agentsession.SteerRequestsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTakeover queries the takeover edge of a AgentSession.
+func (c *AgentSessionClient) QueryTakeover(_m *AgentSession) *TakeoverQuery {
+	query := (&TakeoverClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agentsession.Table, agentsession.FieldID, id),
+			sqlgraph.To(takeover.Table, takeover.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, agentsession.TakeoverTable, agentsession.TakeoverColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1055,6 +1111,22 @@ func (c *ProjectClient) QueryAgents(_m *Project) *AgentQuery {
 	return query
 }
 
+// QueryNotes queries the notes edge of a Project.
+func (c *ProjectClient) QueryNotes(_m *Project) *ProjectNoteQuery {
+	query := (&ProjectNoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(project.Table, project.FieldID, id),
+			sqlgraph.To(projectnote.Table, projectnote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, project.NotesTable, project.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ProjectClient) Hooks() []Hook {
 	return c.hooks.Project
@@ -1378,14 +1450,461 @@ func (c *ProjectMemberClient) mutate(ctx context.Context, m *ProjectMemberMutati
 	}
 }
 
+// ProjectNoteClient is a client for the ProjectNote schema.
+type ProjectNoteClient struct {
+	config
+}
+
+// NewProjectNoteClient returns a client for the ProjectNote from the given config.
+func NewProjectNoteClient(c config) *ProjectNoteClient {
+	return &ProjectNoteClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `projectnote.Hooks(f(g(h())))`.
+func (c *ProjectNoteClient) Use(hooks ...Hook) {
+	c.hooks.ProjectNote = append(c.hooks.ProjectNote, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `projectnote.Intercept(f(g(h())))`.
+func (c *ProjectNoteClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProjectNote = append(c.inters.ProjectNote, interceptors...)
+}
+
+// Create returns a builder for creating a ProjectNote entity.
+func (c *ProjectNoteClient) Create() *ProjectNoteCreate {
+	mutation := newProjectNoteMutation(c.config, OpCreate)
+	return &ProjectNoteCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProjectNote entities.
+func (c *ProjectNoteClient) CreateBulk(builders ...*ProjectNoteCreate) *ProjectNoteCreateBulk {
+	return &ProjectNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProjectNoteClient) MapCreateBulk(slice any, setFunc func(*ProjectNoteCreate, int)) *ProjectNoteCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProjectNoteCreateBulk{err: fmt.Errorf("calling to ProjectNoteClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProjectNoteCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProjectNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProjectNote.
+func (c *ProjectNoteClient) Update() *ProjectNoteUpdate {
+	mutation := newProjectNoteMutation(c.config, OpUpdate)
+	return &ProjectNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProjectNoteClient) UpdateOne(_m *ProjectNote) *ProjectNoteUpdateOne {
+	mutation := newProjectNoteMutation(c.config, OpUpdateOne, withProjectNote(_m))
+	return &ProjectNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProjectNoteClient) UpdateOneID(id string) *ProjectNoteUpdateOne {
+	mutation := newProjectNoteMutation(c.config, OpUpdateOne, withProjectNoteID(id))
+	return &ProjectNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProjectNote.
+func (c *ProjectNoteClient) Delete() *ProjectNoteDelete {
+	mutation := newProjectNoteMutation(c.config, OpDelete)
+	return &ProjectNoteDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProjectNoteClient) DeleteOne(_m *ProjectNote) *ProjectNoteDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProjectNoteClient) DeleteOneID(id string) *ProjectNoteDeleteOne {
+	builder := c.Delete().Where(projectnote.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProjectNoteDeleteOne{builder}
+}
+
+// Query returns a query builder for ProjectNote.
+func (c *ProjectNoteClient) Query() *ProjectNoteQuery {
+	return &ProjectNoteQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProjectNote},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProjectNote entity by its id.
+func (c *ProjectNoteClient) Get(ctx context.Context, id string) (*ProjectNote, error) {
+	return c.Query().Where(projectnote.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProjectNoteClient) GetX(ctx context.Context, id string) *ProjectNote {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProject queries the project edge of a ProjectNote.
+func (c *ProjectNoteClient) QueryProject(_m *ProjectNote) *ProjectQuery {
+	query := (&ProjectClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(projectnote.Table, projectnote.FieldID, id),
+			sqlgraph.To(project.Table, project.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, projectnote.ProjectTable, projectnote.ProjectColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProjectNoteClient) Hooks() []Hook {
+	return c.hooks.ProjectNote
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProjectNoteClient) Interceptors() []Interceptor {
+	return c.inters.ProjectNote
+}
+
+func (c *ProjectNoteClient) mutate(ctx context.Context, m *ProjectNoteMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProjectNoteCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProjectNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProjectNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProjectNoteDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProjectNote mutation op: %q", m.Op())
+	}
+}
+
+// SteerRequestClient is a client for the SteerRequest schema.
+type SteerRequestClient struct {
+	config
+}
+
+// NewSteerRequestClient returns a client for the SteerRequest from the given config.
+func NewSteerRequestClient(c config) *SteerRequestClient {
+	return &SteerRequestClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `steerrequest.Hooks(f(g(h())))`.
+func (c *SteerRequestClient) Use(hooks ...Hook) {
+	c.hooks.SteerRequest = append(c.hooks.SteerRequest, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `steerrequest.Intercept(f(g(h())))`.
+func (c *SteerRequestClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SteerRequest = append(c.inters.SteerRequest, interceptors...)
+}
+
+// Create returns a builder for creating a SteerRequest entity.
+func (c *SteerRequestClient) Create() *SteerRequestCreate {
+	mutation := newSteerRequestMutation(c.config, OpCreate)
+	return &SteerRequestCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SteerRequest entities.
+func (c *SteerRequestClient) CreateBulk(builders ...*SteerRequestCreate) *SteerRequestCreateBulk {
+	return &SteerRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SteerRequestClient) MapCreateBulk(slice any, setFunc func(*SteerRequestCreate, int)) *SteerRequestCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SteerRequestCreateBulk{err: fmt.Errorf("calling to SteerRequestClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SteerRequestCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SteerRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SteerRequest.
+func (c *SteerRequestClient) Update() *SteerRequestUpdate {
+	mutation := newSteerRequestMutation(c.config, OpUpdate)
+	return &SteerRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SteerRequestClient) UpdateOne(_m *SteerRequest) *SteerRequestUpdateOne {
+	mutation := newSteerRequestMutation(c.config, OpUpdateOne, withSteerRequest(_m))
+	return &SteerRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SteerRequestClient) UpdateOneID(id string) *SteerRequestUpdateOne {
+	mutation := newSteerRequestMutation(c.config, OpUpdateOne, withSteerRequestID(id))
+	return &SteerRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SteerRequest.
+func (c *SteerRequestClient) Delete() *SteerRequestDelete {
+	mutation := newSteerRequestMutation(c.config, OpDelete)
+	return &SteerRequestDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SteerRequestClient) DeleteOne(_m *SteerRequest) *SteerRequestDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SteerRequestClient) DeleteOneID(id string) *SteerRequestDeleteOne {
+	builder := c.Delete().Where(steerrequest.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SteerRequestDeleteOne{builder}
+}
+
+// Query returns a query builder for SteerRequest.
+func (c *SteerRequestClient) Query() *SteerRequestQuery {
+	return &SteerRequestQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSteerRequest},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SteerRequest entity by its id.
+func (c *SteerRequestClient) Get(ctx context.Context, id string) (*SteerRequest, error) {
+	return c.Query().Where(steerrequest.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SteerRequestClient) GetX(ctx context.Context, id string) *SteerRequest {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySession queries the session edge of a SteerRequest.
+func (c *SteerRequestClient) QuerySession(_m *SteerRequest) *AgentSessionQuery {
+	query := (&AgentSessionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(steerrequest.Table, steerrequest.FieldID, id),
+			sqlgraph.To(agentsession.Table, agentsession.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, steerrequest.SessionTable, steerrequest.SessionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SteerRequestClient) Hooks() []Hook {
+	return c.hooks.SteerRequest
+}
+
+// Interceptors returns the client interceptors.
+func (c *SteerRequestClient) Interceptors() []Interceptor {
+	return c.inters.SteerRequest
+}
+
+func (c *SteerRequestClient) mutate(ctx context.Context, m *SteerRequestMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SteerRequestCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SteerRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SteerRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SteerRequestDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SteerRequest mutation op: %q", m.Op())
+	}
+}
+
+// TakeoverClient is a client for the Takeover schema.
+type TakeoverClient struct {
+	config
+}
+
+// NewTakeoverClient returns a client for the Takeover from the given config.
+func NewTakeoverClient(c config) *TakeoverClient {
+	return &TakeoverClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `takeover.Hooks(f(g(h())))`.
+func (c *TakeoverClient) Use(hooks ...Hook) {
+	c.hooks.Takeover = append(c.hooks.Takeover, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `takeover.Intercept(f(g(h())))`.
+func (c *TakeoverClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Takeover = append(c.inters.Takeover, interceptors...)
+}
+
+// Create returns a builder for creating a Takeover entity.
+func (c *TakeoverClient) Create() *TakeoverCreate {
+	mutation := newTakeoverMutation(c.config, OpCreate)
+	return &TakeoverCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Takeover entities.
+func (c *TakeoverClient) CreateBulk(builders ...*TakeoverCreate) *TakeoverCreateBulk {
+	return &TakeoverCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TakeoverClient) MapCreateBulk(slice any, setFunc func(*TakeoverCreate, int)) *TakeoverCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TakeoverCreateBulk{err: fmt.Errorf("calling to TakeoverClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TakeoverCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TakeoverCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Takeover.
+func (c *TakeoverClient) Update() *TakeoverUpdate {
+	mutation := newTakeoverMutation(c.config, OpUpdate)
+	return &TakeoverUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TakeoverClient) UpdateOne(_m *Takeover) *TakeoverUpdateOne {
+	mutation := newTakeoverMutation(c.config, OpUpdateOne, withTakeover(_m))
+	return &TakeoverUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TakeoverClient) UpdateOneID(id string) *TakeoverUpdateOne {
+	mutation := newTakeoverMutation(c.config, OpUpdateOne, withTakeoverID(id))
+	return &TakeoverUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Takeover.
+func (c *TakeoverClient) Delete() *TakeoverDelete {
+	mutation := newTakeoverMutation(c.config, OpDelete)
+	return &TakeoverDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TakeoverClient) DeleteOne(_m *Takeover) *TakeoverDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TakeoverClient) DeleteOneID(id string) *TakeoverDeleteOne {
+	builder := c.Delete().Where(takeover.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TakeoverDeleteOne{builder}
+}
+
+// Query returns a query builder for Takeover.
+func (c *TakeoverClient) Query() *TakeoverQuery {
+	return &TakeoverQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTakeover},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Takeover entity by its id.
+func (c *TakeoverClient) Get(ctx context.Context, id string) (*Takeover, error) {
+	return c.Query().Where(takeover.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TakeoverClient) GetX(ctx context.Context, id string) *Takeover {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySession queries the session edge of a Takeover.
+func (c *TakeoverClient) QuerySession(_m *Takeover) *AgentSessionQuery {
+	query := (&AgentSessionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(takeover.Table, takeover.FieldID, id),
+			sqlgraph.To(agentsession.Table, agentsession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, takeover.SessionTable, takeover.SessionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TakeoverClient) Hooks() []Hook {
+	return c.hooks.Takeover
+}
+
+// Interceptors returns the client interceptors.
+func (c *TakeoverClient) Interceptors() []Interceptor {
+	return c.inters.Takeover
+}
+
+func (c *TakeoverClient) mutate(ctx context.Context, m *TakeoverMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TakeoverCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TakeoverUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TakeoverUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TakeoverDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Takeover mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
 		Agent, AgentSession, CliCredential, Event, Project, ProjectInvite,
-		ProjectMember []ent.Hook
+		ProjectMember, ProjectNote, SteerRequest, Takeover []ent.Hook
 	}
 	inters struct {
 		Agent, AgentSession, CliCredential, Event, Project, ProjectInvite,
-		ProjectMember []ent.Interceptor
+		ProjectMember, ProjectNote, SteerRequest, Takeover []ent.Interceptor
 	}
 )

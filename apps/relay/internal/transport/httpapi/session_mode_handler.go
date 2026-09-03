@@ -74,7 +74,7 @@ func sessionModeChangedEnvelope(sessionID, mode string, actor auth.Actor) (json.
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "session.mode_changed",
 		"mode":       mode,
-		"changed_by": map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"changed_by": actorJSON(actor),
 	}
 
 	return json.Marshal(fields)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/user"
 
+	"github.com/francogalfre/coop/packages/cli/internal/capabilities"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
@@ -36,7 +37,7 @@ func buildEventBody(cfg config.Config, nextSeq func() int, sessionID, hookEvent 
 		}
 
 	case "PostToolUse":
-		if err := emitToolResult(emit, payload, red); err != nil {
+		if err := emitToolResult(cfg, emit, payload, red); err != nil {
 			return nil, err
 		}
 
@@ -65,10 +66,11 @@ func emitSessionStart(cfg config.Config, emit func(map[string]any) error, payloa
 	cwd, _ := red.Text(rawCwd)
 
 	fields := map[string]any{
-		"type":    "session.start",
-		"harness": "claude-code",
-		"cwd":     cwd,
-		"owner":   actorFields(cfg),
+		"type":         "session.start",
+		"harness":      "claude-code",
+		"cwd":          cwd,
+		"owner":        actorFields(cfg),
+		"capabilities": capabilities.ForAttach("claude-code"),
 	}
 
 	if rawCwd != "" {
@@ -101,7 +103,7 @@ func emitToolCall(emit func(map[string]any) error, payload map[string]any, red *
 	})
 }
 
-func emitToolResult(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
+func emitToolResult(cfg config.Config, emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
 	rawToolName := stringField(payload, "tool_name")
 
 	toolName, _ := red.Text(rawToolName)
@@ -116,21 +118,32 @@ func emitToolResult(emit func(map[string]any) error, payload map[string]any, red
 		return err
 	}
 
-	if err := emit(map[string]any{
+	fields := map[string]any{
 		"type":        "tool.result",
 		"tool_name":   toolName,
 		"tool_use_id": toolUseID,
 		"output":      output,
-	}); err != nil {
+	}
+
+	if durationMs, ok := payload["duration_ms"].(float64); ok {
+		fields["duration_ms"] = int64(durationMs)
+	}
+
+	if err := emit(fields); err != nil {
 		return err
 	}
 
-	if touched, ok := fileTouchedFields(rawToolName, payload, red); ok {
-		touched["tool_use_id"] = toolUseID
-		return emit(touched)
+	touched, ok, err := fileTouchedFields(rawToolName, payload, red, !cfg.DisableDiffStreaming)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
 	}
 
-	return nil
+	touched["tool_use_id"] = toolUseID
+
+	return emit(touched)
 }
 
 func emitStop(emit func(map[string]any) error, payload map[string]any, red *redact.Redactor) error {
@@ -161,6 +174,10 @@ func emitSessionEnd(emit func(map[string]any) error, payload map[string]any) err
 	switch reason := stringField(payload, "reason"); reason {
 	case "completed", "cancelled", "error":
 		fields["reason"] = reason
+	default:
+		// A live `claude -p` exit reports reason "other" (harnesses.md); map
+		// any unrecognized value to "completed" rather than drop it.
+		fields["reason"] = "completed"
 	}
 
 	return emit(fields)
@@ -181,12 +198,20 @@ func redactedTextFrom(v any, red *redact.Redactor) (map[string]any, error) {
 
 	redactedVal, count := red.Value(v)
 
-	b, err := json.Marshal(redactedVal)
-	if err != nil {
-		return nil, fmt.Errorf("hooks: marshal redacted field: %w", err)
+	// A plain string (last_assistant_message, prompt) is the text as-is; only
+	// a structured value (tool_input, tool_response) needs JSON-stringifying
+	// into something readable. Marshaling a string here would double-encode
+	// it, wrapping it in quotes and escaping its own newlines.
+	text, ok := redactedVal.(string)
+	if !ok {
+		b, err := json.Marshal(redactedVal)
+		if err != nil {
+			return nil, fmt.Errorf("hooks: marshal redacted field: %w", err)
+		}
+
+		text = string(b)
 	}
 
-	text := string(b)
 	truncated := false
 
 	if len(text) > textLimit {

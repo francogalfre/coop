@@ -38,7 +38,11 @@ func handleTakeoverPost(pool *db.Pool, store *stream.Store, registry *stream.Tak
 			return
 		}
 
-		current := registry.Get(sessionID)
+		current, err := registry.Get(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to look up takeover state")
+			return
+		}
 
 		if body.Active && current.Active && current.ByID != actor.UserID {
 			writeJSON(w, http.StatusConflict, takeoverResponse{Active: true, By: current.By})
@@ -69,7 +73,10 @@ func handleTakeoverPost(pool *db.Pool, store *stream.Store, registry *stream.Tak
 			log.Printf("coop: failed to append takeover event to in-memory store for session %s: %v", sessionID, err)
 		}
 
-		registry.Set(sessionID, stream.TakeoverState{Active: body.Active, ByID: actor.UserID, By: actor.DisplayName})
+		if err := registry.Set(r.Context(), sessionID, stream.TakeoverState{Active: body.Active, ByID: actor.UserID, By: actor.DisplayName}); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to record takeover state")
+			return
+		}
 
 		writeJSON(w, http.StatusOK, takeoverResponse{Active: body.Active, By: actor.DisplayName})
 	}
@@ -81,7 +88,7 @@ func takeoverEnvelope(sessionID string, actor auth.Actor, active bool) (json.Raw
 		"session_id": sessionID,
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "human.takeover",
-		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"actor":      actorJSON(actor),
 		"active":     active,
 	}
 

@@ -6,34 +6,50 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"sync/atomic"
 	"time"
 
+	"github.com/francogalfre/coop/packages/cli/internal/capabilities"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
+	"github.com/francogalfre/coop/packages/cli/internal/projectcontext"
 	"github.com/francogalfre/coop/packages/cli/internal/relayclient"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
 )
 
 const postEventTimeout = 15 * time.Second
 
+var selfEventSeq atomic.Int64
+
+// nextSelfSeq numbers events ptywrap posts about itself (session start/end,
+// steer.delivered) - a separate counter from hooks.Server's, since run mode
+// runs both an ingest server (for the wrapped harness's own hook events) and
+// this self-event stream side by side.
+func nextSelfSeq() int {
+	return int(selfEventSeq.Add(1)) - 1
+}
+
 func postSessionStart(cfg config.Config, harnessName string) {
 	cwd, _ := os.Getwd()
 
 	fields := map[string]any{
-		"type":    "session.start",
-		"harness": harnessName,
-		"cwd":     cwd,
-		"owner":   ownerFields(cfg),
+		"type":         "session.start",
+		"harness":      harnessName,
+		"cwd":          cwd,
+		"owner":        ownerFields(cfg),
+		"capabilities": capabilities.ForRun(),
 	}
 
 	if repo := repoid.Detect(cwd); repo != "" {
 		fields["repo"] = repo
 	}
 
-	postSessionEvent(cfg, 0, fields)
+	postSessionEvent(cfg, nextSelfSeq(), fields)
+
+	projectcontext.Deliver(context.Background(), cfg)
 }
 
 func postSessionEnd(cfg config.Config) {
-	postSessionEvent(cfg, 1, map[string]any{"type": "session.end"})
+	postSessionEvent(cfg, nextSelfSeq(), map[string]any{"type": "session.end"})
 }
 
 func postSessionEvent(cfg config.Config, seq int, fields map[string]any) {

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -16,6 +17,10 @@ type Config struct {
 	Username      string
 	DisplayName   string
 	Project       string
+	// DisableDiffStreaming defaults false (streaming on) so every existing
+	// Config{} zero value keeps today's behavior; COOP_DISABLE_STREAM_DIFFS
+	// opts out.
+	DisableDiffStreaming bool
 }
 
 const (
@@ -59,14 +64,17 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	disableDiffStreaming, _ := strconv.ParseBool(os.Getenv("COOP_DISABLE_STREAM_DIFFS"))
+
 	return Config{
-		RelayURL:      relayURL,
-		SessionID:     sessionID,
-		HookAddr:      hookAddr,
-		SessionToken:  sessionToken,
-		CLICredential: cred.Token,
-		Username:      cred.Username,
-		DisplayName:   cred.DisplayName,
+		RelayURL:             relayURL,
+		SessionID:            sessionID,
+		HookAddr:             hookAddr,
+		SessionToken:         sessionToken,
+		CLICredential:        cred.Token,
+		Username:             cred.Username,
+		DisplayName:          cred.DisplayName,
+		DisableDiffStreaming: disableDiffStreaming,
 	}, nil
 }
 

@@ -106,7 +106,7 @@ func TestHandleMessageAgentUnknownAgentNotFound(t *testing.T) {
 	req = withActor(req, "user-owner")
 	rec := httptest.NewRecorder()
 
-	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry())(rec, req)
+	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("got status %d, want 404: %s", rec.Code, rec.Body.String())
@@ -130,7 +130,7 @@ func TestHandleMessageAgentNonMemberNotFound(t *testing.T) {
 	req = withActor(req, "user-stranger")
 	rec := httptest.NewRecorder()
 
-	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry())(rec, req)
+	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("got status %d, want 404: %s", rec.Code, rec.Body.String())
@@ -154,7 +154,7 @@ func TestHandleMessageAgentNoLiveSessionReturnsUnavailable(t *testing.T) {
 	req = withActor(req, "user-owner")
 	rec := httptest.NewRecorder()
 
-	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry())(rec, req)
+	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("got status %d, want 503: %s", rec.Code, rec.Body.String())
@@ -186,7 +186,7 @@ func TestHandleMessageAgentLiveSessionAutoModeAccepts(t *testing.T) {
 	req = withActorNamed(req, "user-owner", "Owner")
 	rec := httptest.NewRecorder()
 
-	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry())(rec, req)
+	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
@@ -233,7 +233,7 @@ func TestHandleMessageAgentRestrictedModeNonOwnerPending(t *testing.T) {
 	req = withActorNamed(req, "user-alice", "Alice")
 	rec := httptest.NewRecorder()
 
-	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry())(rec, req)
+	handleMessageAgent(pool, stream.NewMailbox(), stream.New(), stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())

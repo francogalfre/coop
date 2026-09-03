@@ -53,7 +53,7 @@ func TestSteerResolveAllowDeliversToMailbox(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	requestID := requestPendingSteer(t, pool, store, steerRequests, "sess-a")
 
@@ -93,7 +93,7 @@ func TestSteerResolveDenyLeavesMailboxEmpty(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	requestID := requestPendingSteer(t, pool, store, steerRequests, "sess-a")
 
@@ -124,7 +124,7 @@ func TestSteerResolveUnknownRequestIDNotFound(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	rec := doSteerResolvePost(t, pool, mailbox, store, steerRequests, "sess-a", "bogus-request-id", "user-owner", "Owner", `{"decision":"allow"}`)
 	if rec.Code != http.StatusNotFound {
@@ -136,7 +136,7 @@ func TestSteerResolveAlreadyResolvedNotFound(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	requestID := requestPendingSteer(t, pool, store, steerRequests, "sess-a")
 
@@ -152,7 +152,7 @@ func TestSteerResolveInvalidDecisionRejected(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	requestID := requestPendingSteer(t, pool, store, steerRequests, "sess-a")
 
@@ -166,7 +166,7 @@ func TestSteerResolveRouteRejectsNonOwner(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 	cfg := config.Config{WebInternalURL: "http://unused.invalid"}
 
 	requestID := requestPendingSteer(t, pool, store, steerRequests, "sess-a")

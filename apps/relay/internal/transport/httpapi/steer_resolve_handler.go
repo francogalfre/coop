@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -44,30 +43,38 @@ func handleSteerResolvePost(pool *db.Pool, mailbox *stream.Mailbox, store *strea
 			return
 		}
 
-		pending, ok := steerRequests.Take(sessionID, requestID)
+		pending, ok, err := steerRequests.Take(r.Context(), sessionID, requestID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to look up pending steer request")
+			return
+		}
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
 
 		if body.Decision == "allow" {
-			envelope, err := steerEnvelope(sessionID, pending.Actor, pending.Text, requestID)
+			steerID, err := randomID()
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "failed to build steer message")
 				return
 			}
 
-			dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
+			envelope, err := steerEnvelope(sessionID, pending.Actor, pending.Text, requestID, steerID, "", nil)
 			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to build steer message")
+				return
+			}
+
+			if _, err := publishEvent(r.Context(), pool, store, sessionID, envelope); err != nil {
 				writeError(w, http.StatusInternalServerError, "failed to record steer message")
 				return
 			}
 
-			if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
-				log.Printf("coop: failed to append steer message to in-memory store for session %s: %v", sessionID, err)
+			dropped, wasDropped := mailbox.Put(sessionID, stream.SteerMessage{ID: steerID, Kind: "steer", From: pending.Actor.DisplayName, Text: pending.Text})
+			if wasDropped {
+				emitSteerDropped(r.Context(), pool, store, sessionID, dropped.ID, "queue_overflow")
 			}
-
-			mailbox.Put(sessionID, stream.SteerMessage{From: pending.Actor.DisplayName, Text: pending.Text})
 		}
 
 		resolvedEnvelope, err := steerResolvedEnvelope(sessionID, requestID, body.Decision, actor)
@@ -76,14 +83,9 @@ func handleSteerResolvePost(pool *db.Pool, mailbox *stream.Mailbox, store *strea
 			return
 		}
 
-		dbEvent, err := pool.AppendEvent(r.Context(), sessionID, resolvedEnvelope)
-		if err != nil {
+		if _, err := publishEvent(r.Context(), pool, store, sessionID, resolvedEnvelope); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to record steer resolution")
 			return
-		}
-
-		if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, resolvedEnvelope); err != nil {
-			log.Printf("coop: failed to append steer resolution to in-memory store for session %s: %v", sessionID, err)
 		}
 
 		writeJSON(w, http.StatusOK, steerResolvePostResponse{Status: "resolved", Decision: body.Decision})
@@ -98,7 +100,7 @@ func steerResolvedEnvelope(sessionID, requestID, decision string, actor auth.Act
 		"type":        "steer.resolved",
 		"request_id":  requestID,
 		"decision":    decision,
-		"resolved_by": map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"resolved_by": actorJSON(actor),
 	}
 
 	return json.Marshal(fields)

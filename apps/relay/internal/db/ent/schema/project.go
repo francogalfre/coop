@@ -18,6 +18,10 @@ func (Project) Fields() []ent.Field {
 		field.String("slug").NotEmpty().Unique(),
 		field.String("created_by").NotEmpty(),
 		field.Time("created_at").Immutable().Default(time.Now),
+		field.String("context_text").Default(""),
+		field.Int("context_version").Default(0).NonNegative(),
+		field.String("context_updated_by").Default(""),
+		field.Time("context_updated_at").Optional().Nillable(),
 	}
 }
 
@@ -27,5 +31,6 @@ func (Project) Edges() []ent.Edge {
 		edge.To("invites", ProjectInvite.Type),
 		edge.To("sessions", AgentSession.Type),
 		edge.To("agents", Agent.Type),
+		edge.To("notes", ProjectNote.Type),
 	}
 }

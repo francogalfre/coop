@@ -70,7 +70,7 @@ func readPtyFrame(t *testing.T, ctx context.Context, conn *websocket.Conn) map[s
 func TestPtySessionSourceBroadcastReachesViewer(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -109,7 +109,7 @@ func TestPtySessionSourceBroadcastReachesViewer(t *testing.T) {
 func TestPtySessionViewerWithoutTakeoverInputDropped(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -149,7 +149,7 @@ func TestPtySessionViewerWithoutTakeoverInputDropped(t *testing.T) {
 func TestPtySessionViewerWithTakeoverInputDelivered(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -175,7 +175,9 @@ func TestPtySessionViewerWithTakeoverInputDelivered(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	takeover.Set(sessionID, stream.TakeoverState{Active: true, ByID: "Bob", By: "Bob"})
+	if err := takeover.Set(ctx, sessionID, stream.TakeoverState{Active: true, ByID: "Bob", By: "Bob"}); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
 
 	if err := viewer.Write(ctx, websocket.MessageText, []byte(`{"type":"pty.input","data":"eA=="}`)); err != nil {
 		t.Fatalf("write failed: %v", err)
@@ -190,7 +192,7 @@ func TestPtySessionViewerWithTakeoverInputDelivered(t *testing.T) {
 func TestPtySessionSecondSourceReplacesFirst(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -224,7 +226,9 @@ func TestPtySessionSecondSourceReplacesFirst(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	takeover.Set(sessionID, stream.TakeoverState{Active: true, ByID: "Bob", By: "Bob"})
+	if err := takeover.Set(ctx, sessionID, stream.TakeoverState{Active: true, ByID: "Bob", By: "Bob"}); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
 
 	if err := viewer.Write(ctx, websocket.MessageText, []byte(`{"type":"pty.input","data":"eA=="}`)); err != nil {
 		t.Fatalf("write failed: %v", err)
@@ -245,7 +249,7 @@ func TestPtySessionSecondSourceReplacesFirst(t *testing.T) {
 func TestPtySessionClosesConnectionOnOversizedFrame(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -278,7 +282,7 @@ func TestPtySessionClosesConnectionOnOversizedFrame(t *testing.T) {
 func TestPtySessionRejectsUnauthenticated(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"*"})
 	defer server.Close()
@@ -297,7 +301,7 @@ func TestPtySessionRejectsUnauthenticated(t *testing.T) {
 func TestPtySessionRejectsDisallowedOrigin(t *testing.T) {
 	pool, sessionID := ptySessionFixture(t)
 	hub := stream.NewPtyHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 
 	server := newPtyTestServer(pool, hub, takeover, []string{"http://localhost:3000"})
 	defer server.Close()

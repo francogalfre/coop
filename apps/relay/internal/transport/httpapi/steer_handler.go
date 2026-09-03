@@ -2,8 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,16 +14,19 @@ import (
 )
 
 const (
-	steerTextMax        = 4096
-	steerRequestIDBytes = 16
+	steerTextMax = 4096
 )
 
 type steerPostRequest struct {
-	Text string `json:"text"`
+	Text                  string `json:"text"`
+	ClientID              string `json:"client_id"`
+	ProjectContextVersion *int   `json:"project_context_version"`
 }
 
 type steerGetResponse struct {
 	HasMessage bool             `json:"has_message"`
+	ID         string           `json:"id,omitempty"`
+	Kind       string           `json:"kind,omitempty"`
 	From       string           `json:"from,omitempty"`
 	Text       string           `json:"text,omitempty"`
 	Takeover   takeoverGetState `json:"takeover"`
@@ -77,28 +78,32 @@ func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store
 			return
 		}
 
-		deliverSteerNow(w, r, pool, mailbox, store, sessionID, actor, body.Text)
+		deliverSteerNow(w, r, pool, mailbox, store, sessionID, actor, body.Text, body.ClientID, body.ProjectContextVersion)
 	}
 }
 
-func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, sessionID string, actor auth.Actor, text string) {
-	envelope, err := steerEnvelope(sessionID, actor, text, "")
+func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, sessionID string, actor auth.Actor, text, clientID string, contextVersion *int) {
+	steerID, err := randomID()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to build steer message")
 		return
 	}
 
-	dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
+	envelope, err := steerEnvelope(sessionID, actor, text, "", steerID, clientID, contextVersion)
 	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to build steer message")
+		return
+	}
+
+	if _, err := publishEvent(r.Context(), pool, store, sessionID, envelope); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to record steer message")
 		return
 	}
 
-	if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
-		log.Printf("coop: failed to append steer message to in-memory store for session %s: %v", sessionID, err)
+	dropped, wasDropped := mailbox.Put(sessionID, stream.SteerMessage{ID: steerID, Kind: "steer", From: actor.DisplayName, Text: text})
+	if wasDropped {
+		emitSteerDropped(r.Context(), pool, store, sessionID, dropped.ID, "queue_overflow")
 	}
-
-	mailbox.Put(sessionID, stream.SteerMessage{From: actor.DisplayName, Text: text})
 
 	writeJSON(w, http.StatusAccepted, steerPostResponse{
 		Status: "accepted",
@@ -106,8 +111,31 @@ func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mail
 	})
 }
 
+func emitSteerDropped(ctx context.Context, pool *db.Pool, store *stream.Store, sessionID, steerID, reason string) {
+	if steerID == "" {
+		return
+	}
+
+	envelope, err := json.Marshal(map[string]any{
+		"v":          1,
+		"session_id": sessionID,
+		"ts":         time.Now().UTC().Format(time.RFC3339),
+		"type":       "steer.dropped",
+		"steer_id":   steerID,
+		"reason":     reason,
+	})
+	if err != nil {
+		log.Printf("coop: failed to build steer.dropped event for session %s: %v", sessionID, err)
+		return
+	}
+
+	if _, err := publishEvent(ctx, pool, store, sessionID, envelope); err != nil {
+		log.Printf("coop: failed to record steer.dropped event for session %s: %v", sessionID, err)
+	}
+}
+
 func handleSteerRequestPending(w http.ResponseWriter, r *http.Request, pool *db.Pool, store *stream.Store, steerRequests *stream.SteerRequestRegistry, sessionID string, actor auth.Actor, text string) {
-	requestID, err := generateSteerRequestID()
+	requestID, err := randomID()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to build steer request")
 		return
@@ -119,17 +147,15 @@ func handleSteerRequestPending(w http.ResponseWriter, r *http.Request, pool *db.
 		return
 	}
 
-	dbEvent, err := pool.AppendEvent(r.Context(), sessionID, envelope)
-	if err != nil {
+	if _, err := publishEvent(r.Context(), pool, store, sessionID, envelope); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to record steer request")
 		return
 	}
 
-	if _, err := store.AppendWithSeq(sessionID, dbEvent.Seq, envelope); err != nil {
-		log.Printf("coop: failed to append steer request to in-memory store for session %s: %v", sessionID, err)
+	if err := steerRequests.Put(r.Context(), sessionID, stream.PendingSteerRequest{RequestID: requestID, Actor: actor, Text: text}); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record pending steer request")
+		return
 	}
-
-	steerRequests.Put(sessionID, stream.PendingSteerRequest{RequestID: requestID, Actor: actor, Text: text})
 
 	writeJSON(w, http.StatusAccepted, steerPostResponse{
 		Status:    "pending",
@@ -154,29 +180,33 @@ func steerSessionState(ctx context.Context, pool *db.Pool, sessionID string) (ow
 	return sess.OwnerID, sess.Mode, nil
 }
 
-func generateSteerRequestID() (string, error) {
-	raw := make([]byte, steerRequestIDBytes)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("steer: generate request id: %w", err)
-	}
-
-	return hex.EncodeToString(raw), nil
-}
-
-func steerEnvelope(sessionID string, actor auth.Actor, text, requestID string) (json.RawMessage, error) {
+func steerEnvelope(sessionID string, actor auth.Actor, text, requestID, steerID, clientID string, contextVersion *int) (json.RawMessage, error) {
 	fields := map[string]any{
 		"v":          1,
 		"session_id": sessionID,
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "human.steer",
-		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"actor":      actorJSON(actor),
 		"text":       map[string]any{"text": text, "redactions": 0, "truncated": false},
 	}
 
-	// request_id links this delivery back to the steer.requested/resolved pair it approved,
-	// so the web can skip rendering a redundant second bubble for the same message.
+	// request_id lets the web dedupe this against the steer.requested bubble it approved.
 	if requestID != "" {
 		fields["request_id"] = requestID
+	}
+
+	// steer_id ties this message to its later steer.delivered/steer.dropped receipt.
+	if steerID != "" {
+		fields["steer_id"] = steerID
+	}
+
+	// client_id lets the composer reconcile its optimistic echo with this real event.
+	if clientID != "" {
+		fields["client_id"] = clientID
+	}
+
+	if contextVersion != nil {
+		fields["project_context_version"] = *contextVersion
 	}
 
 	return json.Marshal(fields)
@@ -189,7 +219,7 @@ func steerRequestedEnvelope(sessionID, requestID string, actor auth.Actor, text 
 		"ts":         time.Now().UTC().Format(time.RFC3339),
 		"type":       "steer.requested",
 		"request_id": requestID,
-		"actor":      map[string]string{"id": actor.UserID, "display_name": actor.DisplayName},
+		"actor":      actorJSON(actor),
 		"text":       map[string]any{"text": text, "redactions": 0, "truncated": false},
 	}
 
@@ -201,13 +231,19 @@ func handleSteerGet(mailbox *stream.Mailbox, registry *stream.TakeoverRegistry) 
 		sessionID := r.PathValue("id")
 
 		msg, hasMessage := mailbox.Take(sessionID)
-		takeover := registry.Get(sessionID)
+		takeover, err := registry.Get(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to look up takeover state")
+			return
+		}
 
 		resp := steerGetResponse{
 			HasMessage: hasMessage,
 			Takeover:   takeoverGetState{Active: takeover.Active, By: takeover.By},
 		}
 		if hasMessage {
+			resp.ID = msg.ID
+			resp.Kind = msg.Kind
 			resp.From = msg.From
 			resp.Text = msg.Text
 		}

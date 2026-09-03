@@ -6,6 +6,8 @@ import (
 )
 
 type SteerMessage struct {
+	ID   string
+	Kind string
 	From string
 	Text string
 }
@@ -21,17 +23,22 @@ func NewMailbox() *Mailbox {
 	return &Mailbox{pending: map[string][]SteerMessage{}}
 }
 
-func (m *Mailbox) Put(sessionID string, msg SteerMessage) {
+// Put reports what it dropped, so the caller can tell the sender their message never arrived.
+func (m *Mailbox) Put(sessionID string, msg SteerMessage) (dropped SteerMessage, wasDropped bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	queue := m.pending[sessionID]
 	if len(queue) >= mailboxCap {
-		log.Printf("coop: mailbox full for session %s, dropped oldest message", sessionID)
+		dropped = queue[0]
+		wasDropped = true
 		queue = queue[1:]
+		log.Printf("coop: mailbox full for session %s, dropped oldest message %s", sessionID, dropped.ID)
 	}
 
 	m.pending[sessionID] = append(queue, msg)
+
+	return dropped, wasDropped
 }
 
 func (m *Mailbox) Take(sessionID string) (SteerMessage, bool) {

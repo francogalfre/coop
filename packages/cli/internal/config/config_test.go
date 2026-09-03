@@ -116,6 +116,34 @@ func TestLoadLeavesCLICredentialEmptyWhenNoFile(t *testing.T) {
 	}
 }
 
+func TestLoadDefaultsDiffStreamingOn(t *testing.T) {
+	t.Setenv("COOP_DISABLE_STREAM_DIFFS", "")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.DisableDiffStreaming {
+		t.Fatal("got DisableDiffStreaming = true, want false (diff streaming is on by default)")
+	}
+}
+
+func TestLoadReadsDisableStreamDiffsFromEnv(t *testing.T) {
+	t.Setenv("COOP_DISABLE_STREAM_DIFFS", "true")
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if !cfg.DisableDiffStreaming {
+		t.Fatal("got DisableDiffStreaming = false, want true")
+	}
+}
+
 func TestLoadGeneratesUniqueSessionIDs(t *testing.T) {
 	t.Setenv("COOP_SESSION_ID", "")
 

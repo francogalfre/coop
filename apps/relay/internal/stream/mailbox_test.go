@@ -5,7 +5,7 @@ import "testing"
 func TestMailboxPutThenTake(t *testing.T) {
 	m := NewMailbox()
 
-	m.Put("sess-a", SteerMessage{From: "Alice", Text: "try the other branch"})
+	m.Put("sess-a", SteerMessage{ID: "id-1", From: "Alice", Text: "try the other branch"})
 
 	msg, ok := m.Take("sess-a")
 	if !ok {
@@ -19,7 +19,7 @@ func TestMailboxPutThenTake(t *testing.T) {
 func TestMailboxTakeIsOneShot(t *testing.T) {
 	m := NewMailbox()
 
-	m.Put("sess-a", SteerMessage{From: "Alice", Text: "hello"})
+	m.Put("sess-a", SteerMessage{ID: "id-1", From: "Alice", Text: "hello"})
 	m.Take("sess-a")
 
 	_, ok := m.Take("sess-a")
@@ -40,8 +40,8 @@ func TestMailboxTakeUnknownSession(t *testing.T) {
 func TestMailboxPutQueuesInOrderInsteadOfOverwriting(t *testing.T) {
 	m := NewMailbox()
 
-	m.Put("sess-a", SteerMessage{From: "Alice", Text: "first"})
-	m.Put("sess-a", SteerMessage{From: "Bob", Text: "second"})
+	m.Put("sess-a", SteerMessage{ID: "id-1", From: "Alice", Text: "first"})
+	m.Put("sess-a", SteerMessage{ID: "id-2", From: "Bob", Text: "second"})
 
 	first, ok := m.Take("sess-a")
 	if !ok {
@@ -67,8 +67,8 @@ func TestMailboxDepth(t *testing.T) {
 		t.Fatalf("got depth %d, want 0", got)
 	}
 
-	m.Put("sess-a", SteerMessage{From: "Alice", Text: "first"})
-	m.Put("sess-a", SteerMessage{From: "Bob", Text: "second"})
+	m.Put("sess-a", SteerMessage{ID: "id-1", From: "Alice", Text: "first"})
+	m.Put("sess-a", SteerMessage{ID: "id-2", From: "Bob", Text: "second"})
 
 	if got := m.Depth("sess-a"); got != 2 {
 		t.Fatalf("got depth %d, want 2", got)
@@ -85,7 +85,7 @@ func TestMailboxPutDropsOldestBeyondCap(t *testing.T) {
 	m := NewMailbox()
 
 	for i := 0; i < mailboxCap+1; i++ {
-		m.Put("sess-a", SteerMessage{From: "Alice", Text: string(rune('a' + i))})
+		m.Put("sess-a", SteerMessage{ID: string(rune('a' + i)), From: "Alice", Text: string(rune('a' + i))})
 	}
 
 	if got := m.Depth("sess-a"); got != mailboxCap {
@@ -98,5 +98,23 @@ func TestMailboxPutDropsOldestBeyondCap(t *testing.T) {
 	}
 	if first.Text != string(rune('a'+1)) {
 		t.Fatalf("expected oldest message dropped, got %+v", first)
+	}
+}
+
+func TestMailboxPutReportsWhatItDropped(t *testing.T) {
+	m := NewMailbox()
+
+	for i := 0; i < mailboxCap; i++ {
+		if _, wasDropped := m.Put("sess-a", SteerMessage{ID: string(rune('a' + i)), Text: "x"}); wasDropped {
+			t.Fatalf("got a drop before the mailbox was full, at message %d", i)
+		}
+	}
+
+	dropped, wasDropped := m.Put("sess-a", SteerMessage{ID: "overflow", Text: "x"})
+	if !wasDropped {
+		t.Fatal("got wasDropped=false once the mailbox was full, want true")
+	}
+	if dropped.ID != "a" {
+		t.Fatalf("got dropped id %q, want the oldest message's id \"a\"", dropped.ID)
 	}
 }

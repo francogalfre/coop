@@ -37,7 +37,8 @@ func newBrowserVerifyServer(t *testing.T, wantSecret string, cookieToUserID map[
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"userId": userID, "name": "Display " + userID})
+		_ = json.NewEncoder(w).
+			Encode(map[string]string{"userId": userID, "name": "Display " + userID, "image": "https://avatars.example/" + userID})
 	}))
 }
 
@@ -73,6 +74,30 @@ func TestRequireBrowserSessionAcceptsValidCookie(t *testing.T) {
 	}
 	if gotActor.DisplayName != "Display user-42" {
 		t.Fatalf("got actor.DisplayName %q, want %q", gotActor.DisplayName, "Display user-42")
+	}
+	if gotActor.AvatarURL != "https://avatars.example/user-42" {
+		t.Fatalf("got actor.AvatarURL %q, want %q", gotActor.AvatarURL, "https://avatars.example/user-42")
+	}
+}
+
+func TestRequireBrowserSessionAcceptsSecurePrefixedCookie(t *testing.T) {
+	srv := newBrowserVerifyServer(t, "s3cret", map[string]string{"good-cookie": "user-7"})
+	defer srv.Close()
+
+	cfg := config.Config{WebInternalURL: srv.URL, InternalSecret: "s3cret"}
+
+	handler := auth.RequireBrowserSession(cfg)(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.AddCookie(&http.Cookie{Name: "__Secure-better-auth.session_token", Value: "good-cookie"})
+	rec := httptest.NewRecorder()
+
+	handler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rec.Code)
 	}
 }
 

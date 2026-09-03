@@ -30,5 +30,7 @@ func (AgentSession) Edges() []ent.Edge {
 		edge.From("project", Project.Type).Ref("sessions").Unique().Required(),
 		edge.From("agent", Agent.Type).Ref("sessions").Unique(),
 		edge.To("events", Event.Type),
+		edge.To("steer_requests", SteerRequest.Type),
+		edge.To("takeover", Takeover.Type).Unique(),
 	}
 }

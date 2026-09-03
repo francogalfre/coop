@@ -39,7 +39,7 @@ export const CoopPlugin = async ({ client, directory, worktree }) => {
         directory,
         input,
         title: output.title,
-        out: output.output,
+        output: output.output,
         metadata: output.metadata,
       });
       await maybeSteer(reply);

@@ -16,6 +16,8 @@ import { InviteButton } from "./components/invite-button";
 import { NoAccess } from "./components/no-access";
 import { EmptySessions } from "./components/empty-sessions";
 import { AgentRoster } from "./components/agent-roster";
+import { ProjectContextPanel } from "./components/project-context-panel";
+import { ProjectNotesFeed } from "./components/project-notes-feed";
 
 export default function ProjectPage() {
   const params = useParams<{ slug: string }>();
@@ -65,7 +67,7 @@ export default function ProjectPage() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-6 py-14">
+      <main className="mx-auto max-w-6xl px-6 py-14">
         {denied ? (
           <NoAccess />
         ) : (
@@ -91,57 +93,66 @@ export default function ProjectPage() {
               <InviteButton slug={slug} />
             </motion.div>
 
-            {agents !== null && agents.length > 0 && (
-              <section className="mb-8">
-                <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
-                  Agents
-                </h2>
-                <AgentRoster slug={slug} agents={agents} />
-              </section>
-            )}
-
-            {failed ? (
-              <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                Could not reach the relay. Is it running?
-              </p>
-            ) : sessions === null ? (
-              <div className="space-y-2.5">
-                {[0, 1].map((i) => (
-                  <Skeleton key={i} className="h-[112px] rounded-xl" />
-                ))}
-              </div>
-            ) : sessions.length === 0 ? (
-              <EmptySessions />
-            ) : (
-              <div className="space-y-8">
-                {live.length > 0 && (
-                  <section>
-                    <h2 className="mb-3 flex items-center gap-2 font-medium text-xs text-muted-foreground uppercase tracking-wider">
-                      <LiveDot />
-                      Live now
-                    </h2>
-                    <ul className="space-y-2.5">
-                      {live.map((s, i) => (
-                        <SessionCard key={s.id} session={s} slug={slug} index={i} />
-                      ))}
-                    </ul>
-                  </section>
-                )}
-
-                {ended.length > 0 && (
-                  <section>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+              <div>
+                {agents !== null && agents.length > 0 && (
+                  <section className="mb-8">
                     <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
-                      Earlier
+                      Agents
                     </h2>
-                    <ul className="space-y-2.5">
-                      {ended.map((s, i) => (
-                        <SessionCard key={s.id} session={s} slug={slug} index={i} />
-                      ))}
-                    </ul>
+                    <AgentRoster slug={slug} agents={agents} />
                   </section>
                 )}
+
+                {failed ? (
+                  <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    Could not reach the relay. Is it running?
+                  </p>
+                ) : sessions === null ? (
+                  <div className="space-y-2.5">
+                    {[0, 1].map((i) => (
+                      <Skeleton key={i} className="h-[112px] rounded-xl" />
+                    ))}
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <EmptySessions />
+                ) : (
+                  <div className="space-y-8">
+                    {live.length > 0 && (
+                      <section>
+                        <h2 className="mb-3 flex items-center gap-2 font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                          <LiveDot />
+                          Live now
+                        </h2>
+                        <ul className="space-y-2.5">
+                          {live.map((s, i) => (
+                            <SessionCard key={s.id} session={s} slug={slug} index={i} />
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    {ended.length > 0 && (
+                      <section>
+                        <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                          Earlier
+                        </h2>
+                        <ul className="space-y-2.5">
+                          {ended.map((s, i) => (
+                            <SessionCard key={s.id} session={s} slug={slug} index={i} />
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+
+              <aside className="space-y-6 lg:sticky lg:top-14">
+                <ProjectContextPanel slug={slug} />
+                <ProjectNotesFeed slug={slug} />
+              </aside>
+            </div>
           </>
         )}
       </main>

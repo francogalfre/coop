@@ -25,4 +25,10 @@ export const auth = betterAuth({
         },
     },
     plugins: [nextCookies()],
+
+    // A shared parent domain (".example.com") lets the session cookie reach a
+    // relay on a sibling subdomain; unset keeps it host-only for single-origin.
+    advanced: process.env.COOP_COOKIE_DOMAIN
+        ? { crossSubDomainCookies: { enabled: true, domain: process.env.COOP_COOKIE_DOMAIN } }
+        : undefined,
 });

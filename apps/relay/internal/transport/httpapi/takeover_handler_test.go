@@ -53,14 +53,17 @@ func doTakeoverPost(t *testing.T, pool *db.Pool, store *stream.Store, registry *
 func TestTakeoverPostClaimThenRelease(t *testing.T) {
 	pool := takeoverSessionFixture(t, "sess-a")
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(pool)
 
 	claimRec := doTakeoverPost(t, pool, store, registry, "sess-a", "user-alice", "Alice", `{"active":true}`)
 	if claimRec.Code != http.StatusOK {
 		t.Fatalf("got status %d, want 200: %s", claimRec.Code, claimRec.Body.String())
 	}
 
-	state := registry.Get("sess-a")
+	state, err := registry.Get(t.Context(), "sess-a")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
 	if !state.Active || state.By != "Alice" {
 		t.Fatalf("got registry state %+v, want active held by Alice", state)
 	}
@@ -70,7 +73,11 @@ func TestTakeoverPostClaimThenRelease(t *testing.T) {
 		t.Fatalf("got status %d, want 200: %s", releaseRec.Code, releaseRec.Body.String())
 	}
 
-	if got := registry.Get("sess-a"); got.Active {
+	got, err := registry.Get(t.Context(), "sess-a")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Active {
 		t.Fatalf("got registry state %+v, want inactive after release", got)
 	}
 }
@@ -78,7 +85,7 @@ func TestTakeoverPostClaimThenRelease(t *testing.T) {
 func TestTakeoverPostRejectsSecondActorWhileHeld(t *testing.T) {
 	pool := takeoverSessionFixture(t, "sess-a")
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(pool)
 
 	doTakeoverPost(t, pool, store, registry, "sess-a", "user-alice", "Alice", `{"active":true}`)
 
@@ -95,7 +102,11 @@ func TestTakeoverPostRejectsSecondActorWhileHeld(t *testing.T) {
 		t.Fatalf("got by %q, want Alice", payload.By)
 	}
 
-	if got := registry.Get("sess-a"); !got.Active || got.By != "Alice" {
+	got, err := registry.Get(t.Context(), "sess-a")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if !got.Active || got.By != "Alice" {
 		t.Fatalf("got registry state %+v, want still held by Alice", got)
 	}
 }
@@ -103,7 +114,7 @@ func TestTakeoverPostRejectsSecondActorWhileHeld(t *testing.T) {
 func TestTakeoverPostReleaseRejectedForNonHolderNonOwner(t *testing.T) {
 	pool := takeoverSessionFixture(t, "sess-a")
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(pool)
 
 	doTakeoverPost(t, pool, store, registry, "sess-a", "user-alice", "Alice", `{"active":true}`)
 
@@ -112,7 +123,11 @@ func TestTakeoverPostReleaseRejectedForNonHolderNonOwner(t *testing.T) {
 		t.Fatalf("got status %d, want 403: %s", rec.Code, rec.Body.String())
 	}
 
-	if got := registry.Get("sess-a"); !got.Active || got.By != "Alice" {
+	got, err := registry.Get(t.Context(), "sess-a")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if !got.Active || got.By != "Alice" {
 		t.Fatalf("got registry state %+v, want still held by Alice", got)
 	}
 }
@@ -120,7 +135,7 @@ func TestTakeoverPostReleaseRejectedForNonHolderNonOwner(t *testing.T) {
 func TestTakeoverPostSessionOwnerCanForceRelease(t *testing.T) {
 	pool := takeoverSessionFixture(t, "sess-a")
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(pool)
 
 	doTakeoverPost(t, pool, store, registry, "sess-a", "user-alice", "Alice", `{"active":true}`)
 
@@ -129,7 +144,11 @@ func TestTakeoverPostSessionOwnerCanForceRelease(t *testing.T) {
 		t.Fatalf("got status %d, want 200: %s", rec.Code, rec.Body.String())
 	}
 
-	if got := registry.Get("sess-a"); got.Active {
+	got, err := registry.Get(t.Context(), "sess-a")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Active {
 		t.Fatalf("got registry state %+v, want inactive after owner force-release", got)
 	}
 }
@@ -137,7 +156,7 @@ func TestTakeoverPostSessionOwnerCanForceRelease(t *testing.T) {
 func TestTakeoverPostPersistsEventToPostgresAndStore(t *testing.T) {
 	pool := takeoverSessionFixture(t, "sess-a")
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(pool)
 
 	rec := doTakeoverPost(t, pool, store, registry, "sess-a", "user-alice", "Alice", `{"active":true}`)
 	if rec.Code != http.StatusOK {
@@ -168,7 +187,7 @@ func TestTakeoverPostPersistsEventToPostgresAndStore(t *testing.T) {
 
 func TestTakeoverPostRequiresActor(t *testing.T) {
 	store := stream.New()
-	registry := stream.NewTakeoverRegistry()
+	registry := stream.NewTakeoverRegistry(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/sess-a/takeover", strings.NewReader(`{"active":true}`))
 	req.SetPathValue("id", "sess-a")
@@ -183,8 +202,10 @@ func TestTakeoverPostRequiresActor(t *testing.T) {
 
 func TestSteerGetReflectsTakeoverState(t *testing.T) {
 	mailbox := stream.NewMailbox()
-	registry := stream.NewTakeoverRegistry()
-	registry.Set("sess-a", stream.TakeoverState{Active: true, ByID: "u1", By: "Alice"})
+	registry := stream.NewTakeoverRegistry(nil)
+	if err := registry.Set(t.Context(), "sess-a", stream.TakeoverState{Active: true, ByID: "u1", By: "Alice"}); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/sessions/sess-a/steer", nil)
 	req.SetPathValue("id", "sess-a")

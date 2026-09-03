@@ -12,7 +12,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/transport/wsapi"
 )
 
-func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, store *stream.Store, mailbox *stream.Mailbox, hub *stream.PresenceHub, takeover *stream.TakeoverRegistry, ptyHub *stream.PtyHub, steerRequests *stream.SteerRequestRegistry) http.Handler {
+func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, store *stream.Store, mailbox *stream.Mailbox, hub *stream.PresenceHub, takeover *stream.TakeoverRegistry, ptyHub *stream.PtyHub, steerRequests *stream.SteerRequestRegistry, questions *stream.QuestionRegistry) http.Handler {
 	mux := http.NewServeMux()
 
 	ingestLimiter := ratelimit.New(ingestRatePerSecond, ingestBurst)
@@ -38,6 +38,11 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("GET /v1/sessions/{id}/events", requireSessionMember(handleEvents(pool)))
 	mux.HandleFunc("POST /v1/sessions/{id}/takeover", requireSessionMember(handleTakeoverPost(pool, store, takeover)))
 	mux.HandleFunc("POST /v1/sessions/{id}/mode", requireSessionOwner(handleModePost(pool, store)))
+	mux.HandleFunc("POST /v1/sessions/{id}/command", withIPRateLimit(steerLimiter, requireSessionOwner(handleCommandPost(pool, mailbox, store))))
+	mux.HandleFunc("POST /v1/sessions/{id}/questions", withIPRateLimit(steerLimiter, requireSessionMember(handleQuestionPost(pool, store, questions))))
+	mux.HandleFunc("GET /v1/sessions/{id}/questions/{qid}", requireSessionMember(handleQuestionGet(questions)))
+	mux.HandleFunc("POST /v1/sessions/{id}/questions/{qid}/answer", withIPRateLimit(steerLimiter, requireSessionMember(handleQuestionAnswerPost(pool, store, questions))))
+	mux.HandleFunc("POST /v1/sessions/{id}/permissions/{request_id}/resolve", requireSessionOwner(handlePermissionResolvePost(pool, store)))
 	mux.HandleFunc("POST /v1/auth/cli/exchange", withIPRateLimit(exchangeLimiter, handleCLIExchange(cfg, pool)))
 	mux.HandleFunc("POST /v1/auth/cli/revoke", requireCliCredential(handleCLIRevoke(pool)))
 
@@ -47,6 +52,10 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("POST /v1/projects/invites/{token}/accept", requireIdentity(handleAcceptInvite(pool)))
 	mux.HandleFunc("GET /v1/projects/{slug}/sessions", requireIdentity(handleListProjectSessions(pool)))
 	mux.HandleFunc("GET /v1/projects/{slug}/agents", requireIdentity(handleListProjectAgents(pool)))
+	mux.HandleFunc("GET /v1/projects/{slug}/context", requireIdentity(handleGetProjectContext(pool)))
+	mux.HandleFunc("PUT /v1/projects/{slug}/context", requireIdentity(handlePutProjectContext(pool)))
+	mux.HandleFunc("GET /v1/projects/{slug}/notes", requireIdentity(handleGetProjectNotes(pool)))
+	mux.HandleFunc("POST /v1/projects/{slug}/notes", withIPRateLimit(steerLimiter, requireIdentity(handlePostProjectNote(pool))))
 	mux.HandleFunc("POST /v1/projects/{slug}/agents/{name}/message", withIPRateLimit(steerLimiter, requireIdentity(handleMessageAgent(pool, mailbox, store, steerRequests))))
 
 	return withCORS(mux, cfg.WebOrigins)

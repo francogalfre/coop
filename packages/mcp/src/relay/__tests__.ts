@@ -99,7 +99,7 @@ describe("fetchPresence", () => {
     await fetchPresence(baseConfig, ["a.ts"]);
 
     const init = fetchMock.mock.calls[0]![1] as RequestInit | undefined;
-    expect(init?.headers).toBeUndefined();
+    expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined();
   });
 
   it("throws RelayUnreachableError on a non-2xx response", async () => {

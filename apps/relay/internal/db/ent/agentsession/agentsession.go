@@ -36,6 +36,10 @@ const (
 	EdgeAgent = "agent"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
 	EdgeEvents = "events"
+	// EdgeSteerRequests holds the string denoting the steer_requests edge name in mutations.
+	EdgeSteerRequests = "steer_requests"
+	// EdgeTakeover holds the string denoting the takeover edge name in mutations.
+	EdgeTakeover = "takeover"
 	// Table holds the table name of the agentsession in the database.
 	Table = "agent_sessions"
 	// ProjectTable is the table that holds the project relation/edge.
@@ -59,6 +63,20 @@ const (
 	EventsInverseTable = "events"
 	// EventsColumn is the table column denoting the events relation/edge.
 	EventsColumn = "agent_session_events"
+	// SteerRequestsTable is the table that holds the steer_requests relation/edge.
+	SteerRequestsTable = "steer_requests"
+	// SteerRequestsInverseTable is the table name for the SteerRequest entity.
+	// It exists in this package in order to avoid circular dependency with the "steerrequest" package.
+	SteerRequestsInverseTable = "steer_requests"
+	// SteerRequestsColumn is the table column denoting the steer_requests relation/edge.
+	SteerRequestsColumn = "agent_session_steer_requests"
+	// TakeoverTable is the table that holds the takeover relation/edge.
+	TakeoverTable = "takeovers"
+	// TakeoverInverseTable is the table name for the Takeover entity.
+	// It exists in this package in order to avoid circular dependency with the "takeover" package.
+	TakeoverInverseTable = "takeovers"
+	// TakeoverColumn is the table column denoting the takeover relation/edge.
+	TakeoverColumn = "agent_session_takeover"
 )
 
 // Columns holds all SQL columns for agentsession fields.
@@ -198,6 +216,27 @@ func ByEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySteerRequestsCount orders the results by steer_requests count.
+func BySteerRequestsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSteerRequestsStep(), opts...)
+	}
+}
+
+// BySteerRequests orders the results by steer_requests terms.
+func BySteerRequests(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSteerRequestsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByTakeoverField orders the results by takeover field.
+func ByTakeoverField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTakeoverStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newProjectStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -217,5 +256,19 @@ func newEventsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EventsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EventsTable, EventsColumn),
+	)
+}
+func newSteerRequestsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SteerRequestsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SteerRequestsTable, SteerRequestsColumn),
+	)
+}
+func newTakeoverStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TakeoverInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, TakeoverTable, TakeoverColumn),
 	)
 }

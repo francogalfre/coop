@@ -17,19 +17,23 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/predicate"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // AgentSessionQuery is the builder for querying AgentSession entities.
 type AgentSessionQuery struct {
 	config
-	ctx         *QueryContext
-	order       []agentsession.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.AgentSession
-	withProject *ProjectQuery
-	withAgent   *AgentQuery
-	withEvents  *EventQuery
-	withFKs     bool
+	ctx               *QueryContext
+	order             []agentsession.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.AgentSession
+	withProject       *ProjectQuery
+	withAgent         *AgentQuery
+	withEvents        *EventQuery
+	withSteerRequests *SteerRequestQuery
+	withTakeover      *TakeoverQuery
+	withFKs           bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -125,6 +129,50 @@ func (_q *AgentSessionQuery) QueryEvents() *EventQuery {
 			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, agentsession.EventsTable, agentsession.EventsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySteerRequests chains the current query on the "steer_requests" edge.
+func (_q *AgentSessionQuery) QuerySteerRequests() *SteerRequestQuery {
+	query := (&SteerRequestClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
+			sqlgraph.To(steerrequest.Table, steerrequest.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, agentsession.SteerRequestsTable, agentsession.SteerRequestsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTakeover chains the current query on the "takeover" edge.
+func (_q *AgentSessionQuery) QueryTakeover() *TakeoverQuery {
+	query := (&TakeoverClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agentsession.Table, agentsession.FieldID, selector),
+			sqlgraph.To(takeover.Table, takeover.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, agentsession.TakeoverTable, agentsession.TakeoverColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -319,14 +367,16 @@ func (_q *AgentSessionQuery) Clone() *AgentSessionQuery {
 		return nil
 	}
 	return &AgentSessionQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]agentsession.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.AgentSession{}, _q.predicates...),
-		withProject: _q.withProject.Clone(),
-		withAgent:   _q.withAgent.Clone(),
-		withEvents:  _q.withEvents.Clone(),
+		config:            _q.config,
+		ctx:               _q.ctx.Clone(),
+		order:             append([]agentsession.OrderOption{}, _q.order...),
+		inters:            append([]Interceptor{}, _q.inters...),
+		predicates:        append([]predicate.AgentSession{}, _q.predicates...),
+		withProject:       _q.withProject.Clone(),
+		withAgent:         _q.withAgent.Clone(),
+		withEvents:        _q.withEvents.Clone(),
+		withSteerRequests: _q.withSteerRequests.Clone(),
+		withTakeover:      _q.withTakeover.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -363,6 +413,28 @@ func (_q *AgentSessionQuery) WithEvents(opts ...func(*EventQuery)) *AgentSession
 		opt(query)
 	}
 	_q.withEvents = query
+	return _q
+}
+
+// WithSteerRequests tells the query-builder to eager-load the nodes that are connected to
+// the "steer_requests" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AgentSessionQuery) WithSteerRequests(opts ...func(*SteerRequestQuery)) *AgentSessionQuery {
+	query := (&SteerRequestClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSteerRequests = query
+	return _q
+}
+
+// WithTakeover tells the query-builder to eager-load the nodes that are connected to
+// the "takeover" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AgentSessionQuery) WithTakeover(opts ...func(*TakeoverQuery)) *AgentSessionQuery {
+	query := (&TakeoverClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTakeover = query
 	return _q
 }
 
@@ -445,10 +517,12 @@ func (_q *AgentSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		nodes       = []*AgentSession{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [5]bool{
 			_q.withProject != nil,
 			_q.withAgent != nil,
 			_q.withEvents != nil,
+			_q.withSteerRequests != nil,
+			_q.withTakeover != nil,
 		}
 	)
 	if _q.withProject != nil || _q.withAgent != nil {
@@ -491,6 +565,19 @@ func (_q *AgentSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		if err := _q.loadEvents(ctx, query, nodes,
 			func(n *AgentSession) { n.Edges.Events = []*Event{} },
 			func(n *AgentSession, e *Event) { n.Edges.Events = append(n.Edges.Events, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSteerRequests; query != nil {
+		if err := _q.loadSteerRequests(ctx, query, nodes,
+			func(n *AgentSession) { n.Edges.SteerRequests = []*SteerRequest{} },
+			func(n *AgentSession, e *SteerRequest) { n.Edges.SteerRequests = append(n.Edges.SteerRequests, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTakeover; query != nil {
+		if err := _q.loadTakeover(ctx, query, nodes, nil,
+			func(n *AgentSession, e *Takeover) { n.Edges.Takeover = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -587,6 +674,65 @@ func (_q *AgentSessionQuery) loadEvents(ctx context.Context, query *EventQuery, 
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "agent_session_events" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AgentSessionQuery) loadSteerRequests(ctx context.Context, query *SteerRequestQuery, nodes []*AgentSession, init func(*AgentSession), assign func(*AgentSession, *SteerRequest)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*AgentSession)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.SteerRequest(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(agentsession.SteerRequestsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.agent_session_steer_requests
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "agent_session_steer_requests" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "agent_session_steer_requests" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AgentSessionQuery) loadTakeover(ctx context.Context, query *TakeoverQuery, nodes []*AgentSession, init func(*AgentSession), assign func(*AgentSession, *Takeover)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*AgentSession)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Takeover(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(agentsession.TakeoverColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.agent_session_takeover
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "agent_session_takeover" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "agent_session_takeover" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

@@ -3,6 +3,7 @@ package wsapi
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/coder/websocket"
@@ -106,7 +107,11 @@ func runPtyViewer(ctx context.Context, conn *websocket.Conn, hub *stream.PtyHub,
 			if !ok {
 				return
 			}
-			state := takeover.Get(sessionID)
+			state, err := takeover.Get(ctx, sessionID)
+			if err != nil {
+				log.Printf("coop: takeover lookup failed for session %s: %v", sessionID, err)
+				continue
+			}
 			if state.Active && state.ByID == userID {
 				hub.RouteInput(sessionID, frame)
 			}

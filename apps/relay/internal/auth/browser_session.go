@@ -14,10 +14,21 @@ import (
 
 const (
 	browserSessionCookieName = "better-auth.session_token"
-	webVerifyTimeout         = 10 * time.Second
-	browserSessionCacheTTL   = 20 * time.Second
-	browserSessionCacheCap   = 4096
+	// better-auth prefixes the cookie with __Secure- whenever it issues it over HTTPS.
+	secureBrowserSessionCookieName = "__Secure-" + browserSessionCookieName
+	webVerifyTimeout               = 10 * time.Second
+	browserSessionCacheTTL         = 20 * time.Second
+	browserSessionCacheCap         = 4096
 )
+
+func browserSessionToken(r *http.Request) (string, bool) {
+	for _, name := range [...]string{secureBrowserSessionCookieName, browserSessionCookieName} {
+		if cookie, err := r.Cookie(name); err == nil && cookie.Value != "" {
+			return cookie.Value, true
+		}
+	}
+	return "", false
+}
 
 var webVerifyClient = &http.Client{Timeout: webVerifyTimeout}
 
@@ -68,18 +79,19 @@ type sessionVerifyRequestBody struct {
 type sessionVerifyResponseBody struct {
 	UserID string `json:"userId"`
 	Name   string `json:"name"`
+	Image  string `json:"image"`
 }
 
 func RequireBrowserSession(cfg config.Config) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(browserSessionCookieName)
-			if err != nil || cookie.Value == "" {
+			token, ok := browserSessionToken(r)
+			if !ok {
 				http.NotFound(w, r)
 				return
 			}
 
-			actor, err := verifyBrowserSession(r, cfg, cookie.Value)
+			actor, err := verifyBrowserSession(r, cfg, token)
 			if err != nil || actor.UserID == "" {
 				http.NotFound(w, r)
 				return
@@ -125,7 +137,7 @@ func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string
 		return Actor{}, fmt.Errorf("decode response: %w", err)
 	}
 
-	actor := Actor{UserID: result.UserID, DisplayName: result.Name}
+	actor := Actor{UserID: result.UserID, DisplayName: result.Name, AvatarURL: result.Image}
 	browserSessionCache.set(cacheKey, actor)
 
 	return actor, nil
@@ -145,7 +157,7 @@ func RequireAnyIdentity(pool *db.Pool, cfg config.Config) func(http.HandlerFunc)
 				return
 			}
 
-			if _, err := r.Cookie(browserSessionCookieName); err == nil {
+			if _, ok := browserSessionToken(r); ok {
 				browserNext(w, r)
 				return
 			}

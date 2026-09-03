@@ -26,3 +26,12 @@ type ProjectInvite func(*sql.Selector)
 
 // ProjectMember is the predicate function for projectmember builders.
 type ProjectMember func(*sql.Selector)
+
+// ProjectNote is the predicate function for projectnote builders.
+type ProjectNote func(*sql.Selector)
+
+// SteerRequest is the predicate function for steerrequest builders.
+type SteerRequest func(*sql.Selector)
+
+// Takeover is the predicate function for takeover builders.
+type Takeover func(*sql.Selector)

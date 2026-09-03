@@ -184,3 +184,22 @@ func TestMessagePostRoundTripsAnchorSeq(t *testing.T) {
 		t.Fatalf("got anchor_seq %v, want 12", fields["anchor_seq"])
 	}
 }
+
+func TestMessagePostRoundTripsClientID(t *testing.T) {
+	pool := messageSessionFixture(t, "sess-a")
+	store := stream.New()
+
+	rec := doMessagePost(t, pool, store, "sess-a", `{"text":"hi","client_id":"c-1"}`)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	events := store.Since("sess-a", 0)
+	var fields map[string]any
+	if err := json.Unmarshal(events[0].Data, &fields); err != nil {
+		t.Fatalf("failed to decode event: %v", err)
+	}
+	if fields["client_id"] != "c-1" {
+		t.Fatalf("got client_id %v, want c-1", fields["client_id"])
+	}
+}

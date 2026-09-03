@@ -19,6 +19,9 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -86,6 +89,9 @@ func checkColumn(t, c string) error {
 			project.Table:       project.ValidColumn,
 			projectinvite.Table: projectinvite.ValidColumn,
 			projectmember.Table: projectmember.ValidColumn,
+			projectnote.Table:   projectnote.ValidColumn,
+			steerrequest.Table:  steerrequest.ValidColumn,
+			takeover.Table:      takeover.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

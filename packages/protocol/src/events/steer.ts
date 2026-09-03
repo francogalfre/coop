@@ -21,3 +21,19 @@ export const steerResolved = z.object({
   resolved_by: actor,
 });
 export type SteerResolved = z.infer<typeof steerResolved>;
+
+export const steerDelivered = z.object({
+  ...envelopeFields,
+  type: z.literal("steer.delivered"),
+  steer_id: z.string().min(1).max(LIMITS.request_id),
+  hook_event: z.string().max(64).optional(),
+});
+export type SteerDelivered = z.infer<typeof steerDelivered>;
+
+export const steerDropped = z.object({
+  ...envelopeFields,
+  type: z.literal("steer.dropped"),
+  steer_id: z.string().min(1).max(LIMITS.request_id),
+  reason: z.enum(["queue_overflow", "session_ended"]),
+});
+export type SteerDropped = z.infer<typeof steerDropped>;

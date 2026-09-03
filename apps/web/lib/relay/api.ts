@@ -1,3 +1,4 @@
+import type { HarnessCommand } from "@coop/protocol";
 import { relayConfig } from "./config";
 
 export type Project = {
@@ -30,6 +31,24 @@ export type EventsPage = {
   events: unknown[];
   oldest_seq: number;
   has_more: boolean;
+};
+
+export type ProjectContext = {
+  text: string;
+  version: number;
+  updated_by?: string;
+  updated_at?: string;
+};
+
+export type ProjectNote = {
+  id: string;
+  author_id: string;
+  author_display_name: string;
+  author_avatar_url?: string;
+  source: "human" | "agent";
+  session_id?: string;
+  text: string;
+  created_at: string;
 };
 
 export class RelayError extends Error {
@@ -105,21 +124,45 @@ export const relayApi = {
       },
     ),
 
-  sendMessage: (sessionId: string, text: string) =>
+  steerAgent: (sessionId: string, text: string, clientId: string, anchorSeq?: number) =>
     request<{ status: "accepted"; queued: number } | { status: "pending"; request_id: string }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text, client_id: clientId, anchor_seq: anchorSeq }),
+      },
+    ),
+
+  sendTeamMessage: (sessionId: string, text: string, clientId: string, anchorSeq?: number) =>
+    request<{ status: "sent"; seq: number }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/message`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text, client_id: clientId, anchor_seq: anchorSeq }),
+      },
+    ),
+
+  runCommand: (sessionId: string, command: HarnessCommand, args?: string) =>
+    request<{ status: "ok" }>(`/v1/sessions/${encodeURIComponent(sessionId)}/command`, {
+      method: "POST",
+      body: JSON.stringify({ command, args }),
+    }),
+
+  answerQuestion: (sessionId: string, questionId: string, text: string) =>
+    request<{ status: "answered" }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/answer`,
       {
         method: "POST",
         body: JSON.stringify({ text }),
       },
     ),
 
-  sendTeamMessage: (sessionId: string, text: string, anchorSeq?: number) =>
-    request<{ status: "sent"; seq: number }>(
-      `/v1/sessions/${encodeURIComponent(sessionId)}/message`,
+  resolvePermission: (sessionId: string, requestId: string, decision: "allow" | "deny") =>
+    request<{ decision: "allow" | "deny" }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/permissions/${encodeURIComponent(requestId)}/resolve`,
       {
         method: "POST",
-        body: JSON.stringify({ text, anchor_seq: anchorSeq }),
+        body: JSON.stringify({ decision }),
       },
     ),
 
@@ -146,6 +189,31 @@ export const relayApi = {
         body: JSON.stringify({ decision }),
       },
     ),
+
+  getProjectContext: (slug: string) =>
+    request<ProjectContext>(`/v1/projects/${encodeURIComponent(slug)}/context`),
+
+  setProjectContext: (slug: string, text: string) =>
+    request<ProjectContext>(`/v1/projects/${encodeURIComponent(slug)}/context`, {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }),
+
+  listProjectNotes: (slug: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.set("limit", String(limit));
+    const query = params.toString();
+
+    return request<{ notes: ProjectNote[] }>(
+      `/v1/projects/${encodeURIComponent(slug)}/notes${query ? `?${query}` : ""}`,
+    );
+  },
+
+  postProjectNote: (slug: string, text: string) =>
+    request<{ note: ProjectNote }>(`/v1/projects/${encodeURIComponent(slug)}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
 
   listEvents: (sessionId: string, before?: number, limit?: number) => {
     const params = new URLSearchParams();

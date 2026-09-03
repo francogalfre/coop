@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { IconCheck, IconClose, IconSend } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { initials, tintFor } from "@/lib/format";
+import { PersonAvatar } from "@/components/person-avatar";
 import { relayApi } from "@/lib/relay/api";
 import { Row } from "./timeline-row-shell";
 import type { TimelineItem } from "../types";
@@ -37,12 +37,11 @@ export function SteerRequestRow({
         ts={item.ts}
         seq={item.seq}
         rail={
-          <span
-            className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-3xs text-background opacity-50"
-            style={{ background: tintFor(item.author) }}
-          >
-            {initials(item.author)}
-          </span>
+          <PersonAvatar
+            name={item.author}
+            avatarUrl={item.authorAvatarUrl}
+            className="relative z-10 size-6 text-3xs opacity-50"
+          />
         }
       >
         <div className="rounded-lg rounded-tl-sm border border-border/60 bg-secondary/30 px-3 py-2 opacity-60">
@@ -61,14 +60,7 @@ export function SteerRequestRow({
   return (
     <Row
       ts={item.ts}
-      rail={
-        <span
-          className="relative z-10 grid size-6 place-items-center rounded-full font-medium text-3xs text-background"
-          style={{ background: tintFor(item.author) }}
-        >
-          {initials(item.author)}
-        </span>
-      }
+      rail={<PersonAvatar name={item.author} avatarUrl={item.authorAvatarUrl} className="relative z-10 size-6 text-3xs" />}
     >
       <div className="rounded-lg rounded-tl-sm border border-human/25 bg-human/[0.07] px-3 py-2">
         <div className="mb-0.5 flex items-center gap-2">

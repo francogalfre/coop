@@ -13,6 +13,7 @@ import (
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
 	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
 	"github.com/francogalfre/coop/packages/cli/internal/hooks"
+	"github.com/francogalfre/coop/packages/cli/internal/projectcontext"
 	"github.com/francogalfre/coop/packages/cli/internal/ptywrap"
 )
 
@@ -118,6 +119,8 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 		_ = installed.Stop()
 		return err
 	}
+
+	projectcontext.Deliver(ctx, cfg)
 
 	fmt.Printf("coop attach: session %s\n", cfg.SessionID)
 	fmt.Printf("coop attach: relay   %s\n", cfg.RelayURL)
