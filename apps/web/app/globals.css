@@ -102,6 +102,26 @@
   ::selection {
     background: oklch(0.704 0.148 258.3 / 30%);
   }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(1 0 0 / 12%) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: oklch(1 0 0 / 10%);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(1 0 0 / 18%);
+  }
 }
 
 @utility text-balance {

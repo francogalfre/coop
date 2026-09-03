@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { parseEvent } from "@coop/protocol";
@@ -15,11 +14,6 @@ import { usePendingSends } from "./lib/usePendingSends";
 import { SessionHeader } from "./components/session-header";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
-import { ViewTabs, type SessionViewTab } from "./components/view-tabs";
-
-const PtyTerminal = dynamic(() => import("./components/pty-terminal").then((m) => m.PtyTerminal), {
-  ssr: false,
-});
 
 const TYPING_WINDOW_MS = 3000;
 
@@ -39,12 +33,6 @@ function SessionView() {
   const [replyingToSeq, setReplyingToSeq] = useState<number | null>(null);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
-  const [viewTab, setViewTab] = useState<SessionViewTab>("timeline");
-  const [terminalMounted, setTerminalMounted] = useState(false);
-
-  useEffect(() => {
-    if (viewTab === "terminal") setTerminalMounted(true);
-  }, [viewTab]);
 
   const { events, presence, connectionState, retryCount, sendPresence, mergeEvents } =
     useSessionStream(sessionId);
@@ -144,8 +132,6 @@ function SessionView() {
         </div>
       )}
 
-      <ViewTabs active={viewTab} onChange={setViewTab} />
-
       <Timeline
         items={timelineItems}
         harness={meta.harness}
@@ -154,12 +140,8 @@ function SessionView() {
         onLoadEarlier={loadEarlier}
         hasEarlier={hasEarlier}
         loadingEarlier={loadingEarlier}
-        visible={viewTab === "timeline"}
         onReply={setReplyingToSeq}
       />
-      {terminalMounted && (
-        <PtyTerminal sessionId={sessionId} heldByMe={heldByMe} visible={viewTab === "terminal"} />
-      )}
 
       <Composer
         sessionId={sessionId}
