@@ -20,6 +20,9 @@ const (
 	sweepInterval   = 5 * time.Minute
 	sweepMaxAge     = 30 * time.Minute
 	shutdownTimeout = 10 * time.Second
+
+	sessionSweepInterval = 5 * time.Minute
+	sessionIdleMax       = 30 * time.Minute
 )
 
 func main() {
@@ -56,6 +59,23 @@ func main() {
 
 		for now := range ticker.C {
 			registry.Sweep(now, sweepMaxAge)
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(sessionSweepInterval)
+		defer ticker.Stop()
+
+		for now := range ticker.C {
+			ended, err := stream.SweepStaleSessions(ctx, pool, store, now.Add(-sessionIdleMax))
+			if err != nil {
+				log.Printf("relay: session sweep: %v", err)
+				continue
+			}
+
+			if len(ended) > 0 {
+				log.Printf("relay: ended %d stale session(s)", len(ended))
+			}
 		}
 	}()
 

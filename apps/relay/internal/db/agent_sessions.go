@@ -7,6 +7,7 @@ import (
 
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 )
 
@@ -46,6 +47,33 @@ func (p *Pool) EndAgentSession(ctx context.Context, id string, endedAt time.Time
 	}
 
 	return nil
+}
+
+func (p *Pool) EndStaleSessions(ctx context.Context, idleSince time.Time) ([]string, error) {
+	ids, err := p.client.AgentSession.Query().
+		Where(
+			agentsession.StatusEQ(SessionStatusLive),
+			agentsession.StartedAtLT(idleSince),
+			agentsession.Not(agentsession.HasEventsWith(event.CreatedAtGTE(idleSince))),
+		).
+		IDs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("db: end stale sessions: find: %w", err)
+	}
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	if err := p.client.AgentSession.Update().
+		Where(agentsession.IDIn(ids...)).
+		SetStatus(SessionStatusEnded).
+		SetEndedAt(time.Now().UTC()).
+		Exec(ctx); err != nil {
+		return nil, fmt.Errorf("db: end stale sessions: update: %w", err)
+	}
+
+	return ids, nil
 }
 
 func (p *Pool) GetAgentSession(ctx context.Context, id string) (*ent.AgentSession, error) {
