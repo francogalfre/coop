@@ -80,6 +80,27 @@ func TestRequireBrowserSessionAcceptsValidCookie(t *testing.T) {
 	}
 }
 
+func TestRequireBrowserSessionAcceptsSecurePrefixedCookie(t *testing.T) {
+	srv := newBrowserVerifyServer(t, "s3cret", map[string]string{"good-cookie": "user-7"})
+	defer srv.Close()
+
+	cfg := config.Config{WebInternalURL: srv.URL, InternalSecret: "s3cret"}
+
+	handler := auth.RequireBrowserSession(cfg)(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.AddCookie(&http.Cookie{Name: "__Secure-better-auth.session_token", Value: "good-cookie"})
+	rec := httptest.NewRecorder()
+
+	handler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rec.Code)
+	}
+}
+
 func TestRequireBrowserSessionCachesSuccessfulVerification(t *testing.T) {
 	var calls atomic.Int32
 	cookie := "cached-cookie-" + t.Name()
