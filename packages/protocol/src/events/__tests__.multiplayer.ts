@@ -233,6 +233,40 @@ describe("steer receipts", () => {
   });
 });
 
+describe("project context delivery", () => {
+  it("accepts a steer carrying project_context_version", () => {
+    const result = humanSteer.safeParse({
+      ...base,
+      type: "human.steer",
+      actor: anActor,
+      text: someText,
+      project_context_version: 7,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("stays valid without project_context_version, for an ordinary steer", () => {
+    const result = humanSteer.safeParse({
+      ...base,
+      type: "human.steer",
+      actor: anActor,
+      text: someText,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a negative version", () => {
+    const result = humanSteer.safeParse({
+      ...base,
+      type: "human.steer",
+      actor: anActor,
+      text: someText,
+      project_context_version: -1,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("client-side correlation ids", () => {
   it("accepts a steer carrying steer_id and client_id", () => {
     const result = humanSteer.safeParse({

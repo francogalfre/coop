@@ -19,6 +19,7 @@ export const humanSteer = z.object({
   request_id: z.string().min(1).optional(),
   steer_id: z.string().min(1).max(LIMITS.request_id).optional(),
   client_id: z.string().min(1).max(LIMITS.client_id).optional(),
+  project_context_version: z.int().nonnegative().optional(),
 });
 export type HumanSteer = z.infer<typeof humanSteer>;
 
