@@ -26,7 +26,7 @@ export function CommandMenu({
         sideOffset={8}
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
-        className="z-50 w-80 overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-lg"
+        className="z-50 w-[24rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-lg"
       >
         {commands.length === 0 ? (
           <p className="px-2.5 py-2 text-xs text-muted-foreground">no matching commands</p>
@@ -46,7 +46,7 @@ export function CommandMenu({
                     if (!disabled) onSelect(command);
                   }}
                   className={cn(
-                    "flex cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-1.5",
+                    "flex cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2",
                     index === activeIndex && "bg-secondary",
                     disabled && "cursor-not-allowed opacity-50",
                   )}
@@ -56,8 +56,8 @@ export function CommandMenu({
                     {command.ownerOnly && (
                       <span className="rounded bg-secondary px-1 py-px text-3xs text-muted-foreground">owner</span>
                     )}
-                    <span className="text-2xs text-muted-foreground">{command.description}</span>
                   </div>
+                  <span className="text-2xs text-muted-foreground">{command.description}</span>
                   {disabled && <span className="text-3xs text-destructive/80">{availability}</span>}
                 </li>
               );

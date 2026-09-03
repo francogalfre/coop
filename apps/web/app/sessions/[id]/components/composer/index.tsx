@@ -148,20 +148,21 @@ export function Composer({
                     void submit();
                   }
                 }}
-                placeholder={disabled ? "This session has ended" : `Message as ${displayName}… ( / for commands )`}
-                className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-sm text-foreground leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
+                placeholder={disabled ? "This session has ended" : `Message as ${displayName}…`}
+                className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1.5 text-sm text-foreground leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
               />
 
-              <QueueStrip agentBusy={agentBusy} agentState={agentState} queueDepth={queueDepth} />
-
               <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
-                <div aria-describedby={takeoverHeldBy ? toggleDescriptionId : undefined}>
-                  <TargetToggle
-                    target={target}
-                    onChange={setTarget}
-                    disabled={disabled}
-                    agentDisabledReason={agentDisabledReason}
-                  />
+                <div className="flex min-w-0 items-center gap-2">
+                  <div aria-describedby={takeoverHeldBy ? toggleDescriptionId : undefined}>
+                    <TargetToggle
+                      target={target}
+                      onChange={setTarget}
+                      disabled={disabled}
+                      agentDisabledReason={agentDisabledReason}
+                    />
+                  </div>
+                  <QueueStrip agentBusy={agentBusy} agentState={agentState} queueDepth={queueDepth} />
                 </div>
                 {takeoverHeldBy && (
                   <span id={toggleDescriptionId} className="sr-only">
@@ -173,7 +174,10 @@ export function Composer({
                   size="sm"
                   onClick={() => void submit()}
                   disabled={disabled || sending || !text.trim()}
-                  className="h-8 gap-1.5 rounded-lg px-3 text-xs"
+                  className={cn(
+                    "h-8 shrink-0 gap-1.5 rounded-lg px-3.5 text-xs font-medium",
+                    sendLabel === "Queue" && "bg-agent text-white hover:bg-agent/90",
+                  )}
                 >
                   {sending ? <IconSpinner size={13} className="animate-spin" /> : <IconSend size={13} />}
                   {sendLabel}
@@ -191,10 +195,15 @@ export function Composer({
           />
         </PopoverPrimitive.Root>
 
-        <p className="mt-1.5 px-1 text-2xs text-muted-foreground/60">
-          {target === "agent"
-            ? "The agent sees this attributed to you — never as a system instruction."
-            : "Only teammates watching this session will see this."}
+        <p className="mt-1.5 flex items-center gap-1.5 px-1 text-2xs text-muted-foreground/60">
+          <span>
+            {target === "agent"
+              ? "The agent sees this attributed to you — never as a system instruction."
+              : "Only teammates watching this session will see this."}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <kbd className="rounded bg-secondary/70 px-1 font-mono text-[0.95em] text-muted-foreground/80">/</kbd>
+          <span>for commands</span>
         </p>
       </div>
     </div>
