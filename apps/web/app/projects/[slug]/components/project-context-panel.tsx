@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { type ChangeEvent, useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -22,6 +22,23 @@ function ContextEditor({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function loadFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 1_000_000) {
+      toast.error("File is too large (max 1 MB).");
+      return;
+    }
+    try {
+      onDraftChange(await file.text());
+    } catch {
+      toast.error("Couldn't read that file.");
+    }
+  }
+
   return (
     <div>
       <textarea
@@ -32,7 +49,23 @@ function ContextEditor({
         placeholder="What should every new session already know?"
         className="w-full resize-none rounded-lg border border-border bg-background/70 px-3 py-2.5 text-sm text-foreground leading-relaxed outline-none focus:border-ring/60"
       />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".md,.markdown,text/markdown,text/plain"
+        onChange={(e) => void loadFile(e)}
+        hidden
+      />
       <div className="mt-2 flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="mr-auto h-7 text-xs"
+        >
+          <IconFile size={13} />
+          Upload .md
+        </Button>
         <Button variant="ghost" size="sm" onClick={onCancel} className="h-7 text-xs">
           Cancel
         </Button>
