@@ -50,12 +50,20 @@ type SteerResult struct {
 	Text       string
 	HasMessage bool
 	Takeover   TakeoverInfo
+	// ID and Kind are additive relay fields (id, kind: "steer"|"command").
+	// An empty ID means the relay hasn't shipped them yet or this poll
+	// carries no receipt-able message - callers must degrade quietly, never
+	// treat it as an error.
+	ID   string
+	Kind string
 }
 
 type steerGetBody struct {
 	HasMessage bool   `json:"has_message"`
 	From       string `json:"from"`
 	Text       string `json:"text"`
+	ID         string `json:"id"`
+	Kind       string `json:"kind"`
 	Takeover   struct {
 		Active bool   `json:"active"`
 		By     string `json:"by"`
@@ -92,6 +100,8 @@ func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (SteerRe
 		Text:       body.Text,
 		HasMessage: body.HasMessage,
 		Takeover:   TakeoverInfo{Active: body.Takeover.Active, By: body.Takeover.By},
+		ID:         body.ID,
+		Kind:       body.Kind,
 	}, nil
 }
 

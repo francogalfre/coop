@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"github.com/francogalfre/coop/packages/cli/internal/capabilities"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/redact"
 	"github.com/francogalfre/coop/packages/cli/internal/repoid"
@@ -20,7 +21,12 @@ func translatePi(cfg config.Config, nextSeq func() int, sessionID, event string,
 			return nil, err
 		}
 
-	case "turn_end":
+	case "tool_result":
+		if err := emitPiToolResult(&bodies, nextSeq, sessionID, payload, red); err != nil {
+			return nil, err
+		}
+
+	case "turn_end", "agent_end":
 		if err := emitEnvelope(&bodies, nextSeq, sessionID, map[string]any{"type": "agent.turn_end"}); err != nil {
 			return nil, err
 		}
@@ -47,10 +53,11 @@ func emitPiSessionStart(cfg config.Config, bodies *[][]byte, nextSeq func() int,
 	}
 
 	fields := map[string]any{
-		"type":    "session.start",
-		"harness": "pi",
-		"cwd":     cwd,
-		"owner":   actorFields(cfg),
+		"type":         "session.start",
+		"harness":      "pi",
+		"cwd":          cwd,
+		"owner":        actorFields(cfg),
+		"capabilities": capabilities.ForAttach("pi"),
 	}
 
 	if repo := repoid.Detect(rawCwd); repo != "" {
@@ -105,6 +112,27 @@ func emitPiFileTouched(bodies *[][]byte, nextSeq func() int, sessionID, toolName
 		"mode":        mode,
 		"path":        redactedPath,
 		"tool_use_id": toolCallID,
+	})
+}
+
+func emitPiToolResult(bodies *[][]byte, nextSeq func() int, sessionID string, payload map[string]any, red *redact.Redactor) error {
+	toolName, _ := red.Text(stringField(payload, "toolName"))
+	if toolName == "" {
+		return emitGenericPi(bodies, nextSeq, sessionID, "tool_result", payload, red)
+	}
+
+	toolCallID, _ := red.Text(stringField(payload, "toolCallId"))
+
+	output, err := redactedTextFrom(payload["content"], red)
+	if err != nil {
+		return err
+	}
+
+	return emitEnvelope(bodies, nextSeq, sessionID, map[string]any{
+		"type":        "tool.result",
+		"tool_name":   toolName,
+		"tool_use_id": toolCallID,
+		"output":      output,
 	})
 }
 

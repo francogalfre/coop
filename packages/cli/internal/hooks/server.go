@@ -158,10 +158,23 @@ func (s *Server) respondWithSteer(w http.ResponseWriter, r *http.Request, harnes
 		return
 	}
 
+	// Attach mode owns no pty (harnesses.md), so a command - a keystroke
+	// sequence, not attributed context - can never be delivered here. The
+	// relay gates this too, but the CLI is the last line before a real
+	// keystroke would need to exist.
+	if steer.HasMessage && steer.Kind == "command" {
+		log.Printf("coop: dropping harness command %q: attach mode has no pty to deliver it into", steer.Text)
+		steer.HasMessage = false
+	}
+
 	text := s.steerText(steer)
 	if text == "" {
 		writeJSON(w, map[string]any{})
 		return
+	}
+
+	if steer.HasMessage && steer.ID != "" {
+		s.emitSteerDelivered(steer.ID, event)
 	}
 
 	if harnessName == claudeCodeName {
@@ -175,6 +188,23 @@ func (s *Server) respondWithSteer(w http.ResponseWriter, r *http.Request, harnes
 	}
 
 	writeJSON(w, map[string]any{"steer": text})
+}
+
+func (s *Server) emitSteerDelivered(steerID, hookEvent string) {
+	fields := map[string]any{"type": "steer.delivered", "steer_id": steerID}
+	if hookEvent != "" {
+		fields["hook_event"] = hookEvent
+	}
+
+	var bodies [][]byte
+	if err := emitEnvelope(&bodies, s.nextSeq, s.cfg.SessionID, fields); err != nil {
+		log.Printf("coop: build steer.delivered event: %v", err)
+		return
+	}
+
+	for _, b := range bodies {
+		s.enqueuePost(b)
+	}
 }
 
 // steerText edge-triggers the takeover notice (once per claim, not once per poll) and merges it with any pending mailbox message.

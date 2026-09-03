@@ -89,6 +89,13 @@ func TestTextRedactsKnownSecretShapes(t *testing.T) {
 			input:      "token: abcd1234efgh5678",
 			wantMasked: []string{"abcd1234efgh5678"},
 		},
+		{
+			name:  "jwt",
+			input: "id_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+			wantMasked: []string{
+				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+			},
+		},
 	}
 
 	r := New()
@@ -126,6 +133,7 @@ func TestTextDoesNotOverRedactNormalText(t *testing.T) {
 		"session started at 10:30am",
 		"token is required to authenticate",
 		"the tool call returned exit code 0",
+		"eyJust a word that starts with eyJ but is not base64",
 	}
 
 	r := New()

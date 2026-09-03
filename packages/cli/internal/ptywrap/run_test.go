@@ -25,6 +25,8 @@ type fakeSteerRelay struct {
 	mu             sync.Mutex
 	from           string
 	text           string
+	id             string
+	kind           string
 	pending        bool
 	takeoverActive bool
 	takeoverBy     string
@@ -41,6 +43,12 @@ func (f *fakeSteerRelay) set(from, text string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.from, f.text, f.pending = from, text, true
+}
+
+func (f *fakeSteerRelay) setReceipt(from, text, id, kind string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.from, f.text, f.id, f.kind, f.pending = from, text, id, kind, true
 }
 
 func (f *fakeSteerRelay) setTakeover(active bool, by string) {
@@ -60,6 +68,8 @@ func (f *fakeSteerRelay) server() *httptest.Server {
 			"has_message": f.pending,
 			"from":        f.from,
 			"text":        f.text,
+			"id":          f.id,
+			"kind":        f.kind,
 			"takeover":    map[string]any{"active": f.takeoverActive, "by": f.takeoverBy},
 		}
 		f.pending = false

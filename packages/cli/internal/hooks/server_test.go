@@ -17,6 +17,8 @@ type fakeRelay struct {
 	ingested       []map[string]any
 	steerFrom      string
 	steerText      string
+	steerID        string
+	steerKind      string
 	steerPend      bool
 	takeoverActive bool
 	takeoverBy     string
@@ -30,6 +32,12 @@ func (f *fakeRelay) setSteer(from, text string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.steerFrom, f.steerText, f.steerPend = from, text, true
+}
+
+func (f *fakeRelay) setSteerReceipt(from, text, id, kind string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.steerFrom, f.steerText, f.steerID, f.steerKind, f.steerPend = from, text, id, kind, true
 }
 
 func (f *fakeRelay) setTakeover(active bool, by string) {
@@ -81,6 +89,8 @@ func (f *fakeRelay) server() *httptest.Server {
 			"has_message": f.steerPend,
 			"from":        f.steerFrom,
 			"text":        f.steerText,
+			"id":          f.steerID,
+			"kind":        f.steerKind,
 			"takeover":    map[string]any{"active": f.takeoverActive, "by": f.takeoverBy},
 		}
 		f.steerPend = false

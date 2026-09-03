@@ -35,4 +35,8 @@ var builtinPatterns = []pattern{
 		re: regexp.MustCompile(`(?i)\b(?:api[_-]?key|access[_-]?key|secret[_-]?key|client[_-]?secret|` +
 			`token|password|passwd|pwd)\b["']?\s*[:=]\s*["']?[A-Za-z0-9\-_./+]{8,}["']?`),
 	},
+	{
+		name: "jwt",
+		re:   regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`),
+	},
 }
