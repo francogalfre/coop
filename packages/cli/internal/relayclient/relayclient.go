@@ -17,6 +17,21 @@ const requestTimeout = 10 * time.Second
 
 var httpClient = &http.Client{Timeout: requestTimeout}
 
+func PostSessionEnd(ctx context.Context, cfg config.Config) error {
+	body, err := json.Marshal(map[string]any{
+		"v":          1,
+		"session_id": cfg.SessionID,
+		"seq":        0,
+		"ts":         time.Now().UTC().Format(time.RFC3339),
+		"type":       "session.end",
+	})
+	if err != nil {
+		return fmt.Errorf("relayclient: marshal session.end: %w", err)
+	}
+
+	return PostEvent(ctx, cfg, body)
+}
+
 func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.RelayURL+"/v1/events", bytes.NewReader(body))
 	if err != nil {

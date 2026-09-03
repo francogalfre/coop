@@ -5,17 +5,23 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/francogalfre/coop/packages/cli/internal/attachstate"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
 	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
 	"github.com/francogalfre/coop/packages/cli/internal/hooks"
 	"github.com/francogalfre/coop/packages/cli/internal/projectcontext"
 	"github.com/francogalfre/coop/packages/cli/internal/ptywrap"
+	"github.com/francogalfre/coop/packages/cli/internal/relayclient"
 )
+
+const sessionEndTimeout = 15 * time.Second
 
 var version = "dev"
 
@@ -122,6 +128,14 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 
 	projectcontext.Deliver(ctx, cfg)
 
+	if err := attachstate.Save(dir, attachstate.Record{
+		SessionID: cfg.SessionID,
+		RelayURL:  cfg.RelayURL,
+		Project:   cfg.Project,
+	}); err != nil {
+		log.Printf("coop attach: record session state: %v", err)
+	}
+
 	fmt.Printf("coop attach: session %s\n", cfg.SessionID)
 	fmt.Printf("coop attach: relay   %s\n", cfg.RelayURL)
 	fmt.Printf("coop attach: listening on %s\n", installed.BaseURL)
@@ -131,8 +145,19 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 	<-ctx.Done()
 
 	removeInstallations(installations)
+	endSession(cfg)
+	_ = attachstate.Remove(dir)
 
 	return installed.Stop()
+}
+
+func endSession(cfg config.Config) {
+	ctx, cancel := context.WithTimeout(context.Background(), sessionEndTimeout)
+	defer cancel()
+
+	if err := relayclient.PostSessionEnd(ctx, cfg); err != nil {
+		log.Printf("coop: end session %s: %v", cfg.SessionID, err)
+	}
 }
 
 func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
@@ -190,6 +215,21 @@ func runDetach(args []string) error {
 			return fmt.Errorf("getwd: %w", err)
 		}
 		dir = wd
+	}
+
+	if rec, ok, err := attachstate.Load(dir); err != nil {
+		log.Printf("coop detach: read session state: %v", err)
+	} else if ok {
+		if cfg, err := config.Load(); err == nil {
+			cfg.SessionID = rec.SessionID
+			cfg.Project = rec.Project
+			if rec.RelayURL != "" {
+				cfg.RelayURL = rec.RelayURL
+			}
+			endSession(cfg)
+			fmt.Printf("coop detach: ended session %s\n", rec.SessionID)
+		}
+		_ = attachstate.Remove(dir)
 	}
 
 	if err := harness.RemoveAllTraces(dir, allAdapters); err != nil {

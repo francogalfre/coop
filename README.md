@@ -43,7 +43,8 @@ coop attach
 # Or let coop launch it directly and wrap the terminal:
 coop run -- claude
 
-# If attach exits uncleanly (crash, kill -9), remove any leftover hook entries:
+# If attach exits uncleanly (crash, kill -9), clean up: removes leftover hook
+# entries and ends the session that attach left open.
 coop detach
 ```
 
