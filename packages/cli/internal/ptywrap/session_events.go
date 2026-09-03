@@ -79,14 +79,22 @@ func postSessionEvent(cfg config.Config, seq int, fields map[string]any) {
 
 func ownerFields(cfg config.Config) map[string]string {
 	if cfg.Username != "" || cfg.DisplayName != "" {
-		id, name := cfg.Username, cfg.DisplayName
+		name := cfg.DisplayName
+		if name == "" {
+			name = cfg.Username
+		}
+		id := cfg.UserID
+		if id == "" {
+			id = cfg.Username
+		}
 		if id == "" {
 			id = name
 		}
-		if name == "" {
-			name = id
+		fields := map[string]string{"id": id, "display_name": name}
+		if cfg.AvatarURL != "" {
+			fields["avatar_url"] = cfg.AvatarURL
 		}
-		return map[string]string{"id": id, "display_name": name}
+		return fields
 	}
 
 	id, name := "local", "local"

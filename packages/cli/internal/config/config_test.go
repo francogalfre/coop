@@ -102,6 +102,31 @@ func TestLoadPopulatesCLICredentialFromSavedFile(t *testing.T) {
 	}
 }
 
+func TestLoadPopulatesIdentityFromSavedCredentials(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("COOP_SESSION_ID", "sess-fixed")
+
+	saved := CLICredentials{
+		Token:       "deadbeef",
+		UserID:      "user-123",
+		Username:    "octocat",
+		DisplayName: "The Octocat",
+		AvatarURL:   "https://example.com/avatar.png",
+	}
+	if err := SaveCredentials(saved); err != nil {
+		t.Fatalf("SaveCredentials: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.UserID != "user-123" || cfg.Username != "octocat" || cfg.DisplayName != "The Octocat" || cfg.AvatarURL != "https://example.com/avatar.png" {
+		t.Fatalf("got %+v, want identity from saved credentials", cfg)
+	}
+}
+
 func TestLoadLeavesCLICredentialEmptyWhenNoFile(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("COOP_SESSION_ID", "sess-fixed")

@@ -9,7 +9,13 @@ import (
 func TestSaveCredentialsThenLoadRoundTrips(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
-	want := CLICredentials{Token: "deadbeef", Username: "octocat", DisplayName: "The Octocat"}
+	want := CLICredentials{
+		Token:       "deadbeef",
+		UserID:      "user-123",
+		Username:    "octocat",
+		DisplayName: "The Octocat",
+		AvatarURL:   "https://example.com/avatar.png",
+	}
 
 	if err := SaveCredentials(want); err != nil {
 		t.Fatalf("SaveCredentials: %v", err)

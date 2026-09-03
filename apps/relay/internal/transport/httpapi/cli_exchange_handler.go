@@ -24,6 +24,7 @@ type cliExchangeRequestBody struct {
 
 type cliExchangeResponseBody struct {
 	Token       string `json:"token"`
+	UserID      string `json:"user_id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
 	AvatarURL   string `json:"avatar_url"`
@@ -66,6 +67,7 @@ func handleCLIExchange(cfg config.Config, pool *db.Pool) http.HandlerFunc {
 
 		writeJSON(w, http.StatusOK, cliExchangeResponseBody{
 			Token:       hex.EncodeToString(rawToken),
+			UserID:      resolved.UserID,
 			Username:    resolved.Username,
 			DisplayName: resolved.DisplayName,
 			AvatarURL:   resolved.AvatarURL,

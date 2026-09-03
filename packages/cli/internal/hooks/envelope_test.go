@@ -79,6 +79,38 @@ func TestBuildEventBodySessionStart(t *testing.T) {
 	}
 }
 
+func TestActorFieldsUsesBetterAuthIDAndAvatarWhenAuthenticated(t *testing.T) {
+	cfg := config.Config{
+		UserID:      "user-123",
+		Username:    "octocat",
+		DisplayName: "The Octocat",
+		AvatarURL:   "https://example.com/avatar.png",
+	}
+
+	fields := actorFields(cfg)
+
+	if fields["id"] != "user-123" {
+		t.Errorf("got id %q, want user-123", fields["id"])
+	}
+	if fields["display_name"] != "The Octocat" {
+		t.Errorf("got display_name %q, want The Octocat", fields["display_name"])
+	}
+	if fields["avatar_url"] != "https://example.com/avatar.png" {
+		t.Errorf("got avatar_url %q, want the credential avatar", fields["avatar_url"])
+	}
+}
+
+func TestActorFieldsFallsBackToUsernameWhenUserIDMissing(t *testing.T) {
+	fields := actorFields(config.Config{Username: "octocat", DisplayName: "The Octocat"})
+
+	if fields["id"] != "octocat" {
+		t.Errorf("got id %q, want octocat", fields["id"])
+	}
+	if _, ok := fields["avatar_url"]; ok {
+		t.Errorf("got avatar_url %q, want none", fields["avatar_url"])
+	}
+}
+
 func TestBuildEventBodyPreToolUseRedactsInput(t *testing.T) {
 	payload := map[string]any{
 		"hook_event_name": "PreToolUse",

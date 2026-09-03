@@ -17,6 +17,21 @@ const requestTimeout = 10 * time.Second
 
 var httpClient = &http.Client{Timeout: requestTimeout}
 
+func PostSessionEnd(ctx context.Context, cfg config.Config) error {
+	body, err := json.Marshal(map[string]any{
+		"v":          1,
+		"session_id": cfg.SessionID,
+		"seq":        0,
+		"ts":         time.Now().UTC().Format(time.RFC3339),
+		"type":       "session.end",
+	})
+	if err != nil {
+		return fmt.Errorf("relayclient: marshal session.end: %w", err)
+	}
+
+	return PostEvent(ctx, cfg, body)
+}
+
 func PostEvent(ctx context.Context, cfg config.Config, body []byte) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.RelayURL+"/v1/events", bytes.NewReader(body))
 	if err != nil {
@@ -107,6 +122,7 @@ func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (SteerRe
 
 type LoginResult struct {
 	Token       string
+	UserID      string
 	Username    string
 	DisplayName string
 	AvatarURL   string
@@ -137,6 +153,7 @@ func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (Lo
 
 	var result struct {
 		Token       string `json:"token"`
+		UserID      string `json:"user_id"`
 		Username    string `json:"username"`
 		DisplayName string `json:"display_name"`
 		AvatarURL   string `json:"avatar_url"`
@@ -148,6 +165,7 @@ func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (Lo
 
 	return LoginResult{
 		Token:       result.Token,
+		UserID:      result.UserID,
 		Username:    result.Username,
 		DisplayName: result.DisplayName,
 		AvatarURL:   result.AvatarURL,

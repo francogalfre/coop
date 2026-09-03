@@ -50,7 +50,7 @@ func TestHandleCLIExchangeReturnsTokenOnSuccess(t *testing.T) {
 		t.Fatalf("decode response: %v", err)
 	}
 
-	if payload.Username != "octocat" || payload.DisplayName != "The Octocat" || payload.AvatarURL != "https://example.com/avatar.png" {
+	if payload.UserID != "user-123" || payload.Username != "octocat" || payload.DisplayName != "The Octocat" || payload.AvatarURL != "https://example.com/avatar.png" {
 		t.Fatalf("unexpected payload: %+v", payload)
 	}
 

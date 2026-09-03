@@ -30,6 +30,7 @@ function SessionView() {
   const from = searchParams.get("from");
 
   const displayName = authData?.user?.name ?? "Guest";
+  const userAvatarUrl = authData?.user?.image ?? undefined;
   const [replyingToSeq, setReplyingToSeq] = useState<number | null>(null);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -146,6 +147,7 @@ function SessionView() {
       <Composer
         sessionId={sessionId}
         displayName={displayName}
+        userAvatarUrl={userAvatarUrl}
         isOwner={isOwner}
         disabled={!live}
         typingNames={typingNames}
