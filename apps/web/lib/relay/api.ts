@@ -1,3 +1,4 @@
+import type { HarnessCommand } from "@coop/protocol";
 import { relayConfig } from "./config";
 
 export type Project = {
@@ -105,21 +106,45 @@ export const relayApi = {
       },
     ),
 
-  sendMessage: (sessionId: string, text: string) =>
+  steerAgent: (sessionId: string, text: string, clientId: string, anchorSeq?: number) =>
     request<{ status: "accepted"; queued: number } | { status: "pending"; request_id: string }>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/steer`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text, client_id: clientId, anchor_seq: anchorSeq }),
+      },
+    ),
+
+  sendTeamMessage: (sessionId: string, text: string, clientId: string, anchorSeq?: number) =>
+    request<{ status: "sent"; seq: number }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/message`,
+      {
+        method: "POST",
+        body: JSON.stringify({ text, client_id: clientId, anchor_seq: anchorSeq }),
+      },
+    ),
+
+  runCommand: (sessionId: string, command: HarnessCommand, args?: string) =>
+    request<{ status: "ok" }>(`/v1/sessions/${encodeURIComponent(sessionId)}/command`, {
+      method: "POST",
+      body: JSON.stringify({ command, args }),
+    }),
+
+  answerQuestion: (sessionId: string, questionId: string, text: string) =>
+    request<{ status: "answered" }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/answer`,
       {
         method: "POST",
         body: JSON.stringify({ text }),
       },
     ),
 
-  sendTeamMessage: (sessionId: string, text: string, anchorSeq?: number) =>
-    request<{ status: "sent"; seq: number }>(
-      `/v1/sessions/${encodeURIComponent(sessionId)}/message`,
+  resolvePermission: (sessionId: string, requestId: string, decision: "allow" | "deny") =>
+    request<{ decision: "allow" | "deny" }>(
+      `/v1/sessions/${encodeURIComponent(sessionId)}/permissions/${encodeURIComponent(requestId)}/resolve`,
       {
         method: "POST",
-        body: JSON.stringify({ text, anchor_seq: anchorSeq }),
+        body: JSON.stringify({ decision }),
       },
     ),
 

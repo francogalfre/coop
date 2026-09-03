@@ -56,7 +56,7 @@ export function tintFor(name: string): string {
 
 export function prettyJson(raw: string): string {
   try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
+    return JSON.stringify(JSON.parse(raw), null, 2).replace(/\\n/g, "\n");
   } catch {
     return raw;
   }
@@ -73,6 +73,11 @@ export function summarizeToolInput(toolName: string, rawInput: string): string {
   if (typeof parsed !== "object" || parsed === null) return String(parsed).slice(0, 120);
 
   const fields = parsed as Record<string, unknown>;
+
+  if (toolName.toLowerCase() === "todowrite" && Array.isArray(fields.todos)) {
+    return `${fields.todos.length} todo${fields.todos.length === 1 ? "" : "s"}`;
+  }
+
   const preferred = ["command", "file_path", "path", "pattern", "query", "url", "description"];
 
   for (const key of preferred) {

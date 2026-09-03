@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { IconChevronUp, IconSparkles } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { groupTurns } from "../lib/timeline/group-turns";
 import { TimelineRow } from "./timeline-item";
+import { TurnGroup } from "./timeline/turn-group";
 import type { TimelineItem } from "../types";
 
 function EmptyState({ visible }: { visible: boolean }) {
@@ -116,6 +118,8 @@ export function Timeline({
     });
   }
 
+  const groups = useMemo(() => groupTurns(items), [items]);
+
   if (items.length === 0) return <EmptyState visible={visible} />;
 
   return (
@@ -143,22 +147,40 @@ export function Timeline({
           </button>
         </div>
       )}
-      {items.map((item, index) => (
+      {groups.map((group, index) => (
         <motion.div
-          key={item.key}
-          initial={index > items.length - 4 ? { opacity: 0, y: 6 } : false}
+          key={group.kind === "turn" ? group.key : group.item.key}
+          initial={index > groups.length - 4 ? { opacity: 0, y: 6 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         >
-          <TimelineRow
-            item={item}
-            harness={harness}
-            sessionId={sessionId}
-            isOwner={isOwner}
-            onReply={onReply}
-            onJumpToAnchor={jumpToSeq}
-            highlighted={item.seq === highlightedSeq}
-          />
+          {group.kind === "turn" ? (
+            <TurnGroup
+              group={group}
+              renderItem={(item) => (
+                <TimelineRow
+                  key={item.key}
+                  item={item}
+                  harness={harness}
+                  sessionId={sessionId}
+                  isOwner={isOwner}
+                  onReply={onReply}
+                  onJumpToAnchor={jumpToSeq}
+                  highlighted={item.seq === highlightedSeq}
+                />
+              )}
+            />
+          ) : (
+            <TimelineRow
+              item={group.item}
+              harness={harness}
+              sessionId={sessionId}
+              isOwner={isOwner}
+              onReply={onReply}
+              onJumpToAnchor={jumpToSeq}
+              highlighted={group.item.seq === highlightedSeq}
+            />
+          )}
         </motion.div>
       ))}
       <div ref={endRef} />

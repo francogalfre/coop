@@ -8,8 +8,10 @@ import { parseEvent } from "@coop/protocol";
 import { useSession } from "@/lib/auth/auth-client";
 import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
 import { relayApi } from "@/lib/relay/api";
+import { basename } from "@/lib/format";
 import { buildTimeline } from "./lib/build-timeline";
 import { useTypingNames } from "./lib/useTypingNames";
+import { usePendingSends } from "./lib/usePendingSends";
 import { SessionHeader } from "./components/session-header";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
@@ -48,6 +50,26 @@ function SessionView() {
     useSessionStream(sessionId);
 
   const { items, meta, agentBusy } = useMemo(() => buildTimeline(events), [events]);
+  const { pendingItems, addPending, updatePending, resolvePending } = usePendingSends();
+
+  useEffect(() => {
+    for (const item of items) {
+      if (item.kind === "message" && item.clientId) resolvePending(item.clientId);
+    }
+  }, [items, resolvePending]);
+
+  const timelineItems = useMemo(() => [...items, ...pendingItems], [items, pendingItems]);
+
+  const agentState = useMemo(() => {
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const item = items[i];
+      if (item?.kind === "tool" && item.status === "running") {
+        const file = item.files[0];
+        return file ? `${item.toolName}(${basename(file.path)})` : item.toolName;
+      }
+    }
+    return undefined;
+  }, [items]);
 
   const loadEarlier = useCallback(async () => {
     const oldestSeq = events[0]?.seq;
@@ -101,24 +123,6 @@ function SessionView() {
     }
   }, [sessionId, heldByMe]);
 
-  const handleSend = useCallback(
-    async (text: string, toAgent: boolean) => {
-      if (!toAgent) {
-        await relayApi.sendTeamMessage(sessionId, text, replyingToSeq ?? undefined);
-        setReplyingToSeq(null);
-        return;
-      }
-
-      const result = await relayApi.sendMessage(sessionId, text);
-      if (result.status === "pending") {
-        toast("Waiting for the owner to approve.");
-      } else if (result.queued > 1) {
-        toast(`Queued — ${result.queued} messages ahead of yours.`);
-      }
-    },
-    [sessionId, replyingToSeq],
-  );
-
   return (
     <Shell>
       <SessionHeader
@@ -143,7 +147,7 @@ function SessionView() {
       <ViewTabs active={viewTab} onChange={setViewTab} />
 
       <Timeline
-        items={items}
+        items={timelineItems}
         harness={meta.harness}
         sessionId={sessionId}
         isOwner={isOwner}
@@ -158,14 +162,21 @@ function SessionView() {
       )}
 
       <Composer
+        sessionId={sessionId}
         displayName={displayName}
+        isOwner={isOwner}
         disabled={!live}
         typingNames={typingNames}
         takeoverHeldBy={takeoverHeldBy}
-        onSend={handleSend}
+        heldByMe={heldByMe}
+        agentBusy={live && agentBusy}
+        agentState={agentState}
+        capabilities={meta.capabilities}
         onTypingChange={sendPresence}
         replyingToSeq={replyingToSeq ?? undefined}
         onDismissReply={() => setReplyingToSeq(null)}
+        onPendingSend={addPending}
+        onPendingUpdate={updatePending}
       />
     </Shell>
   );
