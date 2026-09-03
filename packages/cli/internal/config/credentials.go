@@ -10,8 +10,10 @@ import (
 
 type CLICredentials struct {
 	Token       string `json:"token"`
+	UserID      string `json:"user_id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
+	AvatarURL   string `json:"avatar_url"`
 }
 
 func CredentialsPath() (string, error) {

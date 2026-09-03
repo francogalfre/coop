@@ -107,6 +107,7 @@ func GetSteer(ctx context.Context, cfg config.Config, sessionID string) (SteerRe
 
 type LoginResult struct {
 	Token       string
+	UserID      string
 	Username    string
 	DisplayName string
 	AvatarURL   string
@@ -137,6 +138,7 @@ func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (Lo
 
 	var result struct {
 		Token       string `json:"token"`
+		UserID      string `json:"user_id"`
 		Username    string `json:"username"`
 		DisplayName string `json:"display_name"`
 		AvatarURL   string `json:"avatar_url"`
@@ -148,6 +150,7 @@ func Login(ctx context.Context, cfg config.Config, githubAccessToken string) (Lo
 
 	return LoginResult{
 		Token:       result.Token,
+		UserID:      result.UserID,
 		Username:    result.Username,
 		DisplayName: result.DisplayName,
 		AvatarURL:   result.AvatarURL,

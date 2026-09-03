@@ -14,8 +14,10 @@ type Config struct {
 	HookAddr      string
 	SessionToken  string
 	CLICredential string
+	UserID        string
 	Username      string
 	DisplayName   string
+	AvatarURL     string
 	Project       string
 	// DisableDiffStreaming defaults false (streaming on) so every existing
 	// Config{} zero value keeps today's behavior; COOP_DISABLE_STREAM_DIFFS
@@ -72,8 +74,10 @@ func Load() (Config, error) {
 		HookAddr:             hookAddr,
 		SessionToken:         sessionToken,
 		CLICredential:        cred.Token,
+		UserID:               cred.UserID,
 		Username:             cred.Username,
 		DisplayName:          cred.DisplayName,
+		AvatarURL:            cred.AvatarURL,
 		DisableDiffStreaming: disableDiffStreaming,
 	}, nil
 }

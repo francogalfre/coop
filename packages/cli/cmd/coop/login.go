@@ -61,8 +61,10 @@ func runLogin(ctx context.Context, cfg config.Config) error {
 
 	if err := config.SaveCredentials(config.CLICredentials{
 		Token:       result.Token,
+		UserID:      result.UserID,
 		Username:    result.Username,
 		DisplayName: result.DisplayName,
+		AvatarURL:   result.AvatarURL,
 	}); err != nil {
 		return fmt.Errorf("coop login: save credentials: %w", err)
 	}
