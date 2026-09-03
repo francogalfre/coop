@@ -13,6 +13,7 @@ const TYPING_IDLE_MS = 2000;
 export function useComposerSubmit({
   sessionId,
   displayName,
+  userAvatarUrl,
   isOwner,
   disabled,
   takeoverHeldBy,
@@ -27,6 +28,7 @@ export function useComposerSubmit({
 }: {
   sessionId: string;
   displayName: string;
+  userAvatarUrl?: string;
   isOwner: boolean;
   disabled?: boolean;
   takeoverHeldBy?: string;
@@ -90,7 +92,14 @@ export function useComposerSubmit({
   async function sendMessage(body: string, sendTarget: SendTarget) {
     const clientId = crypto.randomUUID();
     const toAgent = sendTarget === "agent";
-    onPendingSend({ clientId, author: displayName, text: body, toAgent, anchorSeq: replyingToSeq });
+    onPendingSend({
+      clientId,
+      author: displayName,
+      authorAvatarUrl: userAvatarUrl,
+      text: body,
+      toAgent,
+      anchorSeq: replyingToSeq,
+    });
 
     try {
       if (toAgent) {

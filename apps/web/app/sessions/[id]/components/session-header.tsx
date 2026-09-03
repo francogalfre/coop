@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { motion, useReducedMotion } from "motion/react";
 import { IconChevronLeft, IconFolder, IconLock, IconUnlock } from "@/components/icons";
 import { HarnessLogo } from "@/components/harness-logo";
+import { PersonAvatar } from "@/components/person-avatar";
 import { PresenceStack } from "./presence-stack";
 import { SessionModeToggle } from "./session-mode-toggle";
 import { StatusPill } from "@/components/status-pill";
@@ -123,7 +124,18 @@ export function SessionHeader({
               </span>
             )}
             {meta.repo && meta.owner && <span className="text-muted-foreground/40">·</span>}
-            {meta.owner && <span>run by {meta.owner.name}</span>}
+            {meta.owner && (
+              <span className="inline-flex items-center gap-1">
+                {meta.owner.avatarUrl && (
+                  <PersonAvatar
+                    name={meta.owner.name}
+                    avatarUrl={meta.owner.avatarUrl}
+                    className="size-4 text-3xs"
+                  />
+                )}
+                run by {meta.owner.name}
+              </span>
+            )}
           </p>
         )}
       </div>

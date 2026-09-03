@@ -17,6 +17,7 @@ import { useComposerSubmit } from "./lib/useComposerSubmit";
 export function Composer({
   sessionId,
   displayName,
+  userAvatarUrl,
   isOwner,
   disabled,
   typingNames,
@@ -33,6 +34,7 @@ export function Composer({
 }: {
   sessionId: string;
   displayName: string;
+  userAvatarUrl?: string;
   isOwner: boolean;
   disabled?: boolean;
   typingNames: string[];
@@ -70,6 +72,7 @@ export function Composer({
   } = useComposerSubmit({
     sessionId,
     displayName,
+    userAvatarUrl,
     isOwner,
     disabled,
     takeoverHeldBy,
