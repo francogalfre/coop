@@ -3,23 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { IconChevronUp, IconSparkles } from "@/components/icons";
-import { cn } from "@/lib/utils";
 import { groupTurns } from "../lib/timeline/group-turns";
 import { TimelineRow } from "./timeline-item";
 import { TurnGroup } from "./timeline/turn-group";
 import type { TimelineItem } from "../types";
 
-function EmptyState({ visible }: { visible: boolean }) {
+function EmptyState() {
   return (
-    <div
-      id="panel-timeline"
-      role="tabpanel"
-      aria-labelledby="tab-timeline"
-      className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center",
-        !visible && "hidden",
-      )}
-    >
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
       <span className="grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
         <IconSparkles size={19} />
       </span>
@@ -48,7 +39,6 @@ export function Timeline({
   onLoadEarlier,
   hasEarlier,
   loadingEarlier,
-  visible = true,
   onReply,
 }: {
   items: TimelineItem[];
@@ -58,7 +48,6 @@ export function Timeline({
   onLoadEarlier?: () => Promise<void>;
   hasEarlier?: boolean;
   loadingEarlier?: boolean;
-  visible?: boolean;
   onReply?: (seq: number) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
@@ -120,17 +109,14 @@ export function Timeline({
 
   const groups = useMemo(() => groupTurns(items), [items]);
 
-  if (items.length === 0) return <EmptyState visible={visible} />;
+  if (items.length === 0) return <EmptyState />;
 
   return (
     <div
       ref={containerRef}
-      id="panel-timeline"
-      role="tabpanel"
-      aria-labelledby="tab-timeline"
       aria-live="polite"
       aria-relevant="additions"
-      className={cn("flex-1 overflow-y-auto py-3", !visible && "hidden")}
+      className="flex-1 overflow-y-auto py-3"
     >
       {hasEarlier && (
         <div className="flex justify-center pb-2">
