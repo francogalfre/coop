@@ -52,6 +52,10 @@ func NewRouter(cfg config.Config, pool *db.Pool, registry *presence.Registry, st
 	mux.HandleFunc("POST /v1/projects/invites/{token}/accept", requireIdentity(handleAcceptInvite(pool)))
 	mux.HandleFunc("GET /v1/projects/{slug}/sessions", requireIdentity(handleListProjectSessions(pool)))
 	mux.HandleFunc("GET /v1/projects/{slug}/agents", requireIdentity(handleListProjectAgents(pool)))
+	mux.HandleFunc("GET /v1/projects/{slug}/context", requireIdentity(handleGetProjectContext(pool)))
+	mux.HandleFunc("PUT /v1/projects/{slug}/context", requireIdentity(handlePutProjectContext(pool)))
+	mux.HandleFunc("GET /v1/projects/{slug}/notes", requireIdentity(handleGetProjectNotes(pool)))
+	mux.HandleFunc("POST /v1/projects/{slug}/notes", withIPRateLimit(steerLimiter, requireIdentity(handlePostProjectNote(pool))))
 	mux.HandleFunc("POST /v1/projects/{slug}/agents/{name}/message", withIPRateLimit(steerLimiter, requireIdentity(handleMessageAgent(pool, mailbox, store, steerRequests))))
 
 	return withCORS(mux, cfg.WebOrigins)

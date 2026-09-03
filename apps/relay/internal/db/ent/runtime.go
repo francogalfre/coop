@@ -12,6 +12,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectnote"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/schema"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
@@ -129,6 +130,20 @@ func init() {
 	projectDescCreatedAt := projectFields[3].Descriptor()
 	// project.DefaultCreatedAt holds the default value on creation for the created_at field.
 	project.DefaultCreatedAt = projectDescCreatedAt.Default.(func() time.Time)
+	// projectDescContextText is the schema descriptor for context_text field.
+	projectDescContextText := projectFields[4].Descriptor()
+	// project.DefaultContextText holds the default value on creation for the context_text field.
+	project.DefaultContextText = projectDescContextText.Default.(string)
+	// projectDescContextVersion is the schema descriptor for context_version field.
+	projectDescContextVersion := projectFields[5].Descriptor()
+	// project.DefaultContextVersion holds the default value on creation for the context_version field.
+	project.DefaultContextVersion = projectDescContextVersion.Default.(int)
+	// project.ContextVersionValidator is a validator for the "context_version" field. It is called by the builders before save.
+	project.ContextVersionValidator = projectDescContextVersion.Validators[0].(func(int) error)
+	// projectDescContextUpdatedBy is the schema descriptor for context_updated_by field.
+	projectDescContextUpdatedBy := projectFields[6].Descriptor()
+	// project.DefaultContextUpdatedBy holds the default value on creation for the context_updated_by field.
+	project.DefaultContextUpdatedBy = projectDescContextUpdatedBy.Default.(string)
 	projectinviteFields := schema.ProjectInvite{}.Fields()
 	_ = projectinviteFields
 	// projectinviteDescTokenHash is the schema descriptor for token_hash field.
@@ -157,6 +172,36 @@ func init() {
 	projectmemberDescJoinedAt := projectmemberFields[2].Descriptor()
 	// projectmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	projectmember.DefaultJoinedAt = projectmemberDescJoinedAt.Default.(func() time.Time)
+	projectnoteFields := schema.ProjectNote{}.Fields()
+	_ = projectnoteFields
+	// projectnoteDescAuthorID is the schema descriptor for author_id field.
+	projectnoteDescAuthorID := projectnoteFields[1].Descriptor()
+	// projectnote.AuthorIDValidator is a validator for the "author_id" field. It is called by the builders before save.
+	projectnote.AuthorIDValidator = projectnoteDescAuthorID.Validators[0].(func(string) error)
+	// projectnoteDescAuthorDisplayName is the schema descriptor for author_display_name field.
+	projectnoteDescAuthorDisplayName := projectnoteFields[2].Descriptor()
+	// projectnote.DefaultAuthorDisplayName holds the default value on creation for the author_display_name field.
+	projectnote.DefaultAuthorDisplayName = projectnoteDescAuthorDisplayName.Default.(string)
+	// projectnoteDescAuthorAvatarURL is the schema descriptor for author_avatar_url field.
+	projectnoteDescAuthorAvatarURL := projectnoteFields[3].Descriptor()
+	// projectnote.DefaultAuthorAvatarURL holds the default value on creation for the author_avatar_url field.
+	projectnote.DefaultAuthorAvatarURL = projectnoteDescAuthorAvatarURL.Default.(string)
+	// projectnoteDescSource is the schema descriptor for source field.
+	projectnoteDescSource := projectnoteFields[4].Descriptor()
+	// projectnote.DefaultSource holds the default value on creation for the source field.
+	projectnote.DefaultSource = projectnoteDescSource.Default.(string)
+	// projectnoteDescText is the schema descriptor for text field.
+	projectnoteDescText := projectnoteFields[6].Descriptor()
+	// projectnote.TextValidator is a validator for the "text" field. It is called by the builders before save.
+	projectnote.TextValidator = projectnoteDescText.Validators[0].(func(string) error)
+	// projectnoteDescCreatedAt is the schema descriptor for created_at field.
+	projectnoteDescCreatedAt := projectnoteFields[7].Descriptor()
+	// projectnote.DefaultCreatedAt holds the default value on creation for the created_at field.
+	projectnote.DefaultCreatedAt = projectnoteDescCreatedAt.Default.(func() time.Time)
+	// projectnoteDescID is the schema descriptor for id field.
+	projectnoteDescID := projectnoteFields[0].Descriptor()
+	// projectnote.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	projectnote.IDValidator = projectnoteDescID.Validators[0].(func(string) error)
 	steerrequestFields := schema.SteerRequest{}.Fields()
 	_ = steerrequestFields
 	// steerrequestDescActorID is the schema descriptor for actor_id field.

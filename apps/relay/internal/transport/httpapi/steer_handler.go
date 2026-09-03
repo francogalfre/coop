@@ -18,8 +18,9 @@ const (
 )
 
 type steerPostRequest struct {
-	Text     string `json:"text"`
-	ClientID string `json:"client_id"`
+	Text                  string `json:"text"`
+	ClientID              string `json:"client_id"`
+	ProjectContextVersion *int   `json:"project_context_version"`
 }
 
 type steerGetResponse struct {
@@ -77,18 +78,18 @@ func handleSteerPost(pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store
 			return
 		}
 
-		deliverSteerNow(w, r, pool, mailbox, store, sessionID, actor, body.Text, body.ClientID)
+		deliverSteerNow(w, r, pool, mailbox, store, sessionID, actor, body.Text, body.ClientID, body.ProjectContextVersion)
 	}
 }
 
-func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, sessionID string, actor auth.Actor, text, clientID string) {
+func deliverSteerNow(w http.ResponseWriter, r *http.Request, pool *db.Pool, mailbox *stream.Mailbox, store *stream.Store, sessionID string, actor auth.Actor, text, clientID string, contextVersion *int) {
 	steerID, err := randomID()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to build steer message")
 		return
 	}
 
-	envelope, err := steerEnvelope(sessionID, actor, text, "", steerID, clientID)
+	envelope, err := steerEnvelope(sessionID, actor, text, "", steerID, clientID, contextVersion)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to build steer message")
 		return
@@ -179,7 +180,7 @@ func steerSessionState(ctx context.Context, pool *db.Pool, sessionID string) (ow
 	return sess.OwnerID, sess.Mode, nil
 }
 
-func steerEnvelope(sessionID string, actor auth.Actor, text, requestID, steerID, clientID string) (json.RawMessage, error) {
+func steerEnvelope(sessionID string, actor auth.Actor, text, requestID, steerID, clientID string, contextVersion *int) (json.RawMessage, error) {
 	fields := map[string]any{
 		"v":          1,
 		"session_id": sessionID,
@@ -202,6 +203,10 @@ func steerEnvelope(sessionID string, actor auth.Actor, text, requestID, steerID,
 	// client_id lets the composer reconcile its optimistic echo with this real event.
 	if clientID != "" {
 		fields["client_id"] = clientID
+	}
+
+	if contextVersion != nil {
+		fields["project_context_version"] = *contextVersion
 	}
 
 	return json.Marshal(fields)

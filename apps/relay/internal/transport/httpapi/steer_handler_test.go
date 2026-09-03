@@ -225,6 +225,26 @@ func TestSteerPostRoundTripsClientID(t *testing.T) {
 	}
 }
 
+func TestSteerPostRoundTripsProjectContextVersion(t *testing.T) {
+	pool := steerSessionFixture(t, "sess-a")
+	mailbox := stream.NewMailbox()
+	store := stream.New()
+
+	rec := doSteerPost(t, pool, mailbox, store, "sess-a", `{"text":"project context text","project_context_version":7}`)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	events := store.Since("sess-a", 0)
+	var fields map[string]any
+	if err := json.Unmarshal(events[0].Data, &fields); err != nil {
+		t.Fatalf("failed to decode event: %v", err)
+	}
+	if fields["project_context_version"] != float64(7) {
+		t.Fatalf("got project_context_version %v, want 7", fields["project_context_version"])
+	}
+}
+
 func TestSteerPostPersistsToPostgresWithMatchingSeq(t *testing.T) {
 	pool := steerSessionFixture(t, "sess-a")
 	mailbox := stream.NewMailbox()

@@ -22,6 +22,14 @@ const (
 	FieldCreatedBy = "created_by"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// FieldContextText holds the string denoting the context_text field in the database.
+	FieldContextText = "context_text"
+	// FieldContextVersion holds the string denoting the context_version field in the database.
+	FieldContextVersion = "context_version"
+	// FieldContextUpdatedBy holds the string denoting the context_updated_by field in the database.
+	FieldContextUpdatedBy = "context_updated_by"
+	// FieldContextUpdatedAt holds the string denoting the context_updated_at field in the database.
+	FieldContextUpdatedAt = "context_updated_at"
 	// EdgeMembers holds the string denoting the members edge name in mutations.
 	EdgeMembers = "members"
 	// EdgeInvites holds the string denoting the invites edge name in mutations.
@@ -30,6 +38,8 @@ const (
 	EdgeSessions = "sessions"
 	// EdgeAgents holds the string denoting the agents edge name in mutations.
 	EdgeAgents = "agents"
+	// EdgeNotes holds the string denoting the notes edge name in mutations.
+	EdgeNotes = "notes"
 	// Table holds the table name of the project in the database.
 	Table = "projects"
 	// MembersTable is the table that holds the members relation/edge.
@@ -60,6 +70,13 @@ const (
 	AgentsInverseTable = "agents"
 	// AgentsColumn is the table column denoting the agents relation/edge.
 	AgentsColumn = "project_agents"
+	// NotesTable is the table that holds the notes relation/edge.
+	NotesTable = "project_notes"
+	// NotesInverseTable is the table name for the ProjectNote entity.
+	// It exists in this package in order to avoid circular dependency with the "projectnote" package.
+	NotesInverseTable = "project_notes"
+	// NotesColumn is the table column denoting the notes relation/edge.
+	NotesColumn = "project_notes"
 )
 
 // Columns holds all SQL columns for project fields.
@@ -69,6 +86,10 @@ var Columns = []string{
 	FieldSlug,
 	FieldCreatedBy,
 	FieldCreatedAt,
+	FieldContextText,
+	FieldContextVersion,
+	FieldContextUpdatedBy,
+	FieldContextUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -90,6 +111,14 @@ var (
 	CreatedByValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
+	// DefaultContextText holds the default value on creation for the "context_text" field.
+	DefaultContextText string
+	// DefaultContextVersion holds the default value on creation for the "context_version" field.
+	DefaultContextVersion int
+	// ContextVersionValidator is a validator for the "context_version" field. It is called by the builders before save.
+	ContextVersionValidator func(int) error
+	// DefaultContextUpdatedBy holds the default value on creation for the "context_updated_by" field.
+	DefaultContextUpdatedBy string
 )
 
 // OrderOption defines the ordering options for the Project queries.
@@ -118,6 +147,26 @@ func ByCreatedBy(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByContextText orders the results by the context_text field.
+func ByContextText(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContextText, opts...).ToFunc()
+}
+
+// ByContextVersion orders the results by the context_version field.
+func ByContextVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContextVersion, opts...).ToFunc()
+}
+
+// ByContextUpdatedBy orders the results by the context_updated_by field.
+func ByContextUpdatedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContextUpdatedBy, opts...).ToFunc()
+}
+
+// ByContextUpdatedAt orders the results by the context_updated_at field.
+func ByContextUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContextUpdatedAt, opts...).ToFunc()
 }
 
 // ByMembersCount orders the results by members count.
@@ -175,6 +224,20 @@ func ByAgents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAgentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByNotesCount orders the results by notes count.
+func ByNotesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotesStep(), opts...)
+	}
+}
+
+// ByNotes orders the results by notes terms.
+func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMembersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -201,5 +264,12 @@ func newAgentsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AgentsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AgentsTable, AgentsColumn),
+	)
+}
+func newNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
 	)
 }

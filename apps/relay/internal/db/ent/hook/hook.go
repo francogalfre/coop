@@ -93,6 +93,18 @@ func (f ProjectMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectMemberMutation", m)
 }
 
+// The ProjectNoteFunc type is an adapter to allow the use of ordinary
+// function as ProjectNote mutator.
+type ProjectNoteFunc func(context.Context, *ent.ProjectNoteMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProjectNoteFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProjectNoteMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectNoteMutation", m)
+}
+
 // The SteerRequestFunc type is an adapter to allow the use of ordinary
 // function as SteerRequest mutator.
 type SteerRequestFunc func(context.Context, *ent.SteerRequestMutation) (ent.Value, error)

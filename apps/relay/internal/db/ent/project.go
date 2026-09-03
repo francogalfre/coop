@@ -25,6 +25,14 @@ type Project struct {
 	CreatedBy string `json:"created_by,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// ContextText holds the value of the "context_text" field.
+	ContextText string `json:"context_text,omitempty"`
+	// ContextVersion holds the value of the "context_version" field.
+	ContextVersion int `json:"context_version,omitempty"`
+	// ContextUpdatedBy holds the value of the "context_updated_by" field.
+	ContextUpdatedBy string `json:"context_updated_by,omitempty"`
+	// ContextUpdatedAt holds the value of the "context_updated_at" field.
+	ContextUpdatedAt *time.Time `json:"context_updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProjectQuery when eager-loading is set.
 	Edges        ProjectEdges `json:"edges"`
@@ -41,9 +49,11 @@ type ProjectEdges struct {
 	Sessions []*AgentSession `json:"sessions,omitempty"`
 	// Agents holds the value of the agents edge.
 	Agents []*Agent `json:"agents,omitempty"`
+	// Notes holds the value of the notes edge.
+	Notes []*ProjectNote `json:"notes,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // MembersOrErr returns the Members value or an error if the edge
@@ -82,16 +92,25 @@ func (e ProjectEdges) AgentsOrErr() ([]*Agent, error) {
 	return nil, &NotLoadedError{edge: "agents"}
 }
 
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProjectEdges) NotesOrErr() ([]*ProjectNote, error) {
+	if e.loadedTypes[4] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Project) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case project.FieldID:
+		case project.FieldID, project.FieldContextVersion:
 			values[i] = new(sql.NullInt64)
-		case project.FieldName, project.FieldSlug, project.FieldCreatedBy:
+		case project.FieldName, project.FieldSlug, project.FieldCreatedBy, project.FieldContextText, project.FieldContextUpdatedBy:
 			values[i] = new(sql.NullString)
-		case project.FieldCreatedAt:
+		case project.FieldCreatedAt, project.FieldContextUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -138,6 +157,31 @@ func (_m *Project) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
+		case project.FieldContextText:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field context_text", values[i])
+			} else if value.Valid {
+				_m.ContextText = value.String
+			}
+		case project.FieldContextVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field context_version", values[i])
+			} else if value.Valid {
+				_m.ContextVersion = int(value.Int64)
+			}
+		case project.FieldContextUpdatedBy:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field context_updated_by", values[i])
+			} else if value.Valid {
+				_m.ContextUpdatedBy = value.String
+			}
+		case project.FieldContextUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field context_updated_at", values[i])
+			} else if value.Valid {
+				_m.ContextUpdatedAt = new(time.Time)
+				*_m.ContextUpdatedAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -169,6 +213,11 @@ func (_m *Project) QuerySessions() *AgentSessionQuery {
 // QueryAgents queries the "agents" edge of the Project entity.
 func (_m *Project) QueryAgents() *AgentQuery {
 	return NewProjectClient(_m.config).QueryAgents(_m)
+}
+
+// QueryNotes queries the "notes" edge of the Project entity.
+func (_m *Project) QueryNotes() *ProjectNoteQuery {
+	return NewProjectClient(_m.config).QueryNotes(_m)
 }
 
 // Update returns a builder for updating this Project.
@@ -205,6 +254,20 @@ func (_m *Project) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("context_text=")
+	builder.WriteString(_m.ContextText)
+	builder.WriteString(", ")
+	builder.WriteString("context_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ContextVersion))
+	builder.WriteString(", ")
+	builder.WriteString("context_updated_by=")
+	builder.WriteString(_m.ContextUpdatedBy)
+	builder.WriteString(", ")
+	if v := _m.ContextUpdatedAt; v != nil {
+		builder.WriteString("context_updated_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

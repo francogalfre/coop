@@ -60,7 +60,7 @@ func handleSteerResolvePost(pool *db.Pool, mailbox *stream.Mailbox, store *strea
 				return
 			}
 
-			envelope, err := steerEnvelope(sessionID, pending.Actor, pending.Text, requestID, steerID, "")
+			envelope, err := steerEnvelope(sessionID, pending.Actor, pending.Text, requestID, steerID, "", nil)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "failed to build steer message")
 				return

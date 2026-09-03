@@ -75,6 +75,26 @@ func CreatedAt(v time.Time) predicate.Project {
 	return predicate.Project(sql.FieldEQ(FieldCreatedAt, v))
 }
 
+// ContextText applies equality check predicate on the "context_text" field. It's identical to ContextTextEQ.
+func ContextText(v string) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextText, v))
+}
+
+// ContextVersion applies equality check predicate on the "context_version" field. It's identical to ContextVersionEQ.
+func ContextVersion(v int) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextVersion, v))
+}
+
+// ContextUpdatedBy applies equality check predicate on the "context_updated_by" field. It's identical to ContextUpdatedByEQ.
+func ContextUpdatedBy(v string) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedAt applies equality check predicate on the "context_updated_at" field. It's identical to ContextUpdatedAtEQ.
+func ContextUpdatedAt(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextUpdatedAt, v))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.Project {
 	return predicate.Project(sql.FieldEQ(FieldName, v))
@@ -310,6 +330,226 @@ func CreatedAtLTE(v time.Time) predicate.Project {
 	return predicate.Project(sql.FieldLTE(FieldCreatedAt, v))
 }
 
+// ContextTextEQ applies the EQ predicate on the "context_text" field.
+func ContextTextEQ(v string) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextText, v))
+}
+
+// ContextTextNEQ applies the NEQ predicate on the "context_text" field.
+func ContextTextNEQ(v string) predicate.Project {
+	return predicate.Project(sql.FieldNEQ(FieldContextText, v))
+}
+
+// ContextTextIn applies the In predicate on the "context_text" field.
+func ContextTextIn(vs ...string) predicate.Project {
+	return predicate.Project(sql.FieldIn(FieldContextText, vs...))
+}
+
+// ContextTextNotIn applies the NotIn predicate on the "context_text" field.
+func ContextTextNotIn(vs ...string) predicate.Project {
+	return predicate.Project(sql.FieldNotIn(FieldContextText, vs...))
+}
+
+// ContextTextGT applies the GT predicate on the "context_text" field.
+func ContextTextGT(v string) predicate.Project {
+	return predicate.Project(sql.FieldGT(FieldContextText, v))
+}
+
+// ContextTextGTE applies the GTE predicate on the "context_text" field.
+func ContextTextGTE(v string) predicate.Project {
+	return predicate.Project(sql.FieldGTE(FieldContextText, v))
+}
+
+// ContextTextLT applies the LT predicate on the "context_text" field.
+func ContextTextLT(v string) predicate.Project {
+	return predicate.Project(sql.FieldLT(FieldContextText, v))
+}
+
+// ContextTextLTE applies the LTE predicate on the "context_text" field.
+func ContextTextLTE(v string) predicate.Project {
+	return predicate.Project(sql.FieldLTE(FieldContextText, v))
+}
+
+// ContextTextContains applies the Contains predicate on the "context_text" field.
+func ContextTextContains(v string) predicate.Project {
+	return predicate.Project(sql.FieldContains(FieldContextText, v))
+}
+
+// ContextTextHasPrefix applies the HasPrefix predicate on the "context_text" field.
+func ContextTextHasPrefix(v string) predicate.Project {
+	return predicate.Project(sql.FieldHasPrefix(FieldContextText, v))
+}
+
+// ContextTextHasSuffix applies the HasSuffix predicate on the "context_text" field.
+func ContextTextHasSuffix(v string) predicate.Project {
+	return predicate.Project(sql.FieldHasSuffix(FieldContextText, v))
+}
+
+// ContextTextEqualFold applies the EqualFold predicate on the "context_text" field.
+func ContextTextEqualFold(v string) predicate.Project {
+	return predicate.Project(sql.FieldEqualFold(FieldContextText, v))
+}
+
+// ContextTextContainsFold applies the ContainsFold predicate on the "context_text" field.
+func ContextTextContainsFold(v string) predicate.Project {
+	return predicate.Project(sql.FieldContainsFold(FieldContextText, v))
+}
+
+// ContextVersionEQ applies the EQ predicate on the "context_version" field.
+func ContextVersionEQ(v int) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextVersion, v))
+}
+
+// ContextVersionNEQ applies the NEQ predicate on the "context_version" field.
+func ContextVersionNEQ(v int) predicate.Project {
+	return predicate.Project(sql.FieldNEQ(FieldContextVersion, v))
+}
+
+// ContextVersionIn applies the In predicate on the "context_version" field.
+func ContextVersionIn(vs ...int) predicate.Project {
+	return predicate.Project(sql.FieldIn(FieldContextVersion, vs...))
+}
+
+// ContextVersionNotIn applies the NotIn predicate on the "context_version" field.
+func ContextVersionNotIn(vs ...int) predicate.Project {
+	return predicate.Project(sql.FieldNotIn(FieldContextVersion, vs...))
+}
+
+// ContextVersionGT applies the GT predicate on the "context_version" field.
+func ContextVersionGT(v int) predicate.Project {
+	return predicate.Project(sql.FieldGT(FieldContextVersion, v))
+}
+
+// ContextVersionGTE applies the GTE predicate on the "context_version" field.
+func ContextVersionGTE(v int) predicate.Project {
+	return predicate.Project(sql.FieldGTE(FieldContextVersion, v))
+}
+
+// ContextVersionLT applies the LT predicate on the "context_version" field.
+func ContextVersionLT(v int) predicate.Project {
+	return predicate.Project(sql.FieldLT(FieldContextVersion, v))
+}
+
+// ContextVersionLTE applies the LTE predicate on the "context_version" field.
+func ContextVersionLTE(v int) predicate.Project {
+	return predicate.Project(sql.FieldLTE(FieldContextVersion, v))
+}
+
+// ContextUpdatedByEQ applies the EQ predicate on the "context_updated_by" field.
+func ContextUpdatedByEQ(v string) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByNEQ applies the NEQ predicate on the "context_updated_by" field.
+func ContextUpdatedByNEQ(v string) predicate.Project {
+	return predicate.Project(sql.FieldNEQ(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByIn applies the In predicate on the "context_updated_by" field.
+func ContextUpdatedByIn(vs ...string) predicate.Project {
+	return predicate.Project(sql.FieldIn(FieldContextUpdatedBy, vs...))
+}
+
+// ContextUpdatedByNotIn applies the NotIn predicate on the "context_updated_by" field.
+func ContextUpdatedByNotIn(vs ...string) predicate.Project {
+	return predicate.Project(sql.FieldNotIn(FieldContextUpdatedBy, vs...))
+}
+
+// ContextUpdatedByGT applies the GT predicate on the "context_updated_by" field.
+func ContextUpdatedByGT(v string) predicate.Project {
+	return predicate.Project(sql.FieldGT(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByGTE applies the GTE predicate on the "context_updated_by" field.
+func ContextUpdatedByGTE(v string) predicate.Project {
+	return predicate.Project(sql.FieldGTE(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByLT applies the LT predicate on the "context_updated_by" field.
+func ContextUpdatedByLT(v string) predicate.Project {
+	return predicate.Project(sql.FieldLT(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByLTE applies the LTE predicate on the "context_updated_by" field.
+func ContextUpdatedByLTE(v string) predicate.Project {
+	return predicate.Project(sql.FieldLTE(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByContains applies the Contains predicate on the "context_updated_by" field.
+func ContextUpdatedByContains(v string) predicate.Project {
+	return predicate.Project(sql.FieldContains(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByHasPrefix applies the HasPrefix predicate on the "context_updated_by" field.
+func ContextUpdatedByHasPrefix(v string) predicate.Project {
+	return predicate.Project(sql.FieldHasPrefix(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByHasSuffix applies the HasSuffix predicate on the "context_updated_by" field.
+func ContextUpdatedByHasSuffix(v string) predicate.Project {
+	return predicate.Project(sql.FieldHasSuffix(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByEqualFold applies the EqualFold predicate on the "context_updated_by" field.
+func ContextUpdatedByEqualFold(v string) predicate.Project {
+	return predicate.Project(sql.FieldEqualFold(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedByContainsFold applies the ContainsFold predicate on the "context_updated_by" field.
+func ContextUpdatedByContainsFold(v string) predicate.Project {
+	return predicate.Project(sql.FieldContainsFold(FieldContextUpdatedBy, v))
+}
+
+// ContextUpdatedAtEQ applies the EQ predicate on the "context_updated_at" field.
+func ContextUpdatedAtEQ(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldEQ(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtNEQ applies the NEQ predicate on the "context_updated_at" field.
+func ContextUpdatedAtNEQ(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldNEQ(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtIn applies the In predicate on the "context_updated_at" field.
+func ContextUpdatedAtIn(vs ...time.Time) predicate.Project {
+	return predicate.Project(sql.FieldIn(FieldContextUpdatedAt, vs...))
+}
+
+// ContextUpdatedAtNotIn applies the NotIn predicate on the "context_updated_at" field.
+func ContextUpdatedAtNotIn(vs ...time.Time) predicate.Project {
+	return predicate.Project(sql.FieldNotIn(FieldContextUpdatedAt, vs...))
+}
+
+// ContextUpdatedAtGT applies the GT predicate on the "context_updated_at" field.
+func ContextUpdatedAtGT(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldGT(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtGTE applies the GTE predicate on the "context_updated_at" field.
+func ContextUpdatedAtGTE(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldGTE(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtLT applies the LT predicate on the "context_updated_at" field.
+func ContextUpdatedAtLT(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldLT(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtLTE applies the LTE predicate on the "context_updated_at" field.
+func ContextUpdatedAtLTE(v time.Time) predicate.Project {
+	return predicate.Project(sql.FieldLTE(FieldContextUpdatedAt, v))
+}
+
+// ContextUpdatedAtIsNil applies the IsNil predicate on the "context_updated_at" field.
+func ContextUpdatedAtIsNil() predicate.Project {
+	return predicate.Project(sql.FieldIsNull(FieldContextUpdatedAt))
+}
+
+// ContextUpdatedAtNotNil applies the NotNil predicate on the "context_updated_at" field.
+func ContextUpdatedAtNotNil() predicate.Project {
+	return predicate.Project(sql.FieldNotNull(FieldContextUpdatedAt))
+}
+
 // HasMembers applies the HasEdge predicate on the "members" edge.
 func HasMembers() predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
@@ -394,6 +634,29 @@ func HasAgents() predicate.Project {
 func HasAgentsWith(preds ...predicate.Agent) predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
 		step := newAgentsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNotes applies the HasEdge predicate on the "notes" edge.
+func HasNotes() predicate.Project {
+	return predicate.Project(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
+func HasNotesWith(preds ...predicate.ProjectNote) predicate.Project {
+	return predicate.Project(func(s *sql.Selector) {
+		step := newNotesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
