@@ -1,0 +1,34 @@
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: apps/relay/Dockerfile
+    # The relay keeps several in-memory singletons (Store, Mailbox, PresenceHub,
+    # TakeoverRegistry, PtyHub, SteerRequestRegistry — see cmd/relay/main.go).
+    # It is strictly single-instance: never raise this beyond 1 replica.
+    restart: unless-stopped
+    environment:
+      COOP_RELAY_ADDR: ":8787"
+      DATABASE_URL: ${DATABASE_URL}
+      COOP_WEB_ORIGINS: ${COOP_WEB_ORIGINS}
+      COOP_WEB_INTERNAL_URL: ${COOP_WEB_INTERNAL_URL}
+      COOP_GITHUB_CLIENT_ID: ${COOP_GITHUB_CLIENT_ID}
+      COOP_GITHUB_CLIENT_SECRET: ${COOP_GITHUB_CLIENT_SECRET}
+      COOP_INTERNAL_SECRET: ${COOP_INTERNAL_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8787/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      # Coolify reads these directly through its managed Traefik. The relay owns
+      # its whole subdomain here (every path), unlike the co-hosted setup in the
+      # repo-root compose where it is path-routed under a shared domain. Verify
+      # entrypoint/certresolver names in Coolify (Servers → Proxy → Configuration).
+      - traefik.enable=true
+      - traefik.http.routers.coop-relay.rule=Host(`${COOP_RELAY_DOMAIN}`)
+      - traefik.http.routers.coop-relay.entrypoints=https
+      - traefik.http.routers.coop-relay.tls=true
+      - traefik.http.routers.coop-relay.tls.certresolver=letsencrypt
+      - traefik.http.services.coop-relay.loadbalancer.server.port=8787
