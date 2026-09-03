@@ -5,6 +5,7 @@ import "context"
 type Actor struct {
 	UserID      string
 	DisplayName string
+	AvatarURL   string
 }
 
 type contextKey struct{}

@@ -45,9 +45,10 @@ func main() {
 	store := stream.New()
 	mailbox := stream.NewMailbox()
 	hub := stream.NewPresenceHub()
-	takeover := stream.NewTakeoverRegistry()
+	takeover := stream.NewTakeoverRegistry(pool)
 	ptyHub := stream.NewPtyHub()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
+	questions := stream.NewQuestionRegistry()
 
 	go func() {
 		ticker := time.NewTicker(sweepInterval)
@@ -60,7 +61,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      httpapi.NewRouter(cfg, pool, registry, store, mailbox, hub, takeover, ptyHub, steerRequests),
+		Handler:      httpapi.NewRouter(cfg, pool, registry, store, mailbox, hub, takeover, ptyHub, steerRequests, questions),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,

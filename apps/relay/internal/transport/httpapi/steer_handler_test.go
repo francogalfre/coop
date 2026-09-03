@@ -43,7 +43,7 @@ func doSteerPost(t *testing.T, pool *db.Pool, mailbox *stream.Mailbox, store *st
 	req = withActorNamed(req, "user-alice", "Alice")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
+	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	return rec
 }
@@ -55,7 +55,7 @@ func doSteerGet(t *testing.T, mailbox *stream.Mailbox, sessionID string) *httpte
 	req.SetPathValue("id", sessionID)
 	rec := httptest.NewRecorder()
 
-	handleSteerGet(mailbox, stream.NewTakeoverRegistry())(rec, req)
+	handleSteerGet(mailbox, stream.NewTakeoverRegistry(nil))(rec, req)
 
 	return rec
 }
@@ -122,7 +122,7 @@ func TestHandleSteerPostRequiresActor(t *testing.T) {
 	req.SetPathValue("id", "sess-a")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(nil, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
+	handleSteerPost(nil, mailbox, store, stream.NewSteerRequestRegistry(nil))(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("got status %d, want 404: %s", rec.Code, rec.Body.String())
@@ -197,6 +197,32 @@ func TestSteerPostEchoesHumanSteerToStore(t *testing.T) {
 	if fields["seq"] != float64(1) {
 		t.Fatalf("got seq %v, want the DB-assigned seq 1 (not the hardcoded 0)", fields["seq"])
 	}
+	if _, hasClientID := fields["client_id"]; hasClientID {
+		t.Fatalf("got client_id present without one in the request: %+v", fields)
+	}
+	if _, hasSteerID := fields["steer_id"]; !hasSteerID {
+		t.Fatalf("got no steer_id, want every delivered steer to carry one for its receipt")
+	}
+}
+
+func TestSteerPostRoundTripsClientID(t *testing.T) {
+	pool := steerSessionFixture(t, "sess-a")
+	mailbox := stream.NewMailbox()
+	store := stream.New()
+
+	rec := doSteerPost(t, pool, mailbox, store, "sess-a", `{"text":"hi","client_id":"c-1"}`)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+
+	events := store.Since("sess-a", 0)
+	var fields map[string]any
+	if err := json.Unmarshal(events[0].Data, &fields); err != nil {
+		t.Fatalf("failed to decode event: %v", err)
+	}
+	if fields["client_id"] != "c-1" {
+		t.Fatalf("got client_id %v, want c-1", fields["client_id"])
+	}
 }
 
 func TestSteerPostPersistsToPostgresWithMatchingSeq(t *testing.T) {
@@ -237,7 +263,7 @@ func TestSteerPostIgnoresForgedFromInBody(t *testing.T) {
 	req = withActorNamed(req, "user-alice", "Alice")
 	rec := httptest.NewRecorder()
 
-	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry())(rec, req)
+	handleSteerPost(pool, mailbox, store, stream.NewSteerRequestRegistry(pool))(rec, req)
 
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("got status %d, want 202: %s", rec.Code, rec.Body.String())

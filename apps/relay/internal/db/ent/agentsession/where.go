@@ -699,6 +699,52 @@ func HasEventsWith(preds ...predicate.Event) predicate.AgentSession {
 	})
 }
 
+// HasSteerRequests applies the HasEdge predicate on the "steer_requests" edge.
+func HasSteerRequests() predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SteerRequestsTable, SteerRequestsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSteerRequestsWith applies the HasEdge predicate on the "steer_requests" edge with a given conditions (other predicates).
+func HasSteerRequestsWith(preds ...predicate.SteerRequest) predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := newSteerRequestsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTakeover applies the HasEdge predicate on the "takeover" edge.
+func HasTakeover() predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, TakeoverTable, TakeoverColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTakeoverWith applies the HasEdge predicate on the "takeover" edge with a given conditions (other predicates).
+func HasTakeoverWith(preds ...predicate.Takeover) predicate.AgentSession {
+	return predicate.AgentSession(func(s *sql.Selector) {
+		step := newTakeoverStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.AgentSession) predicate.AgentSession {
 	return predicate.AgentSession(sql.AndPredicates(predicates...))

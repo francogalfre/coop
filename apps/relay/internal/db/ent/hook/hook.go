@@ -93,6 +93,30 @@ func (f ProjectMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectMemberMutation", m)
 }
 
+// The SteerRequestFunc type is an adapter to allow the use of ordinary
+// function as SteerRequest mutator.
+type SteerRequestFunc func(context.Context, *ent.SteerRequestMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SteerRequestFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SteerRequestMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SteerRequestMutation", m)
+}
+
+// The TakeoverFunc type is an adapter to allow the use of ordinary
+// function as Takeover mutator.
+type TakeoverFunc func(context.Context, *ent.TakeoverMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TakeoverFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TakeoverMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TakeoverMutation", m)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

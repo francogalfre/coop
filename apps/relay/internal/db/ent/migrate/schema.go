@@ -185,6 +185,52 @@ var (
 			},
 		},
 	}
+	// SteerRequestsColumns holds the columns for the "steer_requests" table.
+	SteerRequestsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "actor_id", Type: field.TypeString},
+		{Name: "actor_display_name", Type: field.TypeString, Default: ""},
+		{Name: "actor_avatar_url", Type: field.TypeString, Default: ""},
+		{Name: "text", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "agent_session_steer_requests", Type: field.TypeString},
+	}
+	// SteerRequestsTable holds the schema information for the "steer_requests" table.
+	SteerRequestsTable = &schema.Table{
+		Name:       "steer_requests",
+		Columns:    SteerRequestsColumns,
+		PrimaryKey: []*schema.Column{SteerRequestsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "steer_requests_agent_sessions_steer_requests",
+				Columns:    []*schema.Column{SteerRequestsColumns[6]},
+				RefColumns: []*schema.Column{AgentSessionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// TakeoversColumns holds the columns for the "takeovers" table.
+	TakeoversColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "actor_id", Type: field.TypeString},
+		{Name: "actor_display_name", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "agent_session_takeover", Type: field.TypeString, Unique: true},
+	}
+	// TakeoversTable holds the schema information for the "takeovers" table.
+	TakeoversTable = &schema.Table{
+		Name:       "takeovers",
+		Columns:    TakeoversColumns,
+		PrimaryKey: []*schema.Column{TakeoversColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "takeovers_agent_sessions_takeover",
+				Columns:    []*schema.Column{TakeoversColumns[4]},
+				RefColumns: []*schema.Column{AgentSessionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AgentsTable,
@@ -194,6 +240,8 @@ var (
 		ProjectsTable,
 		ProjectInvitesTable,
 		ProjectMembersTable,
+		SteerRequestsTable,
+		TakeoversTable,
 	}
 )
 
@@ -204,4 +252,6 @@ func init() {
 	EventsTable.ForeignKeys[0].RefTable = AgentSessionsTable
 	ProjectInvitesTable.ForeignKeys[0].RefTable = ProjectsTable
 	ProjectMembersTable.ForeignKeys[0].RefTable = ProjectsTable
+	SteerRequestsTable.ForeignKeys[0].RefTable = AgentSessionsTable
+	TakeoversTable.ForeignKeys[0].RefTable = AgentSessionsTable
 }

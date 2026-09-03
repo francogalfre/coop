@@ -12,6 +12,7 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agent"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/agentsession"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // AgentSession is the model entity for the AgentSession schema.
@@ -53,9 +54,13 @@ type AgentSessionEdges struct {
 	Agent *Agent `json:"agent,omitempty"`
 	// Events holds the value of the events edge.
 	Events []*Event `json:"events,omitempty"`
+	// SteerRequests holds the value of the steer_requests edge.
+	SteerRequests []*SteerRequest `json:"steer_requests,omitempty"`
+	// Takeover holds the value of the takeover edge.
+	Takeover *Takeover `json:"takeover,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // ProjectOrErr returns the Project value or an error if the edge
@@ -87,6 +92,26 @@ func (e AgentSessionEdges) EventsOrErr() ([]*Event, error) {
 		return e.Events, nil
 	}
 	return nil, &NotLoadedError{edge: "events"}
+}
+
+// SteerRequestsOrErr returns the SteerRequests value or an error if the edge
+// was not loaded in eager-loading.
+func (e AgentSessionEdges) SteerRequestsOrErr() ([]*SteerRequest, error) {
+	if e.loadedTypes[3] {
+		return e.SteerRequests, nil
+	}
+	return nil, &NotLoadedError{edge: "steer_requests"}
+}
+
+// TakeoverOrErr returns the Takeover value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AgentSessionEdges) TakeoverOrErr() (*Takeover, error) {
+	if e.Takeover != nil {
+		return e.Takeover, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: takeover.Label}
+	}
+	return nil, &NotLoadedError{edge: "takeover"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -220,6 +245,16 @@ func (_m *AgentSession) QueryAgent() *AgentQuery {
 // QueryEvents queries the "events" edge of the AgentSession entity.
 func (_m *AgentSession) QueryEvents() *EventQuery {
 	return NewAgentSessionClient(_m.config).QueryEvents(_m)
+}
+
+// QuerySteerRequests queries the "steer_requests" edge of the AgentSession entity.
+func (_m *AgentSession) QuerySteerRequests() *SteerRequestQuery {
+	return NewAgentSessionClient(_m.config).QuerySteerRequests(_m)
+}
+
+// QueryTakeover queries the "takeover" edge of the AgentSession entity.
+func (_m *AgentSession) QueryTakeover() *TakeoverQuery {
+	return NewAgentSessionClient(_m.config).QueryTakeover(_m)
 }
 
 // Update returns a builder for updating this AgentSession.

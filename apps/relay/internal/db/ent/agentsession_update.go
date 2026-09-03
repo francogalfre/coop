@@ -16,6 +16,8 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/event"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/predicate"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // AgentSessionUpdate is the builder for updating AgentSession entities.
@@ -215,6 +217,40 @@ func (_u *AgentSessionUpdate) AddEvents(v ...*Event) *AgentSessionUpdate {
 	return _u.AddEventIDs(ids...)
 }
 
+// AddSteerRequestIDs adds the "steer_requests" edge to the SteerRequest entity by IDs.
+func (_u *AgentSessionUpdate) AddSteerRequestIDs(ids ...string) *AgentSessionUpdate {
+	_u.mutation.AddSteerRequestIDs(ids...)
+	return _u
+}
+
+// AddSteerRequests adds the "steer_requests" edges to the SteerRequest entity.
+func (_u *AgentSessionUpdate) AddSteerRequests(v ...*SteerRequest) *AgentSessionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSteerRequestIDs(ids...)
+}
+
+// SetTakeoverID sets the "takeover" edge to the Takeover entity by ID.
+func (_u *AgentSessionUpdate) SetTakeoverID(id string) *AgentSessionUpdate {
+	_u.mutation.SetTakeoverID(id)
+	return _u
+}
+
+// SetNillableTakeoverID sets the "takeover" edge to the Takeover entity by ID if the given value is not nil.
+func (_u *AgentSessionUpdate) SetNillableTakeoverID(id *string) *AgentSessionUpdate {
+	if id != nil {
+		_u = _u.SetTakeoverID(*id)
+	}
+	return _u
+}
+
+// SetTakeover sets the "takeover" edge to the Takeover entity.
+func (_u *AgentSessionUpdate) SetTakeover(v *Takeover) *AgentSessionUpdate {
+	return _u.SetTakeoverID(v.ID)
+}
+
 // Mutation returns the AgentSessionMutation object of the builder.
 func (_u *AgentSessionUpdate) Mutation() *AgentSessionMutation {
 	return _u.mutation
@@ -251,6 +287,33 @@ func (_u *AgentSessionUpdate) RemoveEvents(v ...*Event) *AgentSessionUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEventIDs(ids...)
+}
+
+// ClearSteerRequests clears all "steer_requests" edges to the SteerRequest entity.
+func (_u *AgentSessionUpdate) ClearSteerRequests() *AgentSessionUpdate {
+	_u.mutation.ClearSteerRequests()
+	return _u
+}
+
+// RemoveSteerRequestIDs removes the "steer_requests" edge to SteerRequest entities by IDs.
+func (_u *AgentSessionUpdate) RemoveSteerRequestIDs(ids ...string) *AgentSessionUpdate {
+	_u.mutation.RemoveSteerRequestIDs(ids...)
+	return _u
+}
+
+// RemoveSteerRequests removes "steer_requests" edges to SteerRequest entities.
+func (_u *AgentSessionUpdate) RemoveSteerRequests(v ...*SteerRequest) *AgentSessionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSteerRequestIDs(ids...)
+}
+
+// ClearTakeover clears the "takeover" edge to the Takeover entity.
+func (_u *AgentSessionUpdate) ClearTakeover() *AgentSessionUpdate {
+	_u.mutation.ClearTakeover()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -439,6 +502,80 @@ func (_u *AgentSessionUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SteerRequestsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSteerRequestsIDs(); len(nodes) > 0 && !_u.mutation.SteerRequestsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SteerRequestsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TakeoverCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   agentsession.TakeoverTable,
+			Columns: []string{agentsession.TakeoverColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(takeover.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TakeoverIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   agentsession.TakeoverTable,
+			Columns: []string{agentsession.TakeoverColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(takeover.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -650,6 +787,40 @@ func (_u *AgentSessionUpdateOne) AddEvents(v ...*Event) *AgentSessionUpdateOne {
 	return _u.AddEventIDs(ids...)
 }
 
+// AddSteerRequestIDs adds the "steer_requests" edge to the SteerRequest entity by IDs.
+func (_u *AgentSessionUpdateOne) AddSteerRequestIDs(ids ...string) *AgentSessionUpdateOne {
+	_u.mutation.AddSteerRequestIDs(ids...)
+	return _u
+}
+
+// AddSteerRequests adds the "steer_requests" edges to the SteerRequest entity.
+func (_u *AgentSessionUpdateOne) AddSteerRequests(v ...*SteerRequest) *AgentSessionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSteerRequestIDs(ids...)
+}
+
+// SetTakeoverID sets the "takeover" edge to the Takeover entity by ID.
+func (_u *AgentSessionUpdateOne) SetTakeoverID(id string) *AgentSessionUpdateOne {
+	_u.mutation.SetTakeoverID(id)
+	return _u
+}
+
+// SetNillableTakeoverID sets the "takeover" edge to the Takeover entity by ID if the given value is not nil.
+func (_u *AgentSessionUpdateOne) SetNillableTakeoverID(id *string) *AgentSessionUpdateOne {
+	if id != nil {
+		_u = _u.SetTakeoverID(*id)
+	}
+	return _u
+}
+
+// SetTakeover sets the "takeover" edge to the Takeover entity.
+func (_u *AgentSessionUpdateOne) SetTakeover(v *Takeover) *AgentSessionUpdateOne {
+	return _u.SetTakeoverID(v.ID)
+}
+
 // Mutation returns the AgentSessionMutation object of the builder.
 func (_u *AgentSessionUpdateOne) Mutation() *AgentSessionMutation {
 	return _u.mutation
@@ -686,6 +857,33 @@ func (_u *AgentSessionUpdateOne) RemoveEvents(v ...*Event) *AgentSessionUpdateOn
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEventIDs(ids...)
+}
+
+// ClearSteerRequests clears all "steer_requests" edges to the SteerRequest entity.
+func (_u *AgentSessionUpdateOne) ClearSteerRequests() *AgentSessionUpdateOne {
+	_u.mutation.ClearSteerRequests()
+	return _u
+}
+
+// RemoveSteerRequestIDs removes the "steer_requests" edge to SteerRequest entities by IDs.
+func (_u *AgentSessionUpdateOne) RemoveSteerRequestIDs(ids ...string) *AgentSessionUpdateOne {
+	_u.mutation.RemoveSteerRequestIDs(ids...)
+	return _u
+}
+
+// RemoveSteerRequests removes "steer_requests" edges to SteerRequest entities.
+func (_u *AgentSessionUpdateOne) RemoveSteerRequests(v ...*SteerRequest) *AgentSessionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSteerRequestIDs(ids...)
+}
+
+// ClearTakeover clears the "takeover" edge to the Takeover entity.
+func (_u *AgentSessionUpdateOne) ClearTakeover() *AgentSessionUpdateOne {
+	_u.mutation.ClearTakeover()
+	return _u
 }
 
 // Where appends a list predicates to the AgentSessionUpdate builder.
@@ -904,6 +1102,80 @@ func (_u *AgentSessionUpdateOne) sqlSave(ctx context.Context) (_node *AgentSessi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SteerRequestsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSteerRequestsIDs(); len(nodes) > 0 && !_u.mutation.SteerRequestsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SteerRequestsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   agentsession.SteerRequestsTable,
+			Columns: []string{agentsession.SteerRequestsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(steerrequest.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TakeoverCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   agentsession.TakeoverTable,
+			Columns: []string{agentsession.TakeoverColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(takeover.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TakeoverIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   agentsession.TakeoverTable,
+			Columns: []string{agentsession.TakeoverColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(takeover.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

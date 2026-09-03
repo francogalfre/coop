@@ -19,6 +19,8 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/project"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 const (
@@ -37,6 +39,8 @@ const (
 	TypeProject       = "Project"
 	TypeProjectInvite = "ProjectInvite"
 	TypeProjectMember = "ProjectMember"
+	TypeSteerRequest  = "SteerRequest"
+	TypeTakeover      = "Takeover"
 )
 
 // AgentMutation represents an operation that mutates the Agent nodes in the graph.
@@ -688,30 +692,35 @@ func (m *AgentMutation) ResetEdge(name string) error {
 // AgentSessionMutation represents an operation that mutates the AgentSession nodes in the graph.
 type AgentSessionMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *string
-	owner_id       *string
-	repo           *string
-	cwd            *string
-	harness        *string
-	status         *string
-	mode           *string
-	next_seq       *int
-	addnext_seq    *int
-	started_at     *time.Time
-	ended_at       *time.Time
-	clearedFields  map[string]struct{}
-	project        *int
-	clearedproject bool
-	agent          *string
-	clearedagent   bool
-	events         map[int]struct{}
-	removedevents  map[int]struct{}
-	clearedevents  bool
-	done           bool
-	oldValue       func(context.Context) (*AgentSession, error)
-	predicates     []predicate.AgentSession
+	op                    Op
+	typ                   string
+	id                    *string
+	owner_id              *string
+	repo                  *string
+	cwd                   *string
+	harness               *string
+	status                *string
+	mode                  *string
+	next_seq              *int
+	addnext_seq           *int
+	started_at            *time.Time
+	ended_at              *time.Time
+	clearedFields         map[string]struct{}
+	project               *int
+	clearedproject        bool
+	agent                 *string
+	clearedagent          bool
+	events                map[int]struct{}
+	removedevents         map[int]struct{}
+	clearedevents         bool
+	steer_requests        map[string]struct{}
+	removedsteer_requests map[string]struct{}
+	clearedsteer_requests bool
+	takeover              *string
+	clearedtakeover       bool
+	done                  bool
+	oldValue              func(context.Context) (*AgentSession, error)
+	predicates            []predicate.AgentSession
 }
 
 var _ ent.Mutation = (*AgentSessionMutation)(nil)
@@ -1307,6 +1316,99 @@ func (m *AgentSessionMutation) ResetEvents() {
 	m.removedevents = nil
 }
 
+// AddSteerRequestIDs adds the "steer_requests" edge to the SteerRequest entity by ids.
+func (m *AgentSessionMutation) AddSteerRequestIDs(ids ...string) {
+	if m.steer_requests == nil {
+		m.steer_requests = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.steer_requests[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSteerRequests clears the "steer_requests" edge to the SteerRequest entity.
+func (m *AgentSessionMutation) ClearSteerRequests() {
+	m.clearedsteer_requests = true
+}
+
+// SteerRequestsCleared reports if the "steer_requests" edge to the SteerRequest entity was cleared.
+func (m *AgentSessionMutation) SteerRequestsCleared() bool {
+	return m.clearedsteer_requests
+}
+
+// RemoveSteerRequestIDs removes the "steer_requests" edge to the SteerRequest entity by IDs.
+func (m *AgentSessionMutation) RemoveSteerRequestIDs(ids ...string) {
+	if m.removedsteer_requests == nil {
+		m.removedsteer_requests = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.steer_requests, ids[i])
+		m.removedsteer_requests[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSteerRequests returns the removed IDs of the "steer_requests" edge to the SteerRequest entity.
+func (m *AgentSessionMutation) RemovedSteerRequestsIDs() (ids []string) {
+	for id := range m.removedsteer_requests {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SteerRequestsIDs returns the "steer_requests" edge IDs in the mutation.
+func (m *AgentSessionMutation) SteerRequestsIDs() (ids []string) {
+	for id := range m.steer_requests {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSteerRequests resets all changes to the "steer_requests" edge.
+func (m *AgentSessionMutation) ResetSteerRequests() {
+	m.steer_requests = nil
+	m.clearedsteer_requests = false
+	m.removedsteer_requests = nil
+}
+
+// SetTakeoverID sets the "takeover" edge to the Takeover entity by id.
+func (m *AgentSessionMutation) SetTakeoverID(id string) {
+	m.takeover = &id
+}
+
+// ClearTakeover clears the "takeover" edge to the Takeover entity.
+func (m *AgentSessionMutation) ClearTakeover() {
+	m.clearedtakeover = true
+}
+
+// TakeoverCleared reports if the "takeover" edge to the Takeover entity was cleared.
+func (m *AgentSessionMutation) TakeoverCleared() bool {
+	return m.clearedtakeover
+}
+
+// TakeoverID returns the "takeover" edge ID in the mutation.
+func (m *AgentSessionMutation) TakeoverID() (id string, exists bool) {
+	if m.takeover != nil {
+		return *m.takeover, true
+	}
+	return
+}
+
+// TakeoverIDs returns the "takeover" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TakeoverID instead. It exists only for internal usage by the builders.
+func (m *AgentSessionMutation) TakeoverIDs() (ids []string) {
+	if id := m.takeover; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTakeover resets all changes to the "takeover" edge.
+func (m *AgentSessionMutation) ResetTakeover() {
+	m.takeover = nil
+	m.clearedtakeover = false
+}
+
 // Where appends a list predicates to the AgentSessionMutation builder.
 func (m *AgentSessionMutation) Where(ps ...predicate.AgentSession) {
 	m.predicates = append(m.predicates, ps...)
@@ -1600,7 +1702,7 @@ func (m *AgentSessionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AgentSessionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.project != nil {
 		edges = append(edges, agentsession.EdgeProject)
 	}
@@ -1609,6 +1711,12 @@ func (m *AgentSessionMutation) AddedEdges() []string {
 	}
 	if m.events != nil {
 		edges = append(edges, agentsession.EdgeEvents)
+	}
+	if m.steer_requests != nil {
+		edges = append(edges, agentsession.EdgeSteerRequests)
+	}
+	if m.takeover != nil {
+		edges = append(edges, agentsession.EdgeTakeover)
 	}
 	return edges
 }
@@ -1631,15 +1739,28 @@ func (m *AgentSessionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case agentsession.EdgeSteerRequests:
+		ids := make([]ent.Value, 0, len(m.steer_requests))
+		for id := range m.steer_requests {
+			ids = append(ids, id)
+		}
+		return ids
+	case agentsession.EdgeTakeover:
+		if id := m.takeover; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AgentSessionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.removedevents != nil {
 		edges = append(edges, agentsession.EdgeEvents)
+	}
+	if m.removedsteer_requests != nil {
+		edges = append(edges, agentsession.EdgeSteerRequests)
 	}
 	return edges
 }
@@ -1654,13 +1775,19 @@ func (m *AgentSessionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case agentsession.EdgeSteerRequests:
+		ids := make([]ent.Value, 0, len(m.removedsteer_requests))
+		for id := range m.removedsteer_requests {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AgentSessionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.clearedproject {
 		edges = append(edges, agentsession.EdgeProject)
 	}
@@ -1669,6 +1796,12 @@ func (m *AgentSessionMutation) ClearedEdges() []string {
 	}
 	if m.clearedevents {
 		edges = append(edges, agentsession.EdgeEvents)
+	}
+	if m.clearedsteer_requests {
+		edges = append(edges, agentsession.EdgeSteerRequests)
+	}
+	if m.clearedtakeover {
+		edges = append(edges, agentsession.EdgeTakeover)
 	}
 	return edges
 }
@@ -1683,6 +1816,10 @@ func (m *AgentSessionMutation) EdgeCleared(name string) bool {
 		return m.clearedagent
 	case agentsession.EdgeEvents:
 		return m.clearedevents
+	case agentsession.EdgeSteerRequests:
+		return m.clearedsteer_requests
+	case agentsession.EdgeTakeover:
+		return m.clearedtakeover
 	}
 	return false
 }
@@ -1696,6 +1833,9 @@ func (m *AgentSessionMutation) ClearEdge(name string) error {
 		return nil
 	case agentsession.EdgeAgent:
 		m.ClearAgent()
+		return nil
+	case agentsession.EdgeTakeover:
+		m.ClearTakeover()
 		return nil
 	}
 	return fmt.Errorf("unknown AgentSession unique edge %s", name)
@@ -1713,6 +1853,12 @@ func (m *AgentSessionMutation) ResetEdge(name string) error {
 		return nil
 	case agentsession.EdgeEvents:
 		m.ResetEvents()
+		return nil
+	case agentsession.EdgeSteerRequests:
+		m.ResetSteerRequests()
+		return nil
+	case agentsession.EdgeTakeover:
+		m.ResetTakeover()
 		return nil
 	}
 	return fmt.Errorf("unknown AgentSession edge %s", name)
@@ -4852,4 +4998,1126 @@ func (m *ProjectMemberMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ProjectMember edge %s", name)
+}
+
+// SteerRequestMutation represents an operation that mutates the SteerRequest nodes in the graph.
+type SteerRequestMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	actor_id           *string
+	actor_display_name *string
+	actor_avatar_url   *string
+	text               *string
+	created_at         *time.Time
+	clearedFields      map[string]struct{}
+	session            *string
+	clearedsession     bool
+	done               bool
+	oldValue           func(context.Context) (*SteerRequest, error)
+	predicates         []predicate.SteerRequest
+}
+
+var _ ent.Mutation = (*SteerRequestMutation)(nil)
+
+// steerrequestOption allows management of the mutation configuration using functional options.
+type steerrequestOption func(*SteerRequestMutation)
+
+// newSteerRequestMutation creates new mutation for the SteerRequest entity.
+func newSteerRequestMutation(c config, op Op, opts ...steerrequestOption) *SteerRequestMutation {
+	m := &SteerRequestMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSteerRequest,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSteerRequestID sets the ID field of the mutation.
+func withSteerRequestID(id string) steerrequestOption {
+	return func(m *SteerRequestMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SteerRequest
+		)
+		m.oldValue = func(ctx context.Context) (*SteerRequest, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SteerRequest.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSteerRequest sets the old SteerRequest of the mutation.
+func withSteerRequest(node *SteerRequest) steerrequestOption {
+	return func(m *SteerRequestMutation) {
+		m.oldValue = func(context.Context) (*SteerRequest, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SteerRequestMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SteerRequestMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SteerRequest entities.
+func (m *SteerRequestMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SteerRequestMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SteerRequestMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SteerRequest.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetActorID sets the "actor_id" field.
+func (m *SteerRequestMutation) SetActorID(s string) {
+	m.actor_id = &s
+}
+
+// ActorID returns the value of the "actor_id" field in the mutation.
+func (m *SteerRequestMutation) ActorID() (r string, exists bool) {
+	v := m.actor_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorID returns the old "actor_id" field's value of the SteerRequest entity.
+// If the SteerRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SteerRequestMutation) OldActorID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorID: %w", err)
+	}
+	return oldValue.ActorID, nil
+}
+
+// ResetActorID resets all changes to the "actor_id" field.
+func (m *SteerRequestMutation) ResetActorID() {
+	m.actor_id = nil
+}
+
+// SetActorDisplayName sets the "actor_display_name" field.
+func (m *SteerRequestMutation) SetActorDisplayName(s string) {
+	m.actor_display_name = &s
+}
+
+// ActorDisplayName returns the value of the "actor_display_name" field in the mutation.
+func (m *SteerRequestMutation) ActorDisplayName() (r string, exists bool) {
+	v := m.actor_display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorDisplayName returns the old "actor_display_name" field's value of the SteerRequest entity.
+// If the SteerRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SteerRequestMutation) OldActorDisplayName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorDisplayName: %w", err)
+	}
+	return oldValue.ActorDisplayName, nil
+}
+
+// ResetActorDisplayName resets all changes to the "actor_display_name" field.
+func (m *SteerRequestMutation) ResetActorDisplayName() {
+	m.actor_display_name = nil
+}
+
+// SetActorAvatarURL sets the "actor_avatar_url" field.
+func (m *SteerRequestMutation) SetActorAvatarURL(s string) {
+	m.actor_avatar_url = &s
+}
+
+// ActorAvatarURL returns the value of the "actor_avatar_url" field in the mutation.
+func (m *SteerRequestMutation) ActorAvatarURL() (r string, exists bool) {
+	v := m.actor_avatar_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorAvatarURL returns the old "actor_avatar_url" field's value of the SteerRequest entity.
+// If the SteerRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SteerRequestMutation) OldActorAvatarURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorAvatarURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorAvatarURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorAvatarURL: %w", err)
+	}
+	return oldValue.ActorAvatarURL, nil
+}
+
+// ResetActorAvatarURL resets all changes to the "actor_avatar_url" field.
+func (m *SteerRequestMutation) ResetActorAvatarURL() {
+	m.actor_avatar_url = nil
+}
+
+// SetText sets the "text" field.
+func (m *SteerRequestMutation) SetText(s string) {
+	m.text = &s
+}
+
+// Text returns the value of the "text" field in the mutation.
+func (m *SteerRequestMutation) Text() (r string, exists bool) {
+	v := m.text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldText returns the old "text" field's value of the SteerRequest entity.
+// If the SteerRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SteerRequestMutation) OldText(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldText: %w", err)
+	}
+	return oldValue.Text, nil
+}
+
+// ResetText resets all changes to the "text" field.
+func (m *SteerRequestMutation) ResetText() {
+	m.text = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SteerRequestMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SteerRequestMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SteerRequest entity.
+// If the SteerRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SteerRequestMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SteerRequestMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetSessionID sets the "session" edge to the AgentSession entity by id.
+func (m *SteerRequestMutation) SetSessionID(id string) {
+	m.session = &id
+}
+
+// ClearSession clears the "session" edge to the AgentSession entity.
+func (m *SteerRequestMutation) ClearSession() {
+	m.clearedsession = true
+}
+
+// SessionCleared reports if the "session" edge to the AgentSession entity was cleared.
+func (m *SteerRequestMutation) SessionCleared() bool {
+	return m.clearedsession
+}
+
+// SessionID returns the "session" edge ID in the mutation.
+func (m *SteerRequestMutation) SessionID() (id string, exists bool) {
+	if m.session != nil {
+		return *m.session, true
+	}
+	return
+}
+
+// SessionIDs returns the "session" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SessionID instead. It exists only for internal usage by the builders.
+func (m *SteerRequestMutation) SessionIDs() (ids []string) {
+	if id := m.session; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSession resets all changes to the "session" edge.
+func (m *SteerRequestMutation) ResetSession() {
+	m.session = nil
+	m.clearedsession = false
+}
+
+// Where appends a list predicates to the SteerRequestMutation builder.
+func (m *SteerRequestMutation) Where(ps ...predicate.SteerRequest) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SteerRequestMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SteerRequestMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SteerRequest, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SteerRequestMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SteerRequestMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SteerRequest).
+func (m *SteerRequestMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SteerRequestMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.actor_id != nil {
+		fields = append(fields, steerrequest.FieldActorID)
+	}
+	if m.actor_display_name != nil {
+		fields = append(fields, steerrequest.FieldActorDisplayName)
+	}
+	if m.actor_avatar_url != nil {
+		fields = append(fields, steerrequest.FieldActorAvatarURL)
+	}
+	if m.text != nil {
+		fields = append(fields, steerrequest.FieldText)
+	}
+	if m.created_at != nil {
+		fields = append(fields, steerrequest.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SteerRequestMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case steerrequest.FieldActorID:
+		return m.ActorID()
+	case steerrequest.FieldActorDisplayName:
+		return m.ActorDisplayName()
+	case steerrequest.FieldActorAvatarURL:
+		return m.ActorAvatarURL()
+	case steerrequest.FieldText:
+		return m.Text()
+	case steerrequest.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SteerRequestMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case steerrequest.FieldActorID:
+		return m.OldActorID(ctx)
+	case steerrequest.FieldActorDisplayName:
+		return m.OldActorDisplayName(ctx)
+	case steerrequest.FieldActorAvatarURL:
+		return m.OldActorAvatarURL(ctx)
+	case steerrequest.FieldText:
+		return m.OldText(ctx)
+	case steerrequest.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown SteerRequest field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SteerRequestMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case steerrequest.FieldActorID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorID(v)
+		return nil
+	case steerrequest.FieldActorDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorDisplayName(v)
+		return nil
+	case steerrequest.FieldActorAvatarURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorAvatarURL(v)
+		return nil
+	case steerrequest.FieldText:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetText(v)
+		return nil
+	case steerrequest.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SteerRequest field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SteerRequestMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SteerRequestMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SteerRequestMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SteerRequest numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SteerRequestMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SteerRequestMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SteerRequestMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown SteerRequest nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SteerRequestMutation) ResetField(name string) error {
+	switch name {
+	case steerrequest.FieldActorID:
+		m.ResetActorID()
+		return nil
+	case steerrequest.FieldActorDisplayName:
+		m.ResetActorDisplayName()
+		return nil
+	case steerrequest.FieldActorAvatarURL:
+		m.ResetActorAvatarURL()
+		return nil
+	case steerrequest.FieldText:
+		m.ResetText()
+		return nil
+	case steerrequest.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SteerRequest field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SteerRequestMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.session != nil {
+		edges = append(edges, steerrequest.EdgeSession)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SteerRequestMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case steerrequest.EdgeSession:
+		if id := m.session; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SteerRequestMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SteerRequestMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SteerRequestMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsession {
+		edges = append(edges, steerrequest.EdgeSession)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SteerRequestMutation) EdgeCleared(name string) bool {
+	switch name {
+	case steerrequest.EdgeSession:
+		return m.clearedsession
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SteerRequestMutation) ClearEdge(name string) error {
+	switch name {
+	case steerrequest.EdgeSession:
+		m.ClearSession()
+		return nil
+	}
+	return fmt.Errorf("unknown SteerRequest unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SteerRequestMutation) ResetEdge(name string) error {
+	switch name {
+	case steerrequest.EdgeSession:
+		m.ResetSession()
+		return nil
+	}
+	return fmt.Errorf("unknown SteerRequest edge %s", name)
+}
+
+// TakeoverMutation represents an operation that mutates the Takeover nodes in the graph.
+type TakeoverMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	actor_id           *string
+	actor_display_name *string
+	created_at         *time.Time
+	clearedFields      map[string]struct{}
+	session            *string
+	clearedsession     bool
+	done               bool
+	oldValue           func(context.Context) (*Takeover, error)
+	predicates         []predicate.Takeover
+}
+
+var _ ent.Mutation = (*TakeoverMutation)(nil)
+
+// takeoverOption allows management of the mutation configuration using functional options.
+type takeoverOption func(*TakeoverMutation)
+
+// newTakeoverMutation creates new mutation for the Takeover entity.
+func newTakeoverMutation(c config, op Op, opts ...takeoverOption) *TakeoverMutation {
+	m := &TakeoverMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTakeover,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTakeoverID sets the ID field of the mutation.
+func withTakeoverID(id string) takeoverOption {
+	return func(m *TakeoverMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Takeover
+		)
+		m.oldValue = func(ctx context.Context) (*Takeover, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Takeover.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTakeover sets the old Takeover of the mutation.
+func withTakeover(node *Takeover) takeoverOption {
+	return func(m *TakeoverMutation) {
+		m.oldValue = func(context.Context) (*Takeover, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TakeoverMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TakeoverMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Takeover entities.
+func (m *TakeoverMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TakeoverMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TakeoverMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Takeover.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetActorID sets the "actor_id" field.
+func (m *TakeoverMutation) SetActorID(s string) {
+	m.actor_id = &s
+}
+
+// ActorID returns the value of the "actor_id" field in the mutation.
+func (m *TakeoverMutation) ActorID() (r string, exists bool) {
+	v := m.actor_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorID returns the old "actor_id" field's value of the Takeover entity.
+// If the Takeover object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TakeoverMutation) OldActorID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorID: %w", err)
+	}
+	return oldValue.ActorID, nil
+}
+
+// ResetActorID resets all changes to the "actor_id" field.
+func (m *TakeoverMutation) ResetActorID() {
+	m.actor_id = nil
+}
+
+// SetActorDisplayName sets the "actor_display_name" field.
+func (m *TakeoverMutation) SetActorDisplayName(s string) {
+	m.actor_display_name = &s
+}
+
+// ActorDisplayName returns the value of the "actor_display_name" field in the mutation.
+func (m *TakeoverMutation) ActorDisplayName() (r string, exists bool) {
+	v := m.actor_display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorDisplayName returns the old "actor_display_name" field's value of the Takeover entity.
+// If the Takeover object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TakeoverMutation) OldActorDisplayName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorDisplayName: %w", err)
+	}
+	return oldValue.ActorDisplayName, nil
+}
+
+// ResetActorDisplayName resets all changes to the "actor_display_name" field.
+func (m *TakeoverMutation) ResetActorDisplayName() {
+	m.actor_display_name = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *TakeoverMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *TakeoverMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Takeover entity.
+// If the Takeover object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TakeoverMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *TakeoverMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetSessionID sets the "session" edge to the AgentSession entity by id.
+func (m *TakeoverMutation) SetSessionID(id string) {
+	m.session = &id
+}
+
+// ClearSession clears the "session" edge to the AgentSession entity.
+func (m *TakeoverMutation) ClearSession() {
+	m.clearedsession = true
+}
+
+// SessionCleared reports if the "session" edge to the AgentSession entity was cleared.
+func (m *TakeoverMutation) SessionCleared() bool {
+	return m.clearedsession
+}
+
+// SessionID returns the "session" edge ID in the mutation.
+func (m *TakeoverMutation) SessionID() (id string, exists bool) {
+	if m.session != nil {
+		return *m.session, true
+	}
+	return
+}
+
+// SessionIDs returns the "session" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SessionID instead. It exists only for internal usage by the builders.
+func (m *TakeoverMutation) SessionIDs() (ids []string) {
+	if id := m.session; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSession resets all changes to the "session" edge.
+func (m *TakeoverMutation) ResetSession() {
+	m.session = nil
+	m.clearedsession = false
+}
+
+// Where appends a list predicates to the TakeoverMutation builder.
+func (m *TakeoverMutation) Where(ps ...predicate.Takeover) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TakeoverMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TakeoverMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Takeover, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TakeoverMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TakeoverMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Takeover).
+func (m *TakeoverMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TakeoverMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.actor_id != nil {
+		fields = append(fields, takeover.FieldActorID)
+	}
+	if m.actor_display_name != nil {
+		fields = append(fields, takeover.FieldActorDisplayName)
+	}
+	if m.created_at != nil {
+		fields = append(fields, takeover.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TakeoverMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case takeover.FieldActorID:
+		return m.ActorID()
+	case takeover.FieldActorDisplayName:
+		return m.ActorDisplayName()
+	case takeover.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TakeoverMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case takeover.FieldActorID:
+		return m.OldActorID(ctx)
+	case takeover.FieldActorDisplayName:
+		return m.OldActorDisplayName(ctx)
+	case takeover.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Takeover field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TakeoverMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case takeover.FieldActorID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorID(v)
+		return nil
+	case takeover.FieldActorDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorDisplayName(v)
+		return nil
+	case takeover.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Takeover field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TakeoverMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TakeoverMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TakeoverMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Takeover numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TakeoverMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TakeoverMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TakeoverMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Takeover nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TakeoverMutation) ResetField(name string) error {
+	switch name {
+	case takeover.FieldActorID:
+		m.ResetActorID()
+		return nil
+	case takeover.FieldActorDisplayName:
+		m.ResetActorDisplayName()
+		return nil
+	case takeover.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Takeover field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TakeoverMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.session != nil {
+		edges = append(edges, takeover.EdgeSession)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TakeoverMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case takeover.EdgeSession:
+		if id := m.session; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TakeoverMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TakeoverMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TakeoverMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsession {
+		edges = append(edges, takeover.EdgeSession)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TakeoverMutation) EdgeCleared(name string) bool {
+	switch name {
+	case takeover.EdgeSession:
+		return m.clearedsession
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TakeoverMutation) ClearEdge(name string) error {
+	switch name {
+	case takeover.EdgeSession:
+		m.ClearSession()
+		return nil
+	}
+	return fmt.Errorf("unknown Takeover unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TakeoverMutation) ResetEdge(name string) error {
+	switch name {
+	case takeover.EdgeSession:
+		m.ResetSession()
+		return nil
+	}
+	return fmt.Errorf("unknown Takeover edge %s", name)
 }

@@ -26,6 +26,10 @@ type Tx struct {
 	ProjectInvite *ProjectInviteClient
 	// ProjectMember is the client for interacting with the ProjectMember builders.
 	ProjectMember *ProjectMemberClient
+	// SteerRequest is the client for interacting with the SteerRequest builders.
+	SteerRequest *SteerRequestClient
+	// Takeover is the client for interacting with the Takeover builders.
+	Takeover *TakeoverClient
 
 	// lazily loaded.
 	client     *Client
@@ -164,6 +168,8 @@ func (tx *Tx) init() {
 	tx.Project = NewProjectClient(tx.config)
 	tx.ProjectInvite = NewProjectInviteClient(tx.config)
 	tx.ProjectMember = NewProjectMemberClient(tx.config)
+	tx.SteerRequest = NewSteerRequestClient(tx.config)
+	tx.Takeover = NewTakeoverClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

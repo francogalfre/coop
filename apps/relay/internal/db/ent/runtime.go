@@ -13,6 +13,8 @@ import (
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectinvite"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/projectmember"
 	"github.com/francogalfre/coop/apps/relay/internal/db/ent/schema"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/steerrequest"
+	"github.com/francogalfre/coop/apps/relay/internal/db/ent/takeover"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -155,4 +157,48 @@ func init() {
 	projectmemberDescJoinedAt := projectmemberFields[2].Descriptor()
 	// projectmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	projectmember.DefaultJoinedAt = projectmemberDescJoinedAt.Default.(func() time.Time)
+	steerrequestFields := schema.SteerRequest{}.Fields()
+	_ = steerrequestFields
+	// steerrequestDescActorID is the schema descriptor for actor_id field.
+	steerrequestDescActorID := steerrequestFields[1].Descriptor()
+	// steerrequest.ActorIDValidator is a validator for the "actor_id" field. It is called by the builders before save.
+	steerrequest.ActorIDValidator = steerrequestDescActorID.Validators[0].(func(string) error)
+	// steerrequestDescActorDisplayName is the schema descriptor for actor_display_name field.
+	steerrequestDescActorDisplayName := steerrequestFields[2].Descriptor()
+	// steerrequest.DefaultActorDisplayName holds the default value on creation for the actor_display_name field.
+	steerrequest.DefaultActorDisplayName = steerrequestDescActorDisplayName.Default.(string)
+	// steerrequestDescActorAvatarURL is the schema descriptor for actor_avatar_url field.
+	steerrequestDescActorAvatarURL := steerrequestFields[3].Descriptor()
+	// steerrequest.DefaultActorAvatarURL holds the default value on creation for the actor_avatar_url field.
+	steerrequest.DefaultActorAvatarURL = steerrequestDescActorAvatarURL.Default.(string)
+	// steerrequestDescText is the schema descriptor for text field.
+	steerrequestDescText := steerrequestFields[4].Descriptor()
+	// steerrequest.TextValidator is a validator for the "text" field. It is called by the builders before save.
+	steerrequest.TextValidator = steerrequestDescText.Validators[0].(func(string) error)
+	// steerrequestDescCreatedAt is the schema descriptor for created_at field.
+	steerrequestDescCreatedAt := steerrequestFields[5].Descriptor()
+	// steerrequest.DefaultCreatedAt holds the default value on creation for the created_at field.
+	steerrequest.DefaultCreatedAt = steerrequestDescCreatedAt.Default.(func() time.Time)
+	// steerrequestDescID is the schema descriptor for id field.
+	steerrequestDescID := steerrequestFields[0].Descriptor()
+	// steerrequest.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	steerrequest.IDValidator = steerrequestDescID.Validators[0].(func(string) error)
+	takeoverFields := schema.Takeover{}.Fields()
+	_ = takeoverFields
+	// takeoverDescActorID is the schema descriptor for actor_id field.
+	takeoverDescActorID := takeoverFields[1].Descriptor()
+	// takeover.ActorIDValidator is a validator for the "actor_id" field. It is called by the builders before save.
+	takeover.ActorIDValidator = takeoverDescActorID.Validators[0].(func(string) error)
+	// takeoverDescActorDisplayName is the schema descriptor for actor_display_name field.
+	takeoverDescActorDisplayName := takeoverFields[2].Descriptor()
+	// takeover.DefaultActorDisplayName holds the default value on creation for the actor_display_name field.
+	takeover.DefaultActorDisplayName = takeoverDescActorDisplayName.Default.(string)
+	// takeoverDescCreatedAt is the schema descriptor for created_at field.
+	takeoverDescCreatedAt := takeoverFields[3].Descriptor()
+	// takeover.DefaultCreatedAt holds the default value on creation for the created_at field.
+	takeover.DefaultCreatedAt = takeoverDescCreatedAt.Default.(func() time.Time)
+	// takeoverDescID is the schema descriptor for id field.
+	takeoverDescID := takeoverFields[0].Descriptor()
+	// takeover.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	takeover.IDValidator = takeoverDescID.Validators[0].(func(string) error)
 }

@@ -68,6 +68,7 @@ type sessionVerifyRequestBody struct {
 type sessionVerifyResponseBody struct {
 	UserID string `json:"userId"`
 	Name   string `json:"name"`
+	Image  string `json:"image"`
 }
 
 func RequireBrowserSession(cfg config.Config) func(http.HandlerFunc) http.HandlerFunc {
@@ -125,7 +126,7 @@ func verifyBrowserSession(r *http.Request, cfg config.Config, cookieValue string
 		return Actor{}, fmt.Errorf("decode response: %w", err)
 	}
 
-	actor := Actor{UserID: result.UserID, DisplayName: result.Name}
+	actor := Actor{UserID: result.UserID, DisplayName: result.Name, AvatarURL: result.Image}
 	browserSessionCache.set(cacheKey, actor)
 
 	return actor, nil

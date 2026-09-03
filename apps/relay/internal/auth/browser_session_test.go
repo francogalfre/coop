@@ -37,7 +37,8 @@ func newBrowserVerifyServer(t *testing.T, wantSecret string, cookieToUserID map[
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"userId": userID, "name": "Display " + userID})
+		_ = json.NewEncoder(w).
+			Encode(map[string]string{"userId": userID, "name": "Display " + userID, "image": "https://avatars.example/" + userID})
 	}))
 }
 
@@ -73,6 +74,9 @@ func TestRequireBrowserSessionAcceptsValidCookie(t *testing.T) {
 	}
 	if gotActor.DisplayName != "Display user-42" {
 		t.Fatalf("got actor.DisplayName %q, want %q", gotActor.DisplayName, "Display user-42")
+	}
+	if gotActor.AvatarURL != "https://avatars.example/user-42" {
+		t.Fatalf("got actor.AvatarURL %q, want %q", gotActor.AvatarURL, "https://avatars.example/user-42")
 	}
 }
 

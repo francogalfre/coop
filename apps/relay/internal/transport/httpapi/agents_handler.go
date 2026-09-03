@@ -132,7 +132,7 @@ func handleMessageAgent(pool *db.Pool, mailbox *stream.Mailbox, store *stream.St
 			return
 		}
 
-		deliverSteerNow(w, r, pool, mailbox, store, sess.ID, actor, body.Text)
+		deliverSteerNow(w, r, pool, mailbox, store, sess.ID, actor, body.Text, body.ClientID)
 	}
 }
 

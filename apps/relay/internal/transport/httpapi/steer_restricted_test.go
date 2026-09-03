@@ -38,7 +38,7 @@ func TestSteerPostRestrictedModeHoldsNonOwnerMessage(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/sess-a/steer", strings.NewReader(`{"text":"try the other branch"}`))
 	req.SetPathValue("id", "sess-a")
@@ -84,7 +84,7 @@ func TestSteerPostRestrictedModeOwnerBypasses(t *testing.T) {
 	pool := restrictedSessionFixture(t, "sess-a", "user-owner")
 	mailbox := stream.NewMailbox()
 	store := stream.New()
-	steerRequests := stream.NewSteerRequestRegistry()
+	steerRequests := stream.NewSteerRequestRegistry(pool)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/sess-a/steer", strings.NewReader(`{"text":"try the other branch"}`))
 	req.SetPathValue("id", "sess-a")
