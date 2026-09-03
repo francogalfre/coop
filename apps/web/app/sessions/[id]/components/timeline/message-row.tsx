@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { IconChevronRight, IconFile, IconReply, IconSend } from "@/components/icons";
 import { PersonAvatar } from "@/components/person-avatar";
 import { cn } from "@/lib/utils";
@@ -57,7 +59,9 @@ function ProjectContextRow({
           </span>
         </button>
         {open && (
-          <p className="mt-1.5 whitespace-pre-wrap text-sm text-foreground/80 leading-relaxed">{item.text}</p>
+          <div className="prose-timeline mt-1.5 max-w-none text-sm text-foreground/80 leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
+          </div>
         )}
       </div>
     </Row>
