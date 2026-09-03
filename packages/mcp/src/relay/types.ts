@@ -25,4 +25,13 @@ export type Answer = {
   author: string;
 };
 
+export type ProjectNote = {
+  id: string;
+  authorDisplayName: string;
+  source: "human" | "agent";
+  sessionId?: string;
+  text: string;
+  createdAt: string;
+};
+
 export class RelayUnreachableError extends Error {}

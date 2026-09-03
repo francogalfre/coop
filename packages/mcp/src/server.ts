@@ -3,6 +3,8 @@ import type { Config } from "./config/config.js";
 import { registerAskTeam } from "./tools/ask-team.js";
 import { registerCheckConflicts } from "./tools/check-conflicts.js";
 import { registerListActiveSessions } from "./tools/list-active-sessions.js";
+import { registerListProjectNotes } from "./tools/list-project-notes.js";
+import { registerShareNote } from "./tools/share-note.js";
 
 export function createServer(config: Config): McpServer {
   const server = new McpServer({ name: "coop-mcp", version: "0.0.0" });
@@ -10,6 +12,8 @@ export function createServer(config: Config): McpServer {
   registerAskTeam(server, config);
   registerCheckConflicts(server, config);
   registerListActiveSessions(server, config);
+  registerShareNote(server, config);
+  registerListProjectNotes(server, config);
 
   return server;
 }
