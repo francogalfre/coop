@@ -148,7 +148,7 @@ export default function ProjectPage() {
                 )}
               </div>
 
-              <aside className="space-y-6 lg:sticky lg:top-14">
+              <aside className="space-y-6 lg:sticky lg:top-14 lg:mt-7">
                 <ProjectContextPanel slug={slug} />
                 <ProjectNotesFeed slug={slug} />
               </aside>
