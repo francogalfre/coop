@@ -1,6 +1,6 @@
 import type { Config } from "../config/config.js";
 import type { PresenceResponse, SessionSummary } from "./types.js";
-import { RelayUnreachableError } from "./types.js";
+import { getJson } from "./request.js";
 
 type RawSignal = {
   session_id: string;
@@ -20,27 +20,6 @@ type RawSessionsResponse = {
   repo: string;
   sessions: { session_id: string; owner: string; started_at: string; active: boolean }[];
 };
-
-async function getJson(url: URL, config: Config): Promise<unknown> {
-  let response: Response;
-
-  try {
-    response = await fetch(url, {
-      headers: config.cliCredential ? { Authorization: `Bearer ${config.cliCredential}` } : undefined,
-    });
-  } catch (cause) {
-    throw new RelayUnreachableError(
-      `failed to reach relay at ${url}: ${cause instanceof Error ? cause.message : String(cause)}`,
-    );
-  }
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new RelayUnreachableError(`relay responded ${response.status} for ${url}: ${body}`);
-  }
-
-  return response.json();
-}
 
 export async function fetchPresence(
   config: Config,

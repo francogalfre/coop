@@ -20,4 +20,9 @@ export type SessionSummary = {
   active: boolean;
 };
 
+export type Answer = {
+  text: string;
+  author: string;
+};
+
 export class RelayUnreachableError extends Error {}
