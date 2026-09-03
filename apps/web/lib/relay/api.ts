@@ -33,6 +33,24 @@ export type EventsPage = {
   has_more: boolean;
 };
 
+export type ProjectContext = {
+  text: string;
+  version: number;
+  updated_by?: string;
+  updated_at?: string;
+};
+
+export type ProjectNote = {
+  id: string;
+  author_id: string;
+  author_display_name: string;
+  author_avatar_url?: string;
+  source: "human" | "agent";
+  session_id?: string;
+  text: string;
+  created_at: string;
+};
+
 export class RelayError extends Error {
   constructor(
     message: string,
@@ -171,6 +189,31 @@ export const relayApi = {
         body: JSON.stringify({ decision }),
       },
     ),
+
+  getProjectContext: (slug: string) =>
+    request<ProjectContext>(`/v1/projects/${encodeURIComponent(slug)}/context`),
+
+  setProjectContext: (slug: string, text: string) =>
+    request<ProjectContext>(`/v1/projects/${encodeURIComponent(slug)}/context`, {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }),
+
+  listProjectNotes: (slug: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.set("limit", String(limit));
+    const query = params.toString();
+
+    return request<{ notes: ProjectNote[] }>(
+      `/v1/projects/${encodeURIComponent(slug)}/notes${query ? `?${query}` : ""}`,
+    );
+  },
+
+  postProjectNote: (slug: string, text: string) =>
+    request<{ note: ProjectNote }>(`/v1/projects/${encodeURIComponent(slug)}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
 
   listEvents: (sessionId: string, before?: number, limit?: number) => {
     const params = new URLSearchParams();

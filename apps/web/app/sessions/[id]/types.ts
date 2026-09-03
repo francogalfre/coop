@@ -53,6 +53,7 @@ export type MessageItem = {
   steerId?: string;
   delivery?: DeliveryState;
   queuePosition?: number;
+  projectContextVersion?: number;
 };
 
 export type NoticeTone = "start" | "end" | "join" | "leave" | "turn" | "takeover";

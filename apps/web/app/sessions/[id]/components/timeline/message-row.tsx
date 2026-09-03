@@ -1,5 +1,7 @@
-import { IconReply, IconSend } from "@/components/icons";
+import { useState } from "react";
+import { IconChevronRight, IconFile, IconReply, IconSend } from "@/components/icons";
 import { PersonAvatar } from "@/components/person-avatar";
+import { cn } from "@/lib/utils";
 import type { DeliveryState, TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
 
@@ -10,6 +12,57 @@ const DELIVERY_LABEL: Record<DeliveryState, string> = {
   seen: "seen by agent",
   dropped: "dropped — not delivered",
 };
+
+const COLLAPSE_THRESHOLD = 320;
+
+function ProjectContextRow({
+  item,
+  onReply,
+  highlighted,
+}: {
+  item: Extract<TimelineItem, { kind: "message" }>;
+  onReply?: (seq: number) => void;
+  highlighted?: boolean;
+}) {
+  const collapsible = item.text.length > COLLAPSE_THRESHOLD;
+  const [open, setOpen] = useState(!collapsible);
+
+  return (
+    <Row
+      ts={item.ts}
+      seq={item.seq}
+      onReply={onReply}
+      highlighted={highlighted}
+      rail={
+        <span className="relative z-10 grid size-6 place-items-center rounded-md border border-border bg-card text-file">
+          <IconFile size={13} />
+        </span>
+      }
+    >
+      <div className="rounded-lg border border-border bg-card/50 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => collapsible && setOpen((v) => !v)}
+          disabled={!collapsible}
+          className={cn("flex w-full items-center gap-1.5 text-left", collapsible && "cursor-pointer")}
+        >
+          {collapsible && (
+            <IconChevronRight
+              size={11}
+              className={cn("shrink-0 text-muted-foreground/50 transition-transform duration-200", open && "rotate-90")}
+            />
+          )}
+          <span className="font-medium text-2xs text-muted-foreground uppercase tracking-wider">
+            Project context shared (v{item.projectContextVersion})
+          </span>
+        </button>
+        {open && (
+          <p className="mt-1.5 whitespace-pre-wrap text-sm text-foreground/80 leading-relaxed">{item.text}</p>
+        )}
+      </div>
+    </Row>
+  );
+}
 
 export function MessageRow({
   item,
@@ -22,6 +75,10 @@ export function MessageRow({
   highlighted?: boolean;
   onJumpToAnchor?: (seq: number) => void;
 }) {
+  if (item.projectContextVersion !== undefined) {
+    return <ProjectContextRow item={item} onReply={onReply} highlighted={highlighted} />;
+  }
+
   return (
     <Row
       ts={item.ts}

@@ -28,6 +28,7 @@ export function reduceMessage(state: TimelineState, event: MessageEvent): void {
         clientId: event.client_id,
         steerId: event.steer_id,
         delivery: event.steer_id ? "queued" : undefined,
+        projectContextVersion: event.project_context_version,
       };
       state.items.push(item);
       if (event.steer_id) state.steerMessageIndex.set(event.steer_id, state.items.length - 1);
