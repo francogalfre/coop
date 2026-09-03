@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { envelopeFields } from "../envelope.js";
 import { actor } from "../shared/actor.js";
+import { capabilities } from "../shared/capabilities.js";
 import { LIMITS } from "../shared/limits.js";
 
 export const sessionStart = z.object({
@@ -13,6 +14,7 @@ export const sessionStart = z.object({
   harness_version: z.string().max(64).optional(),
   permission_mode: z.string().max(64).optional(),
   mode: z.enum(["auto", "restricted"]).default("auto"),
+  capabilities: capabilities.optional(),
 });
 export type SessionStart = z.infer<typeof sessionStart>;
 

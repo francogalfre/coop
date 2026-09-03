@@ -27,3 +27,13 @@ export const agentTurnEnd = z.object({
   duration_ms: z.int().nonnegative().optional(),
 });
 export type AgentTurnEnd = z.infer<typeof agentTurnEnd>;
+
+export const agentAskedTeam = z.object({
+  ...envelopeFields,
+  type: z.literal("agent.asked_team"),
+  question_id: z.string().min(1).max(LIMITS.request_id),
+  text: redactedText,
+  options: z.array(z.string().min(1).max(LIMITS.question_option)).max(LIMITS.question_options).optional(),
+  turn_id: z.string().max(LIMITS.turn_id).optional(),
+});
+export type AgentAskedTeam = z.infer<typeof agentAskedTeam>;

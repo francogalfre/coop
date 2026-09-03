@@ -20,6 +20,7 @@ export const toolResult = z.object({
   output: redactedText,
   tool_use_id: z.string().max(LIMITS.tool_use_id).optional(),
   ok: z.boolean().optional(),
+  duration_ms: z.int().nonnegative().optional(),
 });
 export type ToolResult = z.infer<typeof toolResult>;
 
