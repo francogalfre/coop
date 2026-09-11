@@ -15,7 +15,8 @@ const MODE_LABEL: Record<"auto" | "restricted", string> = {
 
 const MODE_HINT: Record<"auto" | "restricted", string> = {
   auto: "Auto: teammates' messages reach the agent immediately.",
-  restricted: "Restricted: your approval is required before a teammate's message reaches the agent.",
+  restricted:
+    "Restricted: your approval is required before a teammate's message reaches the agent.",
 };
 
 export function SessionModeToggle({
@@ -37,7 +38,9 @@ export function SessionModeToggle({
   if (!isOwner) {
     return (
       <span title={MODE_HINT[current]}>
-        <MetaChip className="hidden sm:inline-flex">{MODE_LABEL[current]}</MetaChip>
+        <MetaChip className="hidden sm:inline-flex">
+          {MODE_LABEL[current]}
+        </MetaChip>
       </span>
     );
   }
@@ -61,8 +64,15 @@ export function SessionModeToggle({
       title={MODE_HINT[current]}
       className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs")}
     >
-      {current === "restricted" ? <IconLock size={12} /> : <IconUnlock size={12} />}
-      {MODE_LABEL[current]}
+      {current === "restricted" ? (
+        <IconLock size={12} />
+      ) : (
+        <IconUnlock size={12} />
+      )}
+      <span className="sr-only">{MODE_LABEL[current]} mode</span>
+      <span aria-hidden="true" className="hidden sm:inline">
+        {MODE_LABEL[current]}
+      </span>
     </Button>
   );
 }

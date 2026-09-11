@@ -5,13 +5,14 @@ import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { parseEvent } from "@coop/protocol";
 import { useSession } from "@/lib/auth/auth-client";
-import { useSessionStream, RETRY_WARNING_THRESHOLD } from "@/lib/relay/useSessionStream";
+import { useSessionStream } from "@/lib/relay/useSessionStream";
 import { relayApi } from "@/lib/relay/api";
 import { basename } from "@/lib/format";
 import { buildTimeline } from "./lib/build-timeline";
 import { useTypingNames } from "./lib/useTypingNames";
 import { usePendingSends } from "./lib/usePendingSends";
 import { SessionHeader } from "./components/session-header";
+import { ConnectionBanner } from "./components/connection-status";
 import { Timeline } from "./components/timeline";
 import { Composer } from "./components/composer";
 
@@ -35,26 +36,42 @@ function SessionView() {
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
 
-  const { events, presence, connectionState, retryCount, sendPresence, mergeEvents } =
-    useSessionStream(sessionId);
+  const {
+    events,
+    presence,
+    connectionState,
+    retryCount,
+    sendPresence,
+    mergeEvents,
+  } = useSessionStream(sessionId);
 
-  const { items, meta, agentBusy } = useMemo(() => buildTimeline(events), [events]);
-  const { pendingItems, addPending, updatePending, resolvePending } = usePendingSends();
+  const { items, meta, agentBusy } = useMemo(
+    () => buildTimeline(events),
+    [events],
+  );
+  const { pendingItems, addPending, updatePending, resolvePending } =
+    usePendingSends();
 
   useEffect(() => {
     for (const item of items) {
-      if (item.kind === "message" && item.clientId) resolvePending(item.clientId);
+      if (item.kind === "message" && item.clientId)
+        resolvePending(item.clientId);
     }
   }, [items, resolvePending]);
 
-  const timelineItems = useMemo(() => [...items, ...pendingItems], [items, pendingItems]);
+  const timelineItems = useMemo(
+    () => [...items, ...pendingItems],
+    [items, pendingItems],
+  );
 
   const agentState = useMemo(() => {
     for (let i = items.length - 1; i >= 0; i -= 1) {
       const item = items[i];
       if (item?.kind === "tool" && item.status === "running") {
         const file = item.files[0];
-        return file ? `${item.toolName}(${basename(file.path)})` : item.toolName;
+        return file
+          ? `${item.toolName}(${basename(file.path)})`
+          : item.toolName;
       }
     }
     return undefined;
@@ -90,16 +107,22 @@ function SessionView() {
   }, [presence, displayName]);
 
   const live = !meta.endedAt;
-  const isOwner = Boolean(authData?.user?.id && authData.user.id === meta.owner?.id);
-  const confirmedHeldByMe = Boolean(meta.takeover?.active && meta.takeover.by === displayName);
+  const isOwner = Boolean(
+    authData?.user?.id && authData.user.id === meta.owner?.id,
+  );
+  const confirmedHeldByMe = Boolean(
+    meta.takeover?.active && meta.takeover.by === displayName,
+  );
   const [pendingTakeover, setPendingTakeover] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (pendingTakeover !== null && confirmedHeldByMe === pendingTakeover) setPendingTakeover(null);
+    if (pendingTakeover !== null && confirmedHeldByMe === pendingTakeover)
+      setPendingTakeover(null);
   }, [confirmedHeldByMe, pendingTakeover]);
 
   const heldByMe = pendingTakeover ?? confirmedHeldByMe;
-  const takeoverHeldBy = meta.takeover?.active && !heldByMe ? meta.takeover.by : undefined;
+  const takeoverHeldBy =
+    meta.takeover?.active && !heldByMe ? meta.takeover.by : undefined;
 
   const handleToggleTakeover = useCallback(async () => {
     const next = !heldByMe;
@@ -125,13 +148,10 @@ function SessionView() {
         displayName={displayName}
         isOwner={isOwner}
         onToggleTakeover={handleToggleTakeover}
+        connectionState={connectionState}
       />
 
-      {connectionState === "closed" && retryCount >= RETRY_WARNING_THRESHOLD && (
-        <div className="border-destructive/25 border-b bg-destructive/10 px-4 py-2 text-xs text-destructive sm:px-6">
-          Lost connection to the relay — retried {retryCount} times.
-        </div>
-      )}
+      <ConnectionBanner state={connectionState} retryCount={retryCount} />
 
       <Timeline
         items={timelineItems}
