@@ -1,13 +1,5 @@
 package harness
 
-type Event struct {
-	Body []byte
-}
-
-type Steer struct {
-	From, Text string
-}
-
 type Adapter interface {
 	Name() string
 	Binary() string
