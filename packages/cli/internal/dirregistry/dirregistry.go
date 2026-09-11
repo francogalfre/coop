@@ -76,10 +76,8 @@ func Register(dir string, e Entry) error {
 	})
 }
 
-// RegisterWithConflictCheck atomically loads the active entries, runs the
-// caller's conflict predicate, and registers the entry only if the predicate
-// returns nil. This closes the check-then-register race when two attaches start
-// at the same time in the same directory.
+// Holding the lock across the check and the write is what stops two attaches
+// started at the same moment from both passing the conflict check.
 func RegisterWithConflictCheck(dir string, e Entry, conflict func(existing []Entry) error) error {
 	return locked(dir, func() error {
 		live, _, err := readLive(dir)
@@ -87,8 +85,7 @@ func RegisterWithConflictCheck(dir string, e Entry, conflict func(existing []Ent
 			return err
 		}
 
-		// Exclude this session's own previous record; a crash-restart on the
-		// same session id is allowed to replace itself.
+		// A crash-restart reuses its session id, so it must not conflict with itself.
 		others := make([]Entry, 0, len(live))
 		for _, existing := range live {
 			if existing.SessionID != e.SessionID {
