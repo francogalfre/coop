@@ -1,125 +1,138 @@
 # Deployment
 
-coop is two long-running services — the **web** viewer and the **relay** — plus
-a **Postgres** database and a **GitHub OAuth app**. The CLI is not deployed;
-users download a binary from GitHub Releases and point it at the relay with
-`COOP_RELAY_URL`.
+coop in production is two long-running services — the **web** viewer
+(Next.js) and the **relay** (Go) — sharing one external **Postgres** database
+and one **GitHub OAuth app**. The CLI is not deployed; it is built from
+`packages/cli` and pointed at the relay with `COOP_RELAY_URL`.
 
-There are two ways to run the services. Pick one.
+## Required environment variables
 
----
+From `.env.production.example`:
 
-## Option A — one domain, Docker Compose
+| Variable | Who reads it | Meaning |
+| --- | --- | --- |
+| `COOP_DOMAIN` | compose file only | the domain everything is served from, no scheme, no trailing slash |
+| `DATABASE_URL` | relay + web | the Postgres connection string (`sslmode=require`). Same database for both. |
+| `COOP_GITHUB_CLIENT_ID` / `COOP_GITHUB_CLIENT_SECRET` | relay + web | GitHub OAuth app credentials. Callback URL: `https://<COOP_DOMAIN>/api/auth/callback/github`. |
+| `COOP_INTERNAL_SECRET` | relay + web | shared secret for relay → web server-to-server calls (session verify). Generate with `openssl rand -base64 32`. Must match on both services. |
+| `BETTER_AUTH_SECRET` | web | better-auth signing secret. Generate with `openssl rand -base64 32`. |
 
-Everything on one host, web and relay path-routed under a single domain. This
-is the simplest option and what `docker-compose.yml` is built for.
+The relay additionally reads `COOP_RELAY_ADDR` (default `:8787`) and
+`COOP_WEB_ORIGINS` (CORS / WebSocket origins). In the compose topology below
+these are set for you; they matter for the split topology.
 
-### With Coolify
+## Topology: one domain, one host
 
-Add this repo as a **Docker Compose** resource. Coolify builds `web` and
-`relay` from `docker-compose.yml` and proxies both through its own Traefik
-instance using the `traefik.*` labels already in the file — no separate proxy
-to run.
+`docker-compose.yml` at the repo root runs both services on a single
+`COOP_DOMAIN`, routed by path: `/v1/*` and `/healthz` go to the relay,
+everything else to the web app. There is no bundled proxy — the file carries
+Traefik labels and expects the platform's proxy (Coolify's managed Traefik,
+or your own) to read them.
 
-1. Point `COOP_DOMAIN`'s DNS A/AAAA record at your Coolify server.
-2. Set the variables from `.env.production.example` on the resource:
-   `COOP_DOMAIN`, `DATABASE_URL`, `COOP_GITHUB_CLIENT_ID` /
-   `COOP_GITHUB_CLIENT_SECRET`, `COOP_INTERNAL_SECRET`, `BETTER_AUTH_SECRET`.
-3. Create the GitHub OAuth app with callback
+Why one domain and not two subdomains: the relay authenticates browsers by
+reading the better-auth session cookie, and that cookie is host-only — it is
+only sent to the exact origin the browser signed in on. Path-routing under
+one host is what makes cookie sharing work without extra machinery.
+
+Notes the compose file encodes:
+
+- **The relay is strictly single-instance.** It keeps the event store,
+  steering mailbox, presence, takeover, pty, steer-request, and question
+  state in memory. Never raise it beyond one replica.
+- `NEXT_PUBLIC_COOP_RELAY_URL` and `NEXT_PUBLIC_BETTER_AUTH_URL` are build
+  args of the web image (`NEXT_PUBLIC_*` values are baked in at build time —
+  rebuild after changing them).
+
+### On Coolify
+
+1. Add this repo as a **Docker Compose** resource. Coolify builds `web` and
+   `relay` from `docker-compose.yml` and proxies both through its own
+   Traefik using the labels already in the file.
+2. Point `COOP_DOMAIN`'s DNS A/AAAA record at the server.
+3. Set the variables from the table above on the resource.
+4. Create the GitHub OAuth app with callback
    `https://<COOP_DOMAIN>/api/auth/callback/github`.
-4. Deploy. Coolify provisions TLS on the first request.
+5. Deploy. TLS is provisioned on first request. Verify the Traefik
+   `entrypoints` / `certresolver` names against your instance
+   (Servers → Proxy → Configuration) if they differ.
 
 ### Anywhere else
 
-`docker compose up -d --build` works, but you supply your own reverse proxy —
-the compose file carries Traefik labels, not a bundled proxy. Postgres is
-external (Neon, Supabase, a managed instance); bring your own `DATABASE_URL`.
+`docker compose up -d --build` works with any reverse proxy that honors
+Traefik labels or that you configure by hand using the same rules
+(`Host(<COOP_DOMAIN>)` + `PathPrefix(/v1)` or `Path(/healthz)` → relay port
+8787; everything else → web port 3000). Bring your own Postgres; the
+compose file runs none.
 
----
+## Split topology: web and relay on different hosts
 
-## Option B — web on Vercel, relay on a VPS
+The relay can own a whole subdomain instead: `apps/relay/docker-compose.yml`
+builds just the relay, with `COOP_RELAY_DOMAIN` as its host. This is what you
+use when the web app lives elsewhere (for example a managed Next.js host)
+and the relay lives on a VPS.
 
-The Next.js app on Vercel, the Go relay on a VPS (Coolify), sharing one
-Postgres.
+The constraint is the same cookie from above: for the relay to see the
+browser's session cookie, both hosts must be subdomains of a domain you
+control, and the web app must widen the cookie with
+`COOP_COOKIE_DOMAIN=.example.com` (see `apps/web/lib/auth/auth.ts`). A bare
+`*.vercel.app` host cannot share a cookie with your VPS.
 
-### Why it needs a shared parent domain
+Relay side (from `apps/relay/docker-compose.yml`): `DATABASE_URL`,
+`COOP_WEB_ORIGINS=https://app.example.com`, `COOP_WEB_INTERNAL_URL` (where
+the relay calls the web app's internal session-verify endpoint),
+`COOP_INTERNAL_SECRET`, and the GitHub client id/secret.
 
-The relay authenticates browsers by reading the better-auth session cookie
-straight off the request. That cookie is host-only by default, so a relay on a
-different host never receives it. Widening it to a shared parent domain fixes
-that:
+Web side (from `apps/web/.env.example`): `DATABASE_URL`,
+`COOP_GITHUB_CLIENT_ID`/`COOP_GITHUB_CLIENT_SECRET`,
+`COOP_INTERNAL_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` /
+`NEXT_PUBLIC_BETTER_AUTH_URL`, `NEXT_PUBLIC_COOP_RELAY_URL=https://relay.example.com`,
+and `COOP_COOKIE_DOMAIN=.example.com`.
 
-```
-app.example.com     → Vercel    viewer, auth, session verify
-relay.example.com   → VPS       /v1/*, /healthz, WebSockets
-                      both       → one Postgres
-cookie Domain=example.com  → the browser sends the session to both
-```
+## Database migrations
 
-Both hosts must be subdomains of a domain you control — a bare `*.vercel.app`
-can't share a cookie with the VPS. `COOP_COOKIE_DOMAIN=.example.com` turns this
-on; unset, only Option A works.
+The two services own different tables in the same database:
 
-### One-time setup
+- **Relay (Ent):** migrates itself on every boot (`db.Pool.Migrate`). Nothing
+  to run by hand.
+- **Web (Drizzle):** does not migrate on boot. Run once after deploying, and
+  again after any schema change:
 
-1. **DNS** — `app` → Vercel, `relay` → VPS IP.
-2. **Postgres** — one database reachable from both, `sslmode=require`.
-3. **Web schema** — run once, and again after any schema change (Vercel does
-   not run migrations): `cd apps/web && DATABASE_URL='…' bunx drizzle-kit push`.
-   The relay migrates its own tables on boot.
-4. **GitHub OAuth app** — homepage `https://app.example.com`, callback
-   `https://app.example.com/api/auth/callback/github`. One client id/secret,
-   used by both services.
-5. **Secrets** — `COOP_INTERNAL_SECRET` (shared web ↔ relay) and
-   `BETTER_AUTH_SECRET` (`openssl rand -base64 32`).
+  ```bash
+  cd apps/web
+  DATABASE_URL='postgres://…' bun run db:push
+  ```
 
-### Relay on Coolify
+## Before going live
 
-New resource → Docker Compose → `apps/relay/docker-compose.yml`.
+- [ ] `https://<COOP_DOMAIN>/healthz` returns 200 (it pings Postgres).
+- [ ] The GitHub OAuth app's callback is exactly
+      `https://<COOP_DOMAIN>/api/auth/callback/github`.
+- [ ] `DATABASE_URL` uses `sslmode=require` and both services point at the
+      same database.
+- [ ] `COOP_INTERNAL_SECRET` and `BETTER_AUTH_SECRET` are freshly generated
+      random values, and `COOP_INTERNAL_SECRET` matches on both services.
+- [ ] TLS works on the domain (the relay's WebSocket needs `wss` behind
+      HTTPS).
+- [ ] The relay runs as exactly one replica.
+- [ ] The web app's drizzle schema has been pushed.
+- [ ] Sign in, create a project, attach a session from a machine with the
+      CLI, and confirm the session WebSocket connects and steering reaches
+      the agent.
 
-| variable | value |
-| --- | --- |
-| `DATABASE_URL` | shared Postgres |
-| `COOP_WEB_ORIGINS` | `https://app.example.com` |
-| `COOP_WEB_INTERNAL_URL` | `https://app.example.com` |
-| `COOP_INTERNAL_SECRET` | shared with Vercel |
-| `COOP_GITHUB_CLIENT_ID` / `COOP_GITHUB_CLIENT_SECRET` | GitHub OAuth app |
-| `COOP_RELAY_DOMAIN` | `relay.example.com` |
+## The CLI in production
 
-Single replica only. Confirm the Traefik `entrypoints` / `certresolver` label
-names match your Coolify instance (Servers → Proxy → Configuration).
-
-### Web on Vercel
-
-Root Directory `apps/web`, build command `cd ../.. && bunx turbo run build --filter=@coop/web`.
-
-| variable | value |
-| --- | --- |
-| `DATABASE_URL` | shared Postgres |
-| `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
-| `BETTER_AUTH_URL` / `NEXT_PUBLIC_BETTER_AUTH_URL` | `https://app.example.com` |
-| `NEXT_PUBLIC_COOP_RELAY_URL` | `https://relay.example.com` |
-| `COOP_COOKIE_DOMAIN` | `.example.com` |
-| `COOP_INTERNAL_SECRET` | shared with the relay |
-| `COOP_GITHUB_CLIENT_ID` / `COOP_GITHUB_CLIENT_SECRET` | GitHub OAuth app |
-
-`NEXT_PUBLIC_*` vars are read at build time — redeploy after changing them.
-
-### Order
-
-1. Deploy the relay, check `https://relay.example.com/healthz`.
-2. Deploy the web app.
-3. Sign in at `https://app.example.com`, open a session, and confirm the
-   session WebSocket to `relay.example.com` connects without a 401.
-
----
-
-## The CLI
-
-Release binaries are published to GitHub Releases on every `vX.Y.Z` tag. Users
-point them at your relay:
+Release binaries are published to GitHub Releases on every `vX.Y.Z` tag
+(`.github/workflows/release.yml` builds linux, darwin, and windows, amd64 and
+arm64). Users download one and point it at the relay:
 
 ```bash
-export COOP_RELAY_URL=https://relay.example.com   # or https://<COOP_DOMAIN> for Option A
-coop attach
+export COOP_RELAY_URL=https://<COOP_DOMAIN>
+export COOP_GITHUB_CLIENT_ID=<public client id of the OAuth app>
+coop login
+```
+
+Building from source also works:
+
+```bash
+cd packages/cli && go build -o coop ./cmd/coop
 ```
