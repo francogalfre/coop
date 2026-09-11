@@ -9,7 +9,6 @@ export * from "./events/session-mode.js";
 
 export { type Result } from "./shared/result.js";
 
-
 export { EVENT_SCHEMAS, KNOWN_EVENT_TYPES, knownEvent, event, type Event } from "./event.js";
 export { PROTOCOL_VERSION, envelope, type Envelope } from "./envelope.js";
 
