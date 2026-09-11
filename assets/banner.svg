@@ -1,0 +1,44 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="coop — multiplayer sessions for coding agents">
+  <defs>
+    <radialGradient id="glow" cx="34%" cy="14%" r="72%">
+      <stop offset="0%" stop-color="#6E93F7" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#6E93F7" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="keyline" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3FB950" />
+      <stop offset="50%" stop-color="#6E93F7" />
+      <stop offset="100%" stop-color="#E3B341" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="300" fill="#0A0A0A" />
+  <rect width="1200" height="300" fill="url(#glow)" />
+
+  <g transform="translate(96, 34)">
+    <g stroke="#EDEDED" stroke-width="8" stroke-linejoin="round" fill="none">
+      <rect x="128" y="2" width="16" height="22" rx="8" />
+      <rect x="72" y="20" width="132" height="118" rx="40" />
+    </g>
+    <rect x="102" y="58" width="14" height="34" rx="7" fill="#EDEDED" />
+    <rect x="150" y="58" width="14" height="34" rx="7" fill="#EDEDED" />
+
+    <rect x="6" y="78" width="126" height="112" rx="38" fill="#0A0A0A" />
+    <rect x="58" y="58" width="15" height="24" rx="7" fill="#0A0A0A" />
+    <g stroke="#EDEDED" stroke-width="8" stroke-linejoin="round" fill="none">
+      <rect x="58" y="58" width="15" height="24" rx="7" />
+      <rect x="6" y="78" width="126" height="112" rx="38" />
+    </g>
+    <rect x="38" y="112" width="13" height="32" rx="6" fill="#EDEDED" />
+    <rect x="84" y="112" width="13" height="32" rx="6" fill="#EDEDED" />
+
+    <path transform="translate(196, 150) scale(20)" fill="#EDEDED"
+      d="M0,-1 C0.12,-0.34 0.34,-0.12 1,0 C0.34,0.12 0.12,0.34 0,1 C-0.12,0.34 -0.34,0.12 -1,0 C-0.34,-0.12 -0.12,-0.34 0,-1 Z" />
+  </g>
+
+  <text x="372" y="162" font-family="'Bricolage Grotesque', 'Segoe UI', ui-sans-serif, system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif"
+    font-size="116" font-weight="700" letter-spacing="-5" fill="#FAFAFA">coop</text>
+  <text x="376" y="212" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-size="28" font-weight="400" letter-spacing="0.3" fill="#8B8B8B">Multiplayer sessions for coding agents</text>
+
+  <rect x="0" y="297" width="1200" height="3" fill="url(#keyline)" />
+</svg>

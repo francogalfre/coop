@@ -12,6 +12,7 @@ type Adapter interface {
 	Name() string
 	Binary() string
 	IsFallback() bool
+	SupportsMultiAttach() bool
 	Detect(dir string) bool
 	Install(dir, baseURL string) (Installation, error)
 	RemoveAll(dir string) error

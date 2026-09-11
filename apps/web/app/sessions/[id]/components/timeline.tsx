@@ -2,22 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { IconChevronUp, IconSparkles } from "@/components/icons";
+import { IconChevronUp } from "@/components/icons";
+import { HarnessLogo } from "@/components/harness-logo";
 import { groupTurns } from "../lib/timeline/group-turns";
 import { TimelineRow } from "./timeline-item";
 import { TurnGroup } from "./timeline/turn-group";
 import type { TimelineItem } from "../types";
 
-function EmptyState() {
+function EmptyState({ harness }: { harness?: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
       <span className="grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
-        <IconSparkles size={19} />
+        <HarnessLogo harness={harness} size={20} />
       </span>
       <div className="space-y-1">
-        <p className="font-display font-medium text-md text-foreground">Waiting for the agent</p>
-        <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
-          Nothing has happened yet. Tool calls and messages will stream in here as they occur.
+        <p className="font-display font-medium text-md text-foreground">
+          Session started
+        </p>
+        <p className="mx-auto max-w-xs text-sm text-muted-foreground leading-relaxed">
+          Waiting for the agent's first move — tool calls and messages will
+          stream in here live.
         </p>
       </div>
     </div>
@@ -60,7 +64,10 @@ export function Timeline({
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     setHighlightedSeq(seq);
-    setTimeout(() => setHighlightedSeq((current) => (current === seq ? null : current)), HIGHLIGHT_MS);
+    setTimeout(
+      () => setHighlightedSeq((current) => (current === seq ? null : current)),
+      HIGHLIGHT_MS,
+    );
   }, []);
 
   const jumpedRef = useRef(false);
@@ -82,7 +89,8 @@ export function Timeline({
 
     function onScroll() {
       if (!el) return;
-      pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+      pinnedRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     }
 
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -90,7 +98,8 @@ export function Timeline({
   }, []);
 
   useEffect(() => {
-    if (pinnedRef.current) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (pinnedRef.current)
+      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [items.length]);
 
   async function handleLoadEarlier() {
@@ -109,7 +118,7 @@ export function Timeline({
 
   const groups = useMemo(() => groupTurns(items), [items]);
 
-  if (items.length === 0) return <EmptyState />;
+  if (items.length === 0) return <EmptyState harness={harness} />;
 
   return (
     <div

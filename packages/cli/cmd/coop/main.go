@@ -13,6 +13,7 @@ import (
 
 	"github.com/francogalfre/coop/packages/cli/internal/attachstate"
 	"github.com/francogalfre/coop/packages/cli/internal/config"
+	"github.com/francogalfre/coop/packages/cli/internal/dirregistry"
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
 	"github.com/francogalfre/coop/packages/cli/internal/harness/generic"
 	"github.com/francogalfre/coop/packages/cli/internal/hooks"
@@ -126,6 +127,20 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 
+	entry := dirregistry.Entry{
+		SessionID: cfg.SessionID,
+		PID:       os.Getpid(),
+		BaseURL:   installed.BaseURL,
+		Harnesses: adapterNames(adapters),
+	}
+	if err := dirregistry.RegisterWithConflictCheck(dir, entry, func(active []dirregistry.Entry) error {
+		return checkConflict(adapters, active)
+	}); err != nil {
+		removeInstallations(installations)
+		_ = installed.Stop()
+		return err
+	}
+
 	projectcontext.Deliver(ctx, cfg)
 
 	if err := attachstate.Save(dir, attachstate.Record{
@@ -145,8 +160,9 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 	<-ctx.Done()
 
 	removeInstallations(installations)
+	_ = dirregistry.Unregister(dir, cfg.SessionID)
 	endSession(cfg)
-	_ = attachstate.Remove(dir)
+	_ = attachstate.RemoveSession(dir, cfg.SessionID)
 
 	return installed.Stop()
 }
@@ -199,6 +215,19 @@ func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 	defer removeInstallations(installations)
+	defer func() { _ = dirregistry.Unregister(dir, cfg.SessionID) }()
+
+	entry := dirregistry.Entry{
+		SessionID: cfg.SessionID,
+		PID:       os.Getpid(),
+		BaseURL:   installed.BaseURL,
+		Harnesses: adapterNames(adapters),
+	}
+	if err := dirregistry.RegisterWithConflictCheck(dir, entry, func(active []dirregistry.Entry) error {
+		return checkConflict(adapters, active)
+	}); err != nil {
+		return err
+	}
 
 	return ptywrap.Run(ctx, cfg, harnessName, name, cmdArgs)
 }
@@ -217,17 +246,26 @@ func runDetach(args []string) error {
 		dir = wd
 	}
 
-	if rec, ok, err := attachstate.Load(dir); err != nil {
+	records, _, err := attachstate.LoadAll(dir)
+	if err != nil {
 		log.Printf("coop detach: read session state: %v", err)
-	} else if ok {
-		if cfg, err := config.Load(); err == nil {
-			cfg.SessionID = rec.SessionID
-			cfg.Project = rec.Project
-			if rec.RelayURL != "" {
-				cfg.RelayURL = rec.RelayURL
+	}
+
+	if len(records) > 0 {
+		cfg, err := config.Load()
+		if err != nil {
+			log.Printf("coop detach: load config: %v", err)
+		} else {
+			for _, rec := range records {
+				cfg.SessionID = rec.SessionID
+				cfg.Project = rec.Project
+				if rec.RelayURL != "" {
+					cfg.RelayURL = rec.RelayURL
+				}
+				endSession(cfg)
+				_ = dirregistry.Unregister(dir, rec.SessionID)
+				fmt.Printf("coop detach: ended session %s\n", rec.SessionID)
 			}
-			endSession(cfg)
-			fmt.Printf("coop detach: ended session %s\n", rec.SessionID)
 		}
 		_ = attachstate.Remove(dir)
 	}

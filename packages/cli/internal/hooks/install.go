@@ -22,12 +22,15 @@ type Installed struct {
 // to it (writing settings.local.json, a plugin file, an extension file) is
 // internal/harness's job, once it has BaseURL.
 //
-// It binds cfg.HookAddr first so a restarted `coop attach` usually reuses
-// the same URL and stale harness config entries self-heal after a crash.
+// It binds cfg.HookAddr and refuses to fall back to a random port: a second
+// attach silently rebinding elsewhere would leave the first attach's harness
+// entries pointing at a dead server. Binding cfg.HookAddr first also means a
+// restarted `coop attach` usually reuses the same URL and stale harness
+// config entries self-heal after a crash.
 func Install(cfg config.Config, steer bool) (*Installed, error) {
 	listener, err := listenHook(cfg.HookAddr)
 	if err != nil {
-		return nil, fmt.Errorf("hooks: listen: %w", err)
+		return nil, err
 	}
 
 	baseURL := fmt.Sprintf("http://%s", listener.Addr().String())
@@ -61,9 +64,10 @@ func Install(cfg config.Config, steer bool) (*Installed, error) {
 }
 
 func listenHook(addr string) (net.Listener, error) {
-	if listener, err := net.Listen("tcp", addr); err == nil {
-		return listener, nil
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("hooks: listen on %s: %w; another coop session may be holding this address, set COOP_HOOK_ADDR to a free one", addr, err)
 	}
 
-	return net.Listen("tcp", "127.0.0.1:0")
+	return listener, nil
 }

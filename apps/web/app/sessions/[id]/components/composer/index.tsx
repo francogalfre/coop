@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import type { Capabilities } from "@coop/protocol";
 import { IconSend, IconSpinner } from "@/components/icons";
@@ -52,6 +52,7 @@ export function Composer({
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const textareaId = useId();
   const toggleDescriptionId = useId();
+  const [focused, setFocused] = useState(false);
 
   const {
     text,
@@ -89,6 +90,12 @@ export function Composer({
   const agentDisabledReason = takeoverHeldBy
     ? `${takeoverHeldBy} has taken over — the agent is paused`
     : undefined;
+  const showCommandHint =
+    focused && text.length === 0 && !paletteOpen && !disabled;
+  const attributionText =
+    target === "agent"
+      ? "The agent sees this attributed to you — never as a system instruction."
+      : "Only teammates watching this session will see this.";
 
   useEffect(() => {
     const el = areaRef.current;
@@ -121,7 +128,11 @@ export function Composer({
                 value={text}
                 disabled={disabled || sending}
                 onChange={(e) => handleChange(e.target.value)}
-                onBlur={stopTyping}
+                onFocus={() => setFocused(true)}
+                onBlur={() => {
+                  setFocused(false);
+                  stopTyping();
+                }}
                 onKeyDown={(e) => {
                   if (paletteOpen && paletteMatches.length > 0) {
                     if (e.key === "ArrowDown") {
@@ -131,13 +142,20 @@ export function Composer({
                     }
                     if (e.key === "ArrowUp") {
                       e.preventDefault();
-                      setPaletteIndex((i) => (i - 1 + paletteMatches.length) % paletteMatches.length);
+                      setPaletteIndex(
+                        (i) =>
+                          (i - 1 + paletteMatches.length) %
+                          paletteMatches.length,
+                      );
                       return;
                     }
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       const active = paletteMatches[paletteIndex];
-                      if (active) void chooseCommand(active, () => areaRef.current?.focus());
+                      if (active)
+                        void chooseCommand(active, () =>
+                          areaRef.current?.focus(),
+                        );
                       return;
                     }
                   }
@@ -151,13 +169,22 @@ export function Composer({
                     void submit();
                   }
                 }}
-                placeholder={disabled ? "This session has ended" : `Message as ${displayName}…`}
+                placeholder={
+                  disabled
+                    ? "This session has ended"
+                    : `Message as ${displayName}…`
+                }
                 className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1.5 text-sm text-foreground leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
               />
 
-              <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-2.5 pb-2.5">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div aria-describedby={takeoverHeldBy ? toggleDescriptionId : undefined}>
+                  <div
+                    className="shrink-0"
+                    aria-describedby={
+                      takeoverHeldBy ? toggleDescriptionId : undefined
+                    }
+                  >
                     <TargetToggle
                       target={target}
                       onChange={setTarget}
@@ -165,7 +192,11 @@ export function Composer({
                       agentDisabledReason={agentDisabledReason}
                     />
                   </div>
-                  <QueueStrip agentBusy={agentBusy} agentState={agentState} queueDepth={queueDepth} />
+                  <QueueStrip
+                    agentBusy={agentBusy}
+                    agentState={agentState}
+                    queueDepth={queueDepth}
+                  />
                 </div>
                 {takeoverHeldBy && (
                   <span id={toggleDescriptionId} className="sr-only">
@@ -179,10 +210,15 @@ export function Composer({
                   disabled={disabled || sending || !text.trim()}
                   className={cn(
                     "h-8 shrink-0 gap-1.5 rounded-lg px-3.5 text-xs font-medium",
-                    sendLabel === "Queue" && "bg-agent text-white hover:bg-agent/90",
+                    sendLabel === "Queue" &&
+                      "bg-agent text-white hover:bg-agent/90",
                   )}
                 >
-                  {sending ? <IconSpinner size={13} className="animate-spin" /> : <IconSend size={13} />}
+                  {sending ? (
+                    <IconSpinner size={13} className="animate-spin" />
+                  ) : (
+                    <IconSend size={13} />
+                  )}
                   {sendLabel}
                 </Button>
               </div>
@@ -194,19 +230,32 @@ export function Composer({
             activeIndex={paletteIndex}
             isOwner={isOwner}
             capabilities={capabilities}
-            onSelect={(command) => void chooseCommand(command, () => areaRef.current?.focus())}
+            onSelect={(command) =>
+              void chooseCommand(command, () => areaRef.current?.focus())
+            }
           />
         </PopoverPrimitive.Root>
 
-        <p className="mt-1.5 flex items-center gap-1.5 px-1 text-2xs text-muted-foreground/60">
-          <span>
-            {target === "agent"
-              ? "The agent sees this attributed to you — never as a system instruction."
-              : "Only teammates watching this session will see this."}
-          </span>
-          <span className="text-muted-foreground/40">·</span>
-          <kbd className="rounded bg-secondary/70 px-1 font-mono text-[0.95em] text-muted-foreground/80">/</kbd>
-          <span>for commands</span>
+        <p
+          aria-live="polite"
+          className="mt-1.5 flex min-h-4 flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-2xs text-muted-foreground/60"
+        >
+          {showCommandHint ? (
+            <>
+              <span>Type</span>
+              <kbd className="rounded bg-secondary/70 px-1 font-mono text-[0.95em] text-muted-foreground/80">
+                /
+              </kbd>
+              <span>for commands</span>
+              <span className="text-muted-foreground/40">·</span>
+              <kbd className="rounded bg-secondary/70 px-1 font-mono text-[0.95em] text-muted-foreground/80">
+                Enter
+              </kbd>
+              <span>to send</span>
+            </>
+          ) : (
+            <span className="min-w-0 truncate">{attributionText}</span>
+          )}
         </p>
       </div>
     </div>
