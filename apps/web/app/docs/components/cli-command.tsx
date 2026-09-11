@@ -1,4 +1,4 @@
-import { CodeBlock } from "./code-block";
+import { CodeBlock } from "@/components/ui/code-block";
 
 type Flag = { flag: string; description: string };
 
@@ -22,7 +22,7 @@ export function CliCommand({
       <h2 className="font-display font-semibold text-foreground text-lg">{name}</h2>
       <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">{description}</p>
 
-      <CodeBlock label="Usage">{usage}</CodeBlock>
+      <CodeBlock label="Usage" body={usage} copyable className="my-4" />
 
       {flags && flags.length > 0 && (
         <dl className="mb-4 space-y-2.5 border-border border-t pt-4">
@@ -35,7 +35,7 @@ export function CliCommand({
         </dl>
       )}
 
-      <CodeBlock label="Example">{example}</CodeBlock>
+      <CodeBlock label="Example" body={example} copyable className="my-4" />
 
       {note && <p className="text-[13px] text-muted-foreground leading-relaxed">{note}</p>}
     </section>

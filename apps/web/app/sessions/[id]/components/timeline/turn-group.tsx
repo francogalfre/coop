@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { Collapsible as CollapsiblePrimitive } from "radix-ui";
 import { IconChevronRight, IconSpinner } from "@/components/icons";
-import { MetaChip } from "@/components/status-pill";
-import { cn } from "@/lib/utils";
+import { MetaChip } from "@/components/ui/status-pill";
+import { cn } from "@/lib/cn";
 import type { TimelineGroup } from "../../lib/timeline/group-turns";
 import type { TimelineItem } from "../../types";
 

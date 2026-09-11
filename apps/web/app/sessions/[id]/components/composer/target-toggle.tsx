@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { IconAgent, IconPeople } from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export type SendTarget = "team" | "agent";
 

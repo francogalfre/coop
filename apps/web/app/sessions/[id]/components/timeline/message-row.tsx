@@ -2,8 +2,8 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { IconChevronRight, IconFile, IconReply, IconSend } from "@/components/icons";
-import { PersonAvatar } from "@/components/person-avatar";
-import { cn } from "@/lib/utils";
+import { PersonAvatar } from "@/components/ui/person-avatar";
+import { cn } from "@/lib/cn";
 import type { DeliveryState, TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
 

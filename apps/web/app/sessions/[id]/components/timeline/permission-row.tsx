@@ -4,28 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { IconCheck, IconClose, IconLock } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { relayConfig } from "@/lib/relay/config";
+import { relayApi } from "@/lib/relay/api";
 import { prettyJson } from "@/lib/format";
 import type { TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
-import { CodeBlock } from "./code-block";
+import { CodeBlock } from "@/components/ui/code-block";
 import { RedactionChip } from "./redaction-chip";
-
-// relayApi (lib/relay/api.ts) has no permission-resolution endpoint yet — this
-// posts directly against the shape the relay is expected to expose, so the
-// row still typechecks and works once that endpoint lands.
-async function resolvePermission(sessionId: string, requestId: string, decision: "allow" | "deny") {
-  const res = await fetch(
-    `${relayConfig.httpUrl}/v1/sessions/${encodeURIComponent(sessionId)}/permissions/${encodeURIComponent(requestId)}/resolve`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision }),
-    },
-  );
-  if (!res.ok) throw new Error(`Request failed (${res.status}).`);
-}
 
 export function PermissionRow({
   item,
@@ -41,7 +25,7 @@ export function PermissionRow({
   async function resolve(decision: "allow" | "deny") {
     setResolving(true);
     try {
-      await resolvePermission(sessionId, item.requestId, decision);
+      await relayApi.resolvePermission(sessionId, item.requestId, decision);
     } catch {
       toast.error("Failed to resolve the permission request.");
     } finally {
@@ -69,7 +53,7 @@ export function PermissionRow({
             </span>
           )}
         </div>
-        {item.input && <CodeBlock label="input" body={prettyJson(item.input)} />}
+        {item.input && <CodeBlock label="input" body={prettyJson(item.input)} scroll />}
         <RedactionChip redactions={item.inputRedactions} truncated={item.inputTruncated} />
         {item.status === "pending" && isOwner && (
           <div className="mt-2 flex gap-1.5">

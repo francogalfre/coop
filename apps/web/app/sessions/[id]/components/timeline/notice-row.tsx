@@ -1,4 +1,4 @@
-import { LiveDot } from "@/components/status-pill";
+import { LiveDot } from "@/components/ui/status-pill";
 import type { TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { relayApi, RelayError, type AgentSession } from "@/lib/relay/api";
 import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
-import { LiveDot } from "@/components/status-pill";
+import { LiveDot } from "@/components/ui/status-pill";
 import { IconFolder } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SessionCard } from "./session-card";

@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { IconLock, IconUnlock } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { MetaChip } from "@/components/status-pill";
+import { MetaChip } from "@/components/ui/status-pill";
 import { relayApi } from "@/lib/relay/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 const MODE_LABEL: Record<"auto" | "restricted", string> = {
   auto: "Auto",

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { IconChevronRight } from "@/components/icons";
 import { DocPageHeader } from "./components/doc-page-header";
-import { CodeBlock } from "./components/code-block";
+import { CodeBlock } from "@/components/ui/code-block";
 
 const STEPS = [
   {
@@ -50,7 +50,7 @@ export default function DocsGettingStarted() {
               <h2 className="font-display font-semibold text-foreground text-lg">{step.title}</h2>
             </div>
             <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">{step.body}</p>
-            <CodeBlock>{step.code}</CodeBlock>
+            <CodeBlock body={step.code} copyable className="my-4" />
             <p className="text-[13px] text-muted-foreground leading-relaxed">{step.note}</p>
           </li>
         ))}

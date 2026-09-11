@@ -1,5 +1,5 @@
 import { IconAlert } from "@/components/icons";
-import { PersonAvatar } from "@/components/person-avatar";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 import type { TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
 import { RedactionChip } from "./redaction-chip";

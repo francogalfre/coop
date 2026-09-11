@@ -7,7 +7,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { initials, tintFor } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export function PresenceStack({
     names,

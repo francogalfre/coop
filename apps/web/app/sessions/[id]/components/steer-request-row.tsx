@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { IconCheck, IconClose, IconSend } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { PersonAvatar } from "@/components/person-avatar";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 import { relayApi } from "@/lib/relay/api";
 import { Row } from "./timeline-row-shell";
 import type { TimelineItem } from "../types";

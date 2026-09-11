@@ -5,7 +5,7 @@ import {
   RETRY_WARNING_THRESHOLD,
   type ConnectionState,
 } from "@/lib/relay/useSessionStream";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 const BADGE_LABEL: Record<Exclude<ConnectionState, "open">, string> = {
   connecting: "Connecting",

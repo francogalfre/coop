@@ -6,7 +6,7 @@ import type { Route } from "next";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { relayApi, RelayError, type Agent } from "@/lib/relay/api";
-import { StatusPill } from "@/components/status-pill";
+import { StatusPill } from "@/components/ui/status-pill";
 import { IconAgent, IconSend, IconSpinner } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

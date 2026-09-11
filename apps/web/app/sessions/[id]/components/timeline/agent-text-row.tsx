@@ -2,7 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { HarnessLogo } from "@/components/harness-logo";
+import { HarnessLogo } from "@/components/brand/harness-logo";
 import type { TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
 import { RedactionChip } from "./redaction-chip";

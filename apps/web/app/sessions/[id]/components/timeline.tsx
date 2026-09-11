@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { IconChevronUp } from "@/components/icons";
-import { HarnessLogo } from "@/components/harness-logo";
+import { HarnessLogo } from "@/components/brand/harness-logo";
 import { groupTurns } from "../lib/timeline/group-turns";
 import { TimelineRow } from "./timeline-item";
 import { TurnGroup } from "./timeline/turn-group";

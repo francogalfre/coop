@@ -9,15 +9,15 @@ import {
   IconLock,
   IconUnlock,
 } from "@/components/icons";
-import { HarnessLogo } from "@/components/harness-logo";
-import { PersonAvatar } from "@/components/person-avatar";
+import { HarnessLogo } from "@/components/brand/harness-logo";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 import type { ConnectionState } from "@/lib/relay/useSessionStream";
 import { PresenceStack } from "./presence-stack";
 import { ConnectionBadge } from "./connection-status";
 import { SessionModeToggle } from "./session-mode-toggle";
-import { StatusPill } from "@/components/status-pill";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { SessionMeta } from "../types";
 
 export function SessionHeader({

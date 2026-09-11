@@ -1,17 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import Link from "next/link";
-import type { Route } from "next";
 import { useParams } from "next/navigation";
-import { motion } from "motion/react";
 import { relayApi, RelayError, type Agent } from "@/lib/relay/api";
 import { useSession } from "@/lib/auth/auth-client";
 import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
-import { AppHeader } from "@/components/app-header";
-import { IconFolder } from "@/components/icons";
-import { InviteButton } from "./components/invite-button";
+import { AppHeader } from "@/components/layout/app-header";
+import { Container } from "@/components/layout/container";
 import { NoAccess } from "./components/no-access";
+import { ProjectHeader } from "./components/project-header";
 import { ProjectSessionsSection } from "./components/project-sessions-section";
 import { AgentRoster } from "./components/agent-roster";
 import { ProjectContextPanel } from "./components/project-context-panel";
@@ -42,52 +39,27 @@ export default function ProjectPage() {
   useVisibilityPolling(loadAgents, 8000);
 
   return (
-    <>
+    <Container>
       <AppHeader />
-      <main className="mx-auto max-w-6xl px-6 py-14">
+      <main className="px-6 py-12 sm:px-10 sm:py-16">
         {denied ? (
           <NoAccess />
         ) : (
           <>
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-8 flex flex-wrap items-end justify-between gap-3"
-            >
-              <div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <IconFolder size={13} />
-                  <Link
-                    href={"/" as Route}
-                    className="transition-colors hover:text-foreground"
-                  >
-                    projects
-                  </Link>
-                  <span className="text-muted-foreground/40">/</span>
-                </div>
-                <h1 className="mt-1.5 font-display font-semibold text-[26px] text-foreground tracking-tight">
-                  {slug}
-                </h1>
-              </div>
-              <InviteButton slug={slug} />
-            </motion.div>
+            <ProjectHeader slug={slug} />
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
               <div>
                 {agents !== null && agents.length > 0 && (
                   <section className="mb-8">
-                    <h2 className="mb-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                    <h2 className="mb-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">
                       Agents
                     </h2>
                     <AgentRoster slug={slug} agents={agents} />
                   </section>
                 )}
 
-                <ProjectSessionsSection
-                  slug={slug}
-                  userId={sessionData?.user?.id}
-                />
+                <ProjectSessionsSection slug={slug} userId={sessionData?.user?.id} />
               </div>
 
               <aside className="space-y-6 lg:sticky lg:top-14 lg:mt-7">
@@ -98,6 +70,6 @@ export default function ProjectPage() {
           </>
         )}
       </main>
-    </>
+    </Container>
   );
 }

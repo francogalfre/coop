@@ -11,10 +11,10 @@ import {
   IconTerminal,
 } from "@/components/icons";
 import { prettyJson, summarizeToolInput } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { ToolStatus, TimelineItem } from "../../types";
 import { Row } from "../timeline-row-shell";
-import { CodeBlock } from "./code-block";
+import { CodeBlock } from "@/components/ui/code-block";
 import { DiffView } from "./diff-view";
 import { RedactionChip } from "./redaction-chip";
 
@@ -192,12 +192,12 @@ export function ToolRow({
         >
           <div className="min-h-0 overflow-hidden">
             <div className="mt-2 space-y-2">
-              {item.input && <CodeBlock label="input" body={prettyJson(item.input)} />}
+              {item.input && <CodeBlock label="input" body={prettyJson(item.input)} scroll />}
               {item.output &&
                 (isBash ? (
                   <TerminalBlock body={item.output} status={item.status} />
                 ) : (
-                  <CodeBlock label="output" body={prettyJson(item.output)} />
+                  <CodeBlock label="output" body={prettyJson(item.output)} scroll />
                 ))}
             </div>
           </div>

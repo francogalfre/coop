@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { relayApi, RelayError } from "@/lib/relay/api";
 import { IconCheck, IconCopy, IconLink, IconSpinner } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useCopy } from "@/lib/hooks/use-copy";
 
 export function InviteButton({ slug }: { slug: string }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy();
 
   async function createInvite() {
     setBusy(true);
@@ -25,16 +26,6 @@ export function InviteButton({ slug }: { slug: string }) {
       );
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Could not copy — select the link manually.");
     }
   }
 
@@ -62,7 +53,7 @@ export function InviteButton({ slug }: { slug: string }) {
       <span className="max-w-[240px] truncate font-mono text-[11.5px] text-muted-foreground">
         {url.replace(/^https?:\/\//, "")}
       </span>
-      <Button size="sm" onClick={() => void copy()} className="h-7 gap-1.5 text-[12px]">
+      <Button size="sm" onClick={() => void copy(url)} className="h-7 gap-1.5 text-[12px]">
         {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
         {copied ? "Copied" : "Copy"}
       </Button>

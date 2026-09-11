@@ -5,7 +5,7 @@ import { Popover as PopoverPrimitive } from "radix-ui";
 import type { Capabilities } from "@coop/protocol";
 import { IconSend, IconSpinner } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { PendingPatch, PendingSend } from "../../lib/usePendingSends";
 import { CommandMenu } from "./command-menu";
 import { QueueStrip } from "./queue-strip";

@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { toast } from "sonner";
-import { HarnessLogo } from "@/components/harness-logo";
-import { Button } from "@/components/ui/button";
-import { IconCheck, IconCopy, IconTerminal } from "@/components/icons";
+import { HarnessLogo } from "@/components/brand/harness-logo";
+import { CopyButton } from "@/components/ui/copy-button";
+import { IconTerminal } from "@/components/icons";
 import { buildAttachCommand } from "./attach-command";
 import { type ProjectRole } from "./resolve-role";
 
@@ -24,18 +22,6 @@ function AttachCommand({
   slug: string;
   className?: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(buildAttachCommand(slug));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Could not copy — type the command manually.");
-    }
-  }
-
   return (
     <div
       className={`flex items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2 ${className ?? ""}`}
@@ -44,19 +30,11 @@ function AttachCommand({
       <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-foreground/85">
         coop attach --project=<span className="text-agent">{slug}</span>
       </code>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => void copy()}
-        aria-label="Copy command to clipboard"
-        className="shrink-0 text-muted-foreground hover:text-foreground"
-      >
-        {copied ? (
-          <IconCheck size={13} className="text-live" />
-        ) : (
-          <IconCopy size={13} />
-        )}
-      </Button>
+      <CopyButton
+        value={buildAttachCommand(slug)}
+        label="Copy the attach command"
+        className="shrink-0"
+      />
     </div>
   );
 }

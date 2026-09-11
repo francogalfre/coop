@@ -3,7 +3,7 @@
 import { Collapsible as CollapsiblePrimitive } from "radix-ui";
 import { IconChevronRight } from "@/components/icons";
 import { basename } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { TouchedFile } from "../../types";
 
 function diffLineTone(text: string): "add" | "remove" | "context" {

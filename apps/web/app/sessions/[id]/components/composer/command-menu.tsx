@@ -2,7 +2,7 @@
 
 import { Popover as PopoverPrimitive } from "radix-ui";
 import type { Capabilities } from "@coop/protocol";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { Command } from "./lib/commands";
 
 export function CommandMenu({

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { relayApi, RelayError, type ProjectNote } from "@/lib/relay/api";
 import { useVisibilityPolling } from "@/lib/hooks/useVisibilityPolling";
 import { IconAgent, IconMessage, IconSend, IconSpinner } from "@/components/icons";
-import { PersonAvatar } from "@/components/person-avatar";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/format";

@@ -4,9 +4,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import { motion } from "motion/react";
 import type { AgentSession } from "@/lib/relay/api";
-import { LiveDot, MetaChip, StatusPill } from "@/components/status-pill";
+import { LiveDot, MetaChip, StatusPill } from "@/components/ui/status-pill";
 import { IconTerminal } from "@/components/icons";
-import { HarnessLogo } from "@/components/harness-logo";
+import { HarnessLogo } from "@/components/brand/harness-logo";
 import { relativeTime } from "@/lib/format";
 
 export function SessionCard({

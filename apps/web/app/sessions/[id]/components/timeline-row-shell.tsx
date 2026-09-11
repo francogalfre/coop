@@ -1,6 +1,6 @@
 import { IconReply } from "@/components/icons";
 import { clockTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export function Row({
   ts,
@@ -21,7 +21,7 @@ export function Row({
 }) {
   return (
     <div
-      id={seq !== undefined ? `seq-${seq}` : undefined}
+      id={seq === undefined ? undefined : `seq-${seq}`}
       className={cn(
         "group relative mx-auto flex max-w-3xl gap-3 rounded-lg px-4 py-2 transition-colors duration-500 sm:px-6",
         highlighted && "bg-human/10",
