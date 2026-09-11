@@ -4,28 +4,28 @@ import Link from "next/link";
 import type { Route } from "next";
 import { signOut, useSession } from "@/lib/auth/auth-client";
 import { IconLogout } from "@/components/icons";
-import { Mark } from "@/components/mark";
+import { Mark } from "@/components/brand/mark";
 import { Button } from "@/components/ui/button";
-import { PersonAvatar } from "@/components/person-avatar";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 
 export function AppHeader() {
   const { data } = useSession();
   const user = data?.user;
 
   return (
-    <header className="sticky top-0 z-30 border-border/70 border-b bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-6">
+    <header className="sticky top-0 z-30 border-border/70 border-b bg-background/85 backdrop-blur-md">
+      <div className="flex h-14 items-center gap-5 px-6 sm:px-10">
         <Link
           href={"/" as Route}
-          className="flex items-center gap-2 font-display font-semibold text-[16px] text-foreground tracking-tight"
+          className="flex items-center gap-2 font-display font-semibold text-[15px] text-foreground tracking-tight"
         >
-          <Mark size={22} />
+          <Mark size={20} />
           coop
         </Link>
 
         <Link
           href={"/docs" as Route}
-          className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+          className="text-muted-foreground text-xs transition-colors hover:text-foreground"
         >
           Docs
         </Link>

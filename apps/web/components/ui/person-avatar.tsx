@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { initials, tintFor } from "@/lib/format";
 
 export function PersonAvatar({

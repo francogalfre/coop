@@ -128,6 +128,20 @@
   text-wrap: balance;
 }
 
+@utility bg-hatch {
+  background-color: oklch(0.105 0 0);
+  background-image: repeating-linear-gradient(
+    45deg,
+    oklch(1 0 0 / 4.5%) 0 1px,
+    transparent 1px 7px
+  );
+}
+
+@utility bg-dotgrid {
+  background-image: radial-gradient(oklch(1 0 0 / 10%) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 @layer components {
   .prose-timeline > :first-child {
     margin-top: 0;
@@ -208,17 +222,15 @@
   animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes stream-in {
+@keyframes marquee-x {
   from {
-    opacity: 0;
-    transform: translateY(6px);
+    transform: translateX(0);
   }
   to {
-    opacity: 1;
-    transform: none;
+    transform: translateX(-50%);
   }
 }
 
-@utility animate-stream-in {
-  animation: stream-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+@utility animate-marquee-x {
+  animation: marquee-x var(--marquee-duration, 40s) linear infinite;
 }
