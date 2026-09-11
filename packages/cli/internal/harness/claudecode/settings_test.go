@@ -171,7 +171,7 @@ func TestWriteSettingsPreservesOtherToolsHookEntries(t *testing.T) {
 	}
 }
 
-func TestWriteSettingsReplacesPriorCoopEntryInsteadOfAccumulating(t *testing.T) {
+func TestWriteSettingsAppendsEntryForSecondAttach(t *testing.T) {
 	dir := t.TempDir()
 
 	if _, err := writeSettings(dir, "http://127.0.0.1:11111"); err != nil {
@@ -190,21 +190,60 @@ func TestWriteSettingsReplacesPriorCoopEntryInsteadOfAccumulating(t *testing.T) 
 		t.Fatalf("unmarshal hooks: %v", err)
 	}
 
-	groups := hooksRoot["PreToolUse"]
+	for _, event := range hookEventNames {
+		urls := coopEntryURLs(hooksRoot[event])
 
-	total := 0
+		want := map[string]bool{
+			"http://127.0.0.1:11111/hook/claude-code/" + event: true,
+			"http://127.0.0.1:22222/hook/claude-code/" + event: true,
+		}
+
+		if len(urls) != 2 || !want[urls[0]] || !want[urls[1]] {
+			t.Fatalf("event %s: coop entries %v, want one per attach (%v)", event, urls, want)
+		}
+	}
+}
+
+func TestWriteSettingsDedupesEntriesForSameBaseURL(t *testing.T) {
+	dir := t.TempDir()
+
+	if _, err := writeSettings(dir, "http://127.0.0.1:12345"); err != nil {
+		t.Fatalf("first writeSettings() error = %v", err)
+	}
+
+	path, err := writeSettings(dir, "http://127.0.0.1:12345")
+	if err != nil {
+		t.Fatalf("second writeSettings() error = %v", err)
+	}
+
+	root := readSettings(t, path)
+
+	var hooksRoot map[string][]hookGroup
+	if err := json.Unmarshal(root["hooks"], &hooksRoot); err != nil {
+		t.Fatalf("unmarshal hooks: %v", err)
+	}
+
+	for _, event := range hookEventNames {
+		urls := coopEntryURLs(hooksRoot[event])
+
+		if len(urls) != 1 {
+			t.Fatalf("event %s: coop entries %v, want exactly one (re-attach on the same URL self-heals)", event, urls)
+		}
+	}
+}
+
+func coopEntryURLs(groups []hookGroup) []string {
+	var urls []string
+
 	for _, g := range groups {
-		total += len(g.Hooks)
+		for _, e := range g.Hooks {
+			if isCoopEntry(e) {
+				urls = append(urls, e.URL)
+			}
+		}
 	}
 
-	if total != 1 {
-		t.Fatalf("got %d hook entries for PreToolUse after two attach runs, want 1 (replaced, not accumulated)", total)
-	}
-
-	entry := groups[0].Hooks[0]
-	if entry.URL != "http://127.0.0.1:22222/hook/claude-code/PreToolUse" {
-		t.Fatalf("got url %q, want the second run's port", entry.URL)
-	}
+	return urls
 }
 
 func TestWriteSettingsStartsFreshOnMalformedJSON(t *testing.T) {

@@ -63,3 +63,5 @@ func removeIfExists(path string) error {
 
 	return nil
 }
+
+func (Adapter) SupportsMultiAttach() bool { return false }

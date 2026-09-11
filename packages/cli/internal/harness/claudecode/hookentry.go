@@ -124,28 +124,29 @@ func isCoopEntry(e hookEntry) bool {
 	return e.Type == "http" && e.Source == coopSource
 }
 
-func withCoopEntry(groups []hookGroup, event, baseURL string) []hookGroup {
-	kept := withoutCoopEntries(groups)
-
-	kept = append(kept, hookGroup{Hooks: []hookEntry{{
-		Type:    "http",
-		URL:     fmt.Sprintf("%s/hook/%s/%s", baseURL, Name, event),
-		Timeout: hookTimeoutSecs,
-		Source:  coopSource,
-	}}})
-
-	return kept
+func coopURL(baseURL, event string) string {
+	return fmt.Sprintf("%s/hook/%s/%s", baseURL, Name, event)
 }
 
-func withoutCoopEntries(groups []hookGroup) []hookGroup {
-	kept := make([]hookGroup, 0, len(groups))
+// withCoopEntry keeps every other attach's coop entry and replaces only the
+// entry for this baseURL, so concurrent coop attaches in one directory each
+// keep receiving their own events.
+func withCoopEntry(groups []hookGroup, event, baseURL string) []hookGroup {
+	wantURL := coopURL(baseURL, event)
+
+	kept := make([]hookGroup, 0, len(groups)+1)
+	coopEntries := make([]hookEntry, 0, 2)
 
 	for _, g := range groups {
 		entries := make([]hookEntry, 0, len(g.Hooks))
 
 		for _, e := range g.Hooks {
-			if !isCoopEntry(e) {
+			switch {
+			case !isCoopEntry(e):
 				entries = append(entries, e)
+			case e.URL == wantURL:
+			default:
+				coopEntries = append(coopEntries, e)
 			}
 		}
 
@@ -154,5 +155,12 @@ func withoutCoopEntries(groups []hookGroup) []hookGroup {
 		}
 	}
 
-	return kept
+	coopEntries = append(coopEntries, hookEntry{
+		Type:    "http",
+		URL:     wantURL,
+		Timeout: hookTimeoutSecs,
+		Source:  coopSource,
+	})
+
+	return append(kept, hookGroup{Hooks: coopEntries})
 }

@@ -47,7 +47,7 @@ func (Adapter) Install(dir, baseURL string) (harness.Installation, error) {
 
 	return harness.Installation{
 		Paths:  []string{path},
-		Remove: func() error { return removeSettings(dir) },
+		Remove: func() error { return removeSettingsFor(dir, baseURL) },
 	}, nil
 }
 
@@ -113,3 +113,5 @@ func writeSettingsRoot(dir, path string, root map[string]json.RawMessage) error 
 
 	return nil
 }
+
+func (Adapter) SupportsMultiAttach() bool { return true }

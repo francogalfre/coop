@@ -19,3 +19,5 @@ func (Adapter) Install(dir, baseURL string) (harness.Installation, error) {
 }
 
 func (Adapter) RemoveAll(dir string) error { return nil }
+
+func (Adapter) SupportsMultiAttach() bool { return true }

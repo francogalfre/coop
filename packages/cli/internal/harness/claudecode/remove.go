@@ -7,6 +7,18 @@ import (
 )
 
 func removeSettings(dir string) error {
+	return removeCoopEntries(dir, func(event string, e hookEntry) bool {
+		return isCoopEntry(e)
+	})
+}
+
+func removeSettingsFor(dir, baseURL string) error {
+	return removeCoopEntries(dir, func(event string, e hookEntry) bool {
+		return isCoopEntry(e) && e.URL == coopURL(baseURL, event)
+	})
+}
+
+func removeCoopEntries(dir string, drop func(event string, e hookEntry) bool) error {
 	path := settingsPath(dir)
 
 	raw, err := os.ReadFile(path)
@@ -30,7 +42,7 @@ func removeSettings(dir string) error {
 	}
 
 	for event, groups := range hooksRoot {
-		remaining := withoutCoopEntries(groups)
+		remaining := keepGroups(groups, event, drop)
 		if len(remaining) == 0 {
 			delete(hooksRoot, event)
 		} else {
@@ -56,4 +68,24 @@ func removeSettings(dir string) error {
 	}
 
 	return writeSettingsRoot(dir, path, root)
+}
+
+func keepGroups(groups []hookGroup, event string, drop func(event string, e hookEntry) bool) []hookGroup {
+	kept := make([]hookGroup, 0, len(groups))
+
+	for _, g := range groups {
+		entries := make([]hookEntry, 0, len(g.Hooks))
+
+		for _, e := range g.Hooks {
+			if !drop(event, e) {
+				entries = append(entries, e)
+			}
+		}
+
+		if len(entries) > 0 {
+			kept = append(kept, hookGroup{Hooks: entries, extra: g.extra})
+		}
+	}
+
+	return kept
 }
