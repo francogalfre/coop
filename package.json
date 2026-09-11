@@ -12,7 +12,7 @@
     "scripts": {
         "dev": "bash scripts/dev.sh",
         "build": "turbo run build",
-        "test": "turbo run test",
+        "test": "bash scripts/go-test.sh && turbo run test",
         "typecheck": "turbo run typecheck",
         "lint": "oxlint .",
         "clean": "turbo run clean",
