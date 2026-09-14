@@ -45,16 +45,25 @@ export function PermissionRow({
     >
       <div className="rounded-lg rounded-tl-sm border border-tool/25 bg-tool/[0.06] px-3 py-2">
         <div className="mb-1 flex items-center gap-2">
-          <span className="font-medium text-xs text-tool">Permission requested</span>
-          <span className="font-mono text-2xs text-muted-foreground">{item.toolName}</span>
+          <span className="font-medium text-xs text-tool">
+            Permission requested
+          </span>
+          <span className="font-mono text-2xs text-muted-foreground">
+            {item.toolName}
+          </span>
           {item.status !== "pending" && (
             <span className="ml-auto text-3xs text-muted-foreground">
               {item.status} {item.resolvedBy && `by ${item.resolvedBy}`}
             </span>
           )}
         </div>
-        {item.input && <CodeBlock label="input" body={prettyJson(item.input)} scroll />}
-        <RedactionChip redactions={item.inputRedactions} truncated={item.inputTruncated} />
+        {item.input && (
+          <CodeBlock label="input" body={prettyJson(item.input)} scroll />
+        )}
+        <RedactionChip
+          redactions={item.inputRedactions}
+          truncated={item.inputTruncated}
+        />
         {item.status === "pending" && isOwner && (
           <div className="mt-2 flex gap-1.5">
             <Button

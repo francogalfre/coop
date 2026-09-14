@@ -10,7 +10,10 @@ export function ProjectHeader({ slug }: { slug: string }) {
       <div>
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           <IconFolder size={13} />
-          <Link href={"/" as Route} className="transition-colors hover:text-foreground">
+          <Link
+            href={"/" as Route}
+            className="transition-colors hover:text-foreground"
+          >
             projects
           </Link>
           <span className="text-muted-foreground/40">/</span>

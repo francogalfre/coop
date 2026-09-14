@@ -39,7 +39,9 @@ export function AppHeader() {
                   avatarUrl={user.image ?? undefined}
                   className="size-7 shrink-0 text-[11px]"
                 />
-                <span className="hidden text-sm text-muted-foreground sm:block">{user.name}</span>
+                <span className="hidden text-sm text-muted-foreground sm:block">
+                  {user.name}
+                </span>
               </div>
               <Button
                 variant="ghost"

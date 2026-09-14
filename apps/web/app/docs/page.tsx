@@ -42,16 +42,25 @@ export default function DocsGettingStarted() {
 
       <ol className="space-y-4">
         {STEPS.map((step, i) => (
-          <li key={step.title} className="rounded-xl border border-border bg-card/50 p-6">
+          <li
+            key={step.title}
+            className="rounded-xl border border-border bg-card/50 p-6"
+          >
             <div className="flex items-baseline gap-3">
               <span className="font-display font-semibold text-[13px] text-muted-foreground">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <h2 className="font-display font-semibold text-foreground text-lg">{step.title}</h2>
+              <h2 className="font-display font-semibold text-foreground text-lg">
+                {step.title}
+              </h2>
             </div>
-            <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">{step.body}</p>
+            <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">
+              {step.body}
+            </p>
             <CodeBlock body={step.code} copyable className="my-4" />
-            <p className="text-[13px] text-muted-foreground leading-relaxed">{step.note}</p>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
+              {step.note}
+            </p>
           </li>
         ))}
       </ol>

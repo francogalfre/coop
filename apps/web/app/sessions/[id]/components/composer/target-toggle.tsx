@@ -2,7 +2,11 @@
 
 import { motion } from "motion/react";
 import { IconAgent, IconPeople } from "@/components/icons";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 
 export type SendTarget = "team" | "agent";
@@ -37,7 +41,9 @@ export function TargetToggle({
         aria-pressed={target === "team"}
         className={cn(
           "relative z-10 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors disabled:cursor-not-allowed",
-          target === "team" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          target === "team"
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         <IconPeople size={12} />
@@ -50,7 +56,9 @@ export function TargetToggle({
         aria-pressed={target === "agent"}
         className={cn(
           "relative z-10 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors disabled:cursor-not-allowed",
-          target === "agent" ? "text-human" : "text-muted-foreground hover:text-foreground",
+          target === "agent"
+            ? "text-human"
+            : "text-muted-foreground hover:text-foreground",
           agentDisabled && "opacity-60",
         )}
       >

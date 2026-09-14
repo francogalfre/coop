@@ -64,14 +64,26 @@ function AgentComposer({ slug, agent }: { slug: string; agent: Agent }) {
         disabled={starting || !text.trim()}
         className="h-9 gap-1.5 text-xs"
       >
-        {starting ? <IconSpinner size={13} className="animate-spin" /> : <IconSend size={13} />}
+        {starting ? (
+          <IconSpinner size={13} className="animate-spin" />
+        ) : (
+          <IconSend size={13} />
+        )}
         {starting ? "Starting…" : "Start"}
       </Button>
     </div>
   );
 }
 
-function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: number }) {
+function AgentCard({
+  slug,
+  agent,
+  index,
+}: {
+  slug: string;
+  agent: Agent;
+  index: number;
+}) {
   const [composerOpen, setComposerOpen] = useState(false);
 
   const body = (
@@ -92,13 +104,17 @@ function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: 
         <div className="flex items-center gap-2">
           <p
             className={`truncate font-display font-medium text-md ${
-              agent.status === "offline" ? "text-muted-foreground" : "text-foreground"
+              agent.status === "offline"
+                ? "text-muted-foreground"
+                : "text-foreground"
             }`}
           >
             {agent.display_name}
           </p>
         </div>
-        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{agent.name}</p>
+        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+          {agent.name}
+        </p>
         <p className="mt-2.5 text-[13px] text-muted-foreground leading-relaxed">
           {agent.status === "offline"
             ? `No one's running ${agent.name} right now. Start it with coop serve --agent=${agent.name} --project=${slug}.`
@@ -108,7 +124,9 @@ function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: 
         </p>
       </div>
 
-      <StatusPill tone={statusTone(agent.status)}>{statusLabel(agent.status)}</StatusPill>
+      <StatusPill tone={statusTone(agent.status)}>
+        {statusLabel(agent.status)}
+      </StatusPill>
     </div>
   );
 
@@ -116,7 +134,11 @@ function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: 
     <motion.li
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+      transition={{
+        duration: 0.3,
+        delay: index * 0.04,
+        ease: [0.16, 1, 0.3, 1],
+      }}
     >
       {agent.status === "online" && agent.current_session_id ? (
         <Link
@@ -128,12 +150,18 @@ function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: 
       ) : (
         <div
           className={`rounded-xl border border-border p-5 ${
-            agent.status === "idle" ? "cursor-pointer bg-card/50 transition-all hover:border-border/80 hover:bg-card" : "bg-card/20"
+            agent.status === "idle"
+              ? "cursor-pointer bg-card/50 transition-all hover:border-border/80 hover:bg-card"
+              : "bg-card/20"
           }`}
           role={agent.status === "idle" ? "button" : undefined}
           tabIndex={agent.status === "idle" ? 0 : undefined}
           aria-expanded={agent.status === "idle" ? composerOpen : undefined}
-          onClick={agent.status === "idle" ? () => setComposerOpen((v) => !v) : undefined}
+          onClick={
+            agent.status === "idle"
+              ? () => setComposerOpen((v) => !v)
+              : undefined
+          }
           onKeyDown={
             agent.status === "idle"
               ? (e) => {
@@ -157,7 +185,13 @@ function AgentCard({ slug, agent, index }: { slug: string; agent: Agent; index: 
   );
 }
 
-export function AgentRoster({ slug, agents }: { slug: string; agents: Agent[] }) {
+export function AgentRoster({
+  slug,
+  agents,
+}: {
+  slug: string;
+  agents: Agent[];
+}) {
   return (
     <ul className="space-y-2.5">
       {agents.map((agent, i) => (

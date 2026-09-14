@@ -12,10 +12,12 @@ export function EmptyProjects() {
       <span className="mx-auto mb-3 grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
         <IconPeople size={19} />
       </span>
-      <h2 className="font-display font-medium text-[15px] text-foreground">No projects yet</h2>
+      <h2 className="font-display font-medium text-[15px] text-foreground">
+        No projects yet
+      </h2>
       <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground leading-relaxed">
-        A project is the room your team&apos;s agent sessions live in. Three steps to your first
-        live one:
+        A project is the room your team&apos;s agent sessions live in. Three
+        steps to your first live one:
       </p>
       <ol className="mx-auto mt-6 max-w-sm space-y-3 text-left">
         {STEPS.map((step, index) => (
@@ -23,7 +25,9 @@ export function EmptyProjects() {
             <span className="grid size-5 shrink-0 place-items-center rounded-full border border-border bg-card font-mono text-2xs text-muted-foreground">
               {index + 1}
             </span>
-            <span className="text-[13px] text-muted-foreground leading-relaxed">{step}</span>
+            <span className="text-[13px] text-muted-foreground leading-relaxed">
+              {step}
+            </span>
           </li>
         ))}
       </ol>

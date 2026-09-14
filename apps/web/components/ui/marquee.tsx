@@ -19,7 +19,9 @@ export function Marquee({
     >
       <div
         className="flex w-max animate-marquee-x gap-10 group-hover:[animation-play-state:paused] motion-reduce:animate-none"
-        style={{ "--marquee-duration": `${durationSeconds}s` } as React.CSSProperties}
+        style={
+          { "--marquee-duration": `${durationSeconds}s` } as React.CSSProperties
+        }
       >
         <div className="flex shrink-0 gap-10">{children}</div>
         <div aria-hidden className="flex shrink-0 gap-10">

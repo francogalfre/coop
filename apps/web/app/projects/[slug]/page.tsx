@@ -9,10 +9,10 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Container } from "@/components/layout/container";
 import { NoAccess } from "./components/no-access";
 import { ProjectHeader } from "./components/project-header";
-import { ProjectSessionsSection } from "./components/project-sessions-section";
+import { ProjectSessionsSection } from "./components/sessions/project-sessions-section";
 import { AgentRoster } from "./components/agent-roster";
-import { ProjectContextPanel } from "./components/project-context-panel";
-import { ProjectNotesFeed } from "./components/project-notes-feed";
+import { ProjectContextPanel } from "./components/context/project-context-panel";
+import { ProjectNotesFeed } from "./components/context/project-notes-feed";
 
 export default function ProjectPage() {
   const params = useParams<{ slug: string }>();
@@ -59,7 +59,10 @@ export default function ProjectPage() {
                   </section>
                 )}
 
-                <ProjectSessionsSection slug={slug} userId={sessionData?.user?.id} />
+                <ProjectSessionsSection
+                  slug={slug}
+                  userId={sessionData?.user?.id}
+                />
               </div>
 
               <aside className="space-y-6 lg:sticky lg:top-14 lg:mt-7">

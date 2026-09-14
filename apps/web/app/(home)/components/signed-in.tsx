@@ -39,8 +39,8 @@ export function SignedIn() {
             Projects
           </h1>
           <p className="mt-1.5 max-w-md text-sm text-muted-foreground leading-relaxed">
-            Pick a project to drop into a live session — or create one and bring your agents into
-            the room.
+            Pick a project to drop into a live session — or create one and bring
+            your agents into the room.
           </p>
         </Reveal>
 
@@ -65,7 +65,9 @@ export function SignedIn() {
         )}
 
         <div className="mt-4">
-          <CreateProject onCreated={(p) => router.push(`/projects/${p.slug}` as Route)} />
+          <CreateProject
+            onCreated={(p) => router.push(`/projects/${p.slug}` as Route)}
+          />
         </div>
       </main>
     </Container>

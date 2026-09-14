@@ -38,7 +38,11 @@ export function InviteButton({ slug }: { slug: string }) {
         disabled={busy}
         className="h-9 gap-1.5 text-[13px]"
       >
-        {busy ? <IconSpinner size={14} className="animate-spin" /> : <IconLink size={14} />}
+        {busy ? (
+          <IconSpinner size={14} className="animate-spin" />
+        ) : (
+          <IconLink size={14} />
+        )}
         Invite teammate
       </Button>
     );
@@ -53,7 +57,11 @@ export function InviteButton({ slug }: { slug: string }) {
       <span className="max-w-[240px] truncate font-mono text-[11.5px] text-muted-foreground">
         {url.replace(/^https?:\/\//, "")}
       </span>
-      <Button size="sm" onClick={() => void copy(url)} className="h-7 gap-1.5 text-[12px]">
+      <Button
+        size="sm"
+        onClick={() => void copy(url)}
+        className="h-7 gap-1.5 text-[12px]"
+      >
         {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
         {copied ? "Copied" : "Copy"}
       </Button>

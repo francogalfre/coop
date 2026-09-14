@@ -27,12 +27,25 @@ export function BlockedRow({
     >
       <div className="rounded-lg rounded-tl-sm border border-destructive/25 bg-destructive/[0.06] px-3 py-2">
         <div className="mb-0.5 flex items-center gap-2">
-          <PersonAvatar name={item.blockedBy} avatarUrl={item.blockedByAvatarUrl} className="size-4 text-3xs" />
-          <span className="font-medium text-xs text-destructive">{item.toolName} blocked</span>
-          <span className="text-3xs text-muted-foreground">by {item.blockedBy}</span>
+          <PersonAvatar
+            name={item.blockedBy}
+            avatarUrl={item.blockedByAvatarUrl}
+            className="size-4 text-3xs"
+          />
+          <span className="font-medium text-xs text-destructive">
+            {item.toolName} blocked
+          </span>
+          <span className="text-3xs text-muted-foreground">
+            by {item.blockedBy}
+          </span>
         </div>
-        <p className="whitespace-pre-wrap text-sm text-foreground/80 leading-relaxed">{item.reason}</p>
-        <RedactionChip redactions={item.reasonRedactions} truncated={item.reasonTruncated} />
+        <p className="whitespace-pre-wrap text-sm text-foreground/80 leading-relaxed">
+          {item.reason}
+        </p>
+        <RedactionChip
+          redactions={item.reasonRedactions}
+          truncated={item.reasonTruncated}
+        />
       </div>
     </Row>
   );

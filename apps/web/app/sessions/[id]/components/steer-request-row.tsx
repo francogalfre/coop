@@ -46,12 +46,16 @@ export function SteerRequestRow({
       >
         <div className="rounded-lg rounded-tl-sm border border-border/60 bg-secondary/30 px-3 py-2 opacity-60">
           <div className="mb-0.5 flex items-center gap-2">
-            <span className="font-medium text-xs text-muted-foreground">{item.author}</span>
+            <span className="font-medium text-xs text-muted-foreground">
+              {item.author}
+            </span>
             <span className="text-3xs text-muted-foreground">
               denied by {item.resolvedBy ?? "the owner"}
             </span>
           </div>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
+            {item.text}
+          </p>
         </div>
       </Row>
     );
@@ -60,7 +64,13 @@ export function SteerRequestRow({
   return (
     <Row
       ts={item.ts}
-      rail={<PersonAvatar name={item.author} avatarUrl={item.authorAvatarUrl} className="relative z-10 size-6 text-3xs" />}
+      rail={
+        <PersonAvatar
+          name={item.author}
+          avatarUrl={item.authorAvatarUrl}
+          className="relative z-10 size-6 text-3xs"
+        />
+      }
     >
       <div className="rounded-lg rounded-tl-sm border border-human/25 bg-human/[0.07] px-3 py-2">
         <div className="mb-0.5 flex items-center gap-2">
@@ -76,7 +86,9 @@ export function SteerRequestRow({
             </span>
           )}
         </div>
-        <p className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">{item.text}</p>
+        <p className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">
+          {item.text}
+        </p>
 
         {item.status === "pending" && isOwner && (
           <div className="mt-2 flex gap-1.5">
