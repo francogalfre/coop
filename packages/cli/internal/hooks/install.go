@@ -22,13 +22,10 @@ type Installed struct {
 // to it (writing settings.local.json, a plugin file, an extension file) is
 // internal/harness's job, once it has BaseURL.
 //
-// It binds cfg.HookAddr and refuses to fall back to a random port: a second
-// attach silently rebinding elsewhere would leave the first attach's harness
-// entries pointing at a dead server. Binding cfg.HookAddr first also means a
-// restarted `coop attach` usually reuses the same URL and stale harness
-// config entries self-heal after a crash.
+// Trying cfg.HookAddr first means a restarted `coop attach` usually reuses the
+// same URL, so stale harness config entries self-heal after a crash.
 func Install(cfg config.Config, steer bool) (*Installed, error) {
-	listener, err := listenHook(cfg.HookAddr)
+	listener, err := listenHook(cfg.HookAddr, cfg.HookAddrExplicit)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +60,31 @@ func Install(cfg config.Config, steer bool) (*Installed, error) {
 	return &Installed{BaseURL: baseURL, Stop: stop}, nil
 }
 
-func listenHook(addr string) (net.Listener, error) {
+func listenHook(addr string, explicit bool) (net.Listener, error) {
 	listener, err := net.Listen("tcp", addr)
-	if err != nil {
+	if err == nil {
+		return listener, nil
+	}
+
+	if explicit {
 		return nil, fmt.Errorf("hooks: listen on %s: %w; another coop session may be holding this address, set COOP_HOOK_ADDR to a free one", addr, err)
 	}
 
-	return listener, nil
+	// Falling back is only safe because callers wire harnesses to the address we
+	// actually bound, never to the one we asked for.
+	fallback, fallbackErr := net.Listen("tcp", freePortOn(addr))
+	if fallbackErr != nil {
+		return nil, fmt.Errorf("hooks: listen on %s: %w; retrying on a free port also failed: %w", addr, err, fallbackErr)
+	}
+
+	return fallback, nil
+}
+
+func freePortOn(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "127.0.0.1:0"
+	}
+
+	return net.JoinHostPort(host, "0")
 }

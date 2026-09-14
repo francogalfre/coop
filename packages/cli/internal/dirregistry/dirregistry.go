@@ -76,9 +76,11 @@ func Register(dir string, e Entry) error {
 	})
 }
 
-// Holding the lock across the check and the write is what stops two attaches
-// started at the same moment from both passing the conflict check.
-func RegisterWithConflictCheck(dir string, e Entry, conflict func(existing []Entry) error) error {
+// Claim runs conflict, install, and the registry write under one directory
+// lock. Harnesses like opencode share a single plugin file, so an install that
+// raced a conflicting attach would overwrite that attach's file and then delete
+// it while rolling back.
+func Claim(dir string, e Entry, conflict func(existing []Entry) error, install func() error) error {
 	return locked(dir, func() error {
 		live, _, err := readLive(dir)
 		if err != nil {
@@ -94,6 +96,10 @@ func RegisterWithConflictCheck(dir string, e Entry, conflict func(existing []Ent
 		}
 
 		if err := conflict(others); err != nil {
+			return err
+		}
+
+		if err := install(); err != nil {
 			return err
 		}
 

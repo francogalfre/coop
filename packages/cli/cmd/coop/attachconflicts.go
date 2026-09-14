@@ -2,19 +2,24 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/francogalfre/coop/packages/cli/internal/dirregistry"
 	"github.com/francogalfre/coop/packages/cli/internal/harness"
 )
 
-func rejectConflictingAttach(dir string, adapters []harness.Adapter) error {
-	active, err := dirregistry.Load(dir)
-	if err != nil {
-		return fmt.Errorf("check active coop sessions in %s: %w", dir, err)
+func claimDirectory(dir, sessionID, baseURL string, adapters []harness.Adapter, install func() error) error {
+	entry := dirregistry.Entry{
+		SessionID: sessionID,
+		PID:       os.Getpid(),
+		BaseURL:   baseURL,
+		Harnesses: adapterNames(adapters),
 	}
 
-	return checkConflict(adapters, active)
+	return dirregistry.Claim(dir, entry, func(active []dirregistry.Entry) error {
+		return checkConflict(adapters, active)
+	}, install)
 }
 
 func checkConflict(adapters []harness.Adapter, active []dirregistry.Entry) error {

@@ -121,22 +121,12 @@ func runAttach(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 
-	installations, err := installHarnesses(dir, installed.BaseURL, adapters)
-	if err != nil {
-		_ = installed.Stop()
-		return err
-	}
-
-	entry := dirregistry.Entry{
-		SessionID: cfg.SessionID,
-		PID:       os.Getpid(),
-		BaseURL:   installed.BaseURL,
-		Harnesses: adapterNames(adapters),
-	}
-	if err := dirregistry.RegisterWithConflictCheck(dir, entry, func(active []dirregistry.Entry) error {
-		return checkConflict(adapters, active)
+	var installations []harness.Installation
+	if err := claimDirectory(dir, cfg.SessionID, installed.BaseURL, adapters, func() error {
+		var installErr error
+		installations, installErr = installHarnesses(dir, installed.BaseURL, adapters)
+		return installErr
 	}); err != nil {
-		removeInstallations(installations)
 		_ = installed.Stop()
 		return err
 	}
@@ -210,24 +200,16 @@ func runWrapped(ctx context.Context, cfg config.Config, args []string) error {
 	}
 	defer installed.Stop()
 
-	installations, err := installHarnesses(dir, installed.BaseURL, adapters)
-	if err != nil {
+	var installations []harness.Installation
+	if err := claimDirectory(dir, cfg.SessionID, installed.BaseURL, adapters, func() error {
+		var installErr error
+		installations, installErr = installHarnesses(dir, installed.BaseURL, adapters)
+		return installErr
+	}); err != nil {
 		return err
 	}
 	defer removeInstallations(installations)
 	defer func() { _ = dirregistry.Unregister(dir, cfg.SessionID) }()
-
-	entry := dirregistry.Entry{
-		SessionID: cfg.SessionID,
-		PID:       os.Getpid(),
-		BaseURL:   installed.BaseURL,
-		Harnesses: adapterNames(adapters),
-	}
-	if err := dirregistry.RegisterWithConflictCheck(dir, entry, func(active []dirregistry.Entry) error {
-		return checkConflict(adapters, active)
-	}); err != nil {
-		return err
-	}
 
 	return ptywrap.Run(ctx, cfg, harnessName, name, cmdArgs)
 }
@@ -274,7 +256,7 @@ func runDetach(args []string) error {
 		return err
 	}
 
-	fmt.Printf("coop detach: removed coop harness entries from %s\n", dir)
+	fmt.Printf("coop detach: no coop harness entries left in %s\n", dir)
 
 	return nil
 }

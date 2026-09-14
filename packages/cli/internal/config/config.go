@@ -9,16 +9,19 @@ import (
 )
 
 type Config struct {
-	RelayURL      string
-	SessionID     string
-	HookAddr      string
-	SessionToken  string
-	CLICredential string
-	UserID        string
-	Username      string
-	DisplayName   string
-	AvatarURL     string
-	Project       string
+	RelayURL  string
+	SessionID string
+	HookAddr  string
+	// HookAddrExplicit records that the operator chose HookAddr, so a bind
+	// failure must surface instead of quietly landing on another port.
+	HookAddrExplicit bool
+	SessionToken     string
+	CLICredential    string
+	UserID           string
+	Username         string
+	DisplayName      string
+	AvatarURL        string
+	Project          string
 	// DisableDiffStreaming defaults false (streaming on) so every existing
 	// Config{} zero value keeps today's behavior; COOP_DISABLE_STREAM_DIFFS
 	// opts out.
@@ -37,6 +40,7 @@ func Load() (Config, error) {
 	}
 
 	hookAddr := os.Getenv("COOP_HOOK_ADDR")
+	hookAddrExplicit := hookAddr != ""
 	if hookAddr == "" {
 		hookAddr = defaultHookAddr
 	}
@@ -72,6 +76,7 @@ func Load() (Config, error) {
 		RelayURL:             relayURL,
 		SessionID:            sessionID,
 		HookAddr:             hookAddr,
+		HookAddrExplicit:     hookAddrExplicit,
 		SessionToken:         sessionToken,
 		CLICredential:        cred.Token,
 		UserID:               cred.UserID,

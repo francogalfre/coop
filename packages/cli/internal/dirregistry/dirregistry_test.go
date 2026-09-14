@@ -189,7 +189,7 @@ func TestLoadMalformedFileFailsExplicitly(t *testing.T) {
 	}
 }
 
-func TestRegisterWithConflictCheckRejectsConflictAtomically(t *testing.T) {
+func TestClaimRejectsConflictAtomically(t *testing.T) {
 	dir := t.TempDir()
 
 	if err := Register(dir, liveEntry("sess-a")); err != nil {
@@ -203,8 +203,8 @@ func TestRegisterWithConflictCheckRejectsConflictAtomically(t *testing.T) {
 		return nil
 	}
 
-	if err := RegisterWithConflictCheck(dir, liveEntry("sess-b"), conflictErr); err == nil {
-		t.Fatal("RegisterWithConflictCheck succeeded, want conflict error")
+	if err := Claim(dir, liveEntry("sess-b"), conflictErr, noInstall); err == nil {
+		t.Fatal("Claim succeeded, want conflict error")
 	}
 
 	entries, err := Load(dir)
@@ -216,13 +216,13 @@ func TestRegisterWithConflictCheckRejectsConflictAtomically(t *testing.T) {
 	}
 }
 
-func TestRegisterWithConflictCheckAllowsNoConflict(t *testing.T) {
+func TestClaimAllowsNoConflict(t *testing.T) {
 	dir := t.TempDir()
 
 	noConflict := func(existing []Entry) error { return nil }
 
-	if err := RegisterWithConflictCheck(dir, liveEntry("sess-a"), noConflict); err != nil {
-		t.Fatalf("RegisterWithConflictCheck error = %v", err)
+	if err := Claim(dir, liveEntry("sess-a"), noConflict, noInstall); err != nil {
+		t.Fatalf("Claim error = %v", err)
 	}
 
 	entries, err := Load(dir)
@@ -233,3 +233,5 @@ func TestRegisterWithConflictCheckAllowsNoConflict(t *testing.T) {
 		t.Fatalf("got %d entries, want 1", len(entries))
 	}
 }
+
+func noInstall() error { return nil }
