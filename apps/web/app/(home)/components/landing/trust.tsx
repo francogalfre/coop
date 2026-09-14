@@ -4,16 +4,16 @@ import { Reveal } from "@/components/ui/reveal";
 
 const RULES = [
   {
-    title: "Secrets never leave the machine",
-    body: "The CLI redacts tokens, keys, and environment values before an event is sent. The relay stores what is left, and the count of what was removed.",
+    title: "Secrets never leave",
+    body: "The CLI strips tokens, keys, and env values before anything is sent.",
   },
   {
-    title: "The owner keeps the controls",
-    body: "Mode changes, permission prompts, and approving a teammate's steer in restricted mode are owner-only. Being able to watch is not the same as being able to act.",
+    title: "The owner keeps control",
+    body: "Mode changes, permissions, and approvals stay with whoever ran the agent.",
   },
   {
-    title: "Only the project can see it",
-    body: "Sessions belong to a project. Watching, steering, and taking over all require membership — there is no public session link.",
+    title: "No public links",
+    body: "Sessions belong to a project. Watching and steering require membership.",
   },
 ];
 
@@ -28,7 +28,11 @@ export function Trust() {
 
       <dl className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70 sm:grid-cols-3">
         {RULES.map((rule, index) => (
-          <Reveal key={rule.title} delay={index * 0.07} className="bg-background">
+          <Reveal
+            key={rule.title}
+            delay={index * 0.07}
+            className="bg-background"
+          >
             <div className="h-full p-6">
               <dt className="font-display font-semibold text-[15px] text-foreground tracking-tight">
                 {rule.title}

@@ -73,6 +73,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-bricolage);
+  --font-editorial: var(--font-instrument-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -140,6 +141,15 @@
 @utility bg-dotgrid {
   background-image: radial-gradient(oklch(1 0 0 / 10%) 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+/* Instrument Serif sits optically large, so headlines need tighter metrics
+   than the grotesque they replace. */
+@utility text-editorial {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  letter-spacing: -0.021em;
+  font-feature-settings: "liga", "dlig";
 }
 
 @layer components {

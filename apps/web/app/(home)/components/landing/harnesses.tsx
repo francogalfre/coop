@@ -29,7 +29,8 @@ const HARNESSES = [
   },
 ];
 
-const GRID = "sm:grid sm:grid-cols-[1.1fr_0.9fr_1.5fr_1.1fr] sm:items-center sm:gap-6";
+const GRID =
+  "sm:grid sm:grid-cols-[1.1fr_0.9fr_1.5fr_1.1fr] sm:items-center sm:gap-6";
 
 export function Harnesses() {
   return (
@@ -56,14 +57,22 @@ export function Harnesses() {
               className={`flex flex-col gap-1.5 border-border/50 border-b py-5 ${GRID}`}
             >
               <span className="flex items-center gap-2.5 font-medium text-[14px] text-foreground">
-                <HarnessLogo harness={harness.id} size={16} className="shrink-0" />
+                <HarnessLogo
+                  harness={harness.id}
+                  size={16}
+                  className="shrink-0"
+                />
                 {harness.name}
               </span>
-              <span className="text-[13px] text-muted-foreground">{harness.mechanism}</span>
+              <span className="text-[13px] text-muted-foreground">
+                {harness.mechanism}
+              </span>
               <code className="truncate font-mono text-xs text-muted-foreground/80">
                 {harness.hook}
               </code>
-              <span className="text-[13px] text-muted-foreground">{harness.concurrent}</span>
+              <span className="text-[13px] text-muted-foreground">
+                {harness.concurrent}
+              </span>
             </li>
           ))}
         </ul>
@@ -72,8 +81,8 @@ export function Harnesses() {
       <Reveal delay={0.18}>
         <p className="mt-6 text-[13px] text-muted-foreground/70">
           Running something else?{" "}
-          <code className="font-mono text-foreground/75">coop run</code> wraps any command in a
-          pty and still streams the session, with less detail.
+          <code className="font-mono text-foreground/75">coop run</code> wraps
+          any command in a pty and still streams the session, with less detail.
         </p>
       </Reveal>
     </Section>

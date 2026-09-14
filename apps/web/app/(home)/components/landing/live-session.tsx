@@ -14,7 +14,9 @@ const RESTART_MS = 4200;
 const SEEDED_ROWS = 3;
 
 function useScriptCursor(enabled: boolean) {
-  const [visible, setVisible] = useState(enabled ? SEEDED_ROWS : liveSessionScript.length);
+  const [visible, setVisible] = useState(
+    enabled ? SEEDED_ROWS : liveSessionScript.length,
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -39,8 +41,14 @@ export function LiveSession() {
   return (
     <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40 shadow-[0_24px_70px_-40px_oklch(0_0_0/0.9)] backdrop-blur-sm">
       <div className="flex items-center gap-2.5 border-border/60 border-b bg-background/60 px-3.5 py-2.5">
-        <HarnessLogo harness="claude-code" size={13} className="shrink-0 text-muted-foreground" />
-        <span className="truncate font-medium text-xs text-foreground">acme/storefront</span>
+        <HarnessLogo
+          harness="claude-code"
+          size={13}
+          className="shrink-0 text-muted-foreground"
+        />
+        <span className="truncate font-medium text-xs text-foreground">
+          acme/storefront
+        </span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-live/12 px-2 py-0.5 font-medium text-2xs text-live">
           <LiveDot />
           Live

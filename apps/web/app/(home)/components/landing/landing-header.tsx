@@ -19,7 +19,12 @@ export function LandingHeader({ onSignIn }: { onSignIn: () => void }) {
         </Link>
 
         <nav className="ml-auto flex items-center gap-1.5">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground text-xs">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground text-xs"
+          >
             <Link href={"/docs" as Route}>Docs</Link>
           </Button>
           <Button size="sm" onClick={onSignIn} className="gap-1.5 text-xs">

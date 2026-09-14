@@ -1,4 +1,9 @@
-import { IconFile, IconLock, IconSparkles, IconTerminal } from "@/components/icons";
+import {
+  IconFile,
+  IconLock,
+  IconSparkles,
+  IconTerminal,
+} from "@/components/icons";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import type { LiveRow } from "./live-session-script";
 
@@ -20,7 +25,9 @@ export function LiveSessionRow({ row }: { row: LiveRow }) {
         <Rail tone="bg-agent/12 text-agent">
           <IconSparkles size={12} />
         </Rail>
-        <p className="pt-0.5 text-[13px] text-foreground/85 leading-relaxed">{row.text}</p>
+        <p className="pt-0.5 text-[13px] text-foreground/85 leading-relaxed">
+          {row.text}
+        </p>
       </div>
     );
   }
@@ -58,8 +65,12 @@ export function LiveSessionRow({ row }: { row: LiveRow }) {
       <div className="flex gap-2.5">
         <PersonAvatar name={row.who} className="size-5 shrink-0 text-[9px]" />
         <div className="min-w-0 rounded-lg rounded-tl-sm border border-human/25 bg-human/8 px-2.5 py-1.5">
-          <p className="font-medium font-mono text-2xs text-human">{row.who} via coop</p>
-          <p className="mt-1 text-[13px] text-foreground/90 leading-relaxed">{row.text}</p>
+          <p className="font-medium font-mono text-2xs text-human">
+            {row.who} via coop
+          </p>
+          <p className="mt-1 text-[13px] text-foreground/90 leading-relaxed">
+            {row.text}
+          </p>
         </div>
       </div>
     );

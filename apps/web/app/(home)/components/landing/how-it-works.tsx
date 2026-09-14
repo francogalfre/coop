@@ -6,17 +6,17 @@ import { Reveal } from "@/components/ui/reveal";
 const STEPS = [
   {
     title: "Create a project",
-    body: "Sign in with GitHub and make a project. Invite the teammates who should be able to watch and steer its sessions.",
+    body: "Sign in with GitHub and invite whoever should be able to watch and steer.",
     code: null,
   },
   {
     title: "Attach next to your agent",
-    body: "Run one command in the repository you are working in. coop installs the harness's own hooks and starts listening — your terminal stays exactly as it was.",
+    body: "One command in your repo. coop installs the harness hooks and starts listening. Your terminal stays exactly as it was.",
     code: "coop attach --project=storefront",
   },
   {
-    title: "Share the session link",
-    body: "Start the agent as usual. Everyone on the project sees the session appear, opens it, and is in the room while it works.",
+    title: "Share the link",
+    body: "Start the agent as usual. The session appears for everyone on the project.",
     code: null,
   },
 ];
@@ -27,8 +27,8 @@ export function HowItWorks() {
       <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-20">
         <SectionHeading
           eyebrow="Getting started"
-          title="Three steps, and your next session is shared"
-          lede="No proxy, no wrapper around your editor, no rewriting how your team already works."
+          title="Three steps to a shared session"
+          lede="No proxy, no wrapper around your editor, no new way of working."
           className="lg:sticky lg:top-28 lg:self-start"
         />
 
@@ -47,7 +47,11 @@ export function HowItWorks() {
                     {step.body}
                   </p>
                   {step.code && (
-                    <CodeBlock body={step.code} copyable className="mt-4 max-w-sm" />
+                    <CodeBlock
+                      body={step.code}
+                      copyable
+                      className="mt-4 max-w-sm"
+                    />
                   )}
                 </div>
               </li>
