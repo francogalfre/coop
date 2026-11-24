@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "cursor": "2026-11-24T18:57:20.778639+00:00",
+  "is_vaccinated": true,
+  "seen_groups": [],
+  "remembered_findings": [
+    {
+      "id": "3933a50a6eb8fc7f",
+      "source": "greptile",
+      "pull_request_number": 3,
+      "url": "https://github.com/francogalfre/coop/pull/3#discussion_r3927365230",
+      "problem": "The sweep's bulk update keys only on the previously selected session IDs, so a session that became active again in between is still ended and its viewers see a false session end.",
+      "severity": "high",
+      "created_at": "2026-09-03T18:12:49Z"
+    },
+    {
+      "id": "b2c899d82e11e115",
+      "source": "greptile",
+      "pull_request_number": 3,
+      "url": "https://github.com/francogalfre/coop/pull/3#discussion_r3927365240",
+      "problem": "The sweep marks all selected rows ended before emitting, so any emit failure is never retried and viewers can be left without a terminal event.",
+      "severity": "high",
+      "created_at": "2026-09-03T18:12:49Z"
+    },
+    {
+      "id": "bbf0507d2b71d73d",
+      "source": "human",
+      "pull_request_number": 3,
+      "url": "https://github.com/francogalfre/coop/pull/3#issuecomment-5530305524",
+      "problem": "An author reply noting both P1 findings were fixed with a conditional single-row staleness update, per-row emit on the sweep, and a regression test.",
+      "severity": "low",
+      "created_at": "2026-09-03T18:30:09Z"
+    },
+    {
+      "id": "8b55e1c11a7f7ff8",
+      "source": "greptile",
+      "pull_request_number": 3,
+      "url": "https://github.com/francogalfre/coop/pull/3#discussion_r3927524197",
+      "problem": "A sweep that grabs the session row lock before a queued event append marks a still-active session ended and broadcasts session.end while events keep flowing.",
+      "severity": "high",
+      "created_at": "2026-09-03T18:32:46Z"
+    },
+    {
+      "id": "7be46c3455b11401",
+      "source": "greptile",
+      "pull_request_number": 3,
+      "url": "https://github.com/francogalfre/coop/pull/3#discussion_r3927524204",
+      "problem": "When persisting the synthetic terminal event fails after the row is already marked ended, only a log is written and later sweeps skip the row, so the terminal event never reaches viewers.",
+      "severity": "high",
+      "created_at": "2026-09-03T18:32:46Z"
+    },
+    {
+      "id": "3ae520476bd552b2",
+      "source": "greptile",
+      "pull_request_number": 4,
+      "url": "https://github.com/francogalfre/coop/pull/4#discussion_r3927631680",
+      "problem": "The README quick start omits the prerequisite login and required --project argument, so the documented attach command fails for a new user.",
+      "severity": "medium",
+      "created_at": "2026-09-03T18:46:13Z"
+    },
+    {
+      "id": "8837e0ac251587ab",
+      "source": "greptile",
+      "pull_request_number": 4,
+      "url": "https://github.com/francogalfre/coop/pull/4#discussion_r3927631685",
+      "problem": "The architecture doc says blocking happens via command hooks and exit code 2, but the real transport is HTTP hooks with a JSON deny, so the documented approach fails open.",
+      "severity": "medium",
+      "created_at": "2026-09-03T18:46:13Z"
+    },
+    {
+      "id": "b9df39dde47b9633",
+      "source": "greptile",
+      "pull_request_number": 4,
+      "url": "https://github.com/francogalfre/coop/pull/4#discussion_r3927631692",
+      "problem": "The self-managed deployment guide never says the proxy must split API and health traffic to the relay and the rest to the web service, leaving one service unreachable.",
+      "severity": "medium",
+      "created_at": "2026-09-03T18:46:13Z"
+    },
+    {
+      "id": "2d038d6780bb400a",
+      "source": "ci",
+      "pull_request_number": 4,
+      "url": "https://github.com/francogalfre/coop/actions/runs/34603421338/job/103275998127",
+      "problem": "A CI job failed with exit code 1, indicating a broken build or failing check.",
+      "severity": "high",
+      "created_at": "2026-09-11T13:18:06Z"
+    }
+  ],
+  "tracked_rules": []
+}
